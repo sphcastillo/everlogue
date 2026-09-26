@@ -14,9 +14,9 @@ export const discussionThread = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'work',
+      name: 'book',
       type: 'reference',
-      to: [{type: 'work'}],
+      to: [{type: 'book'}],
     }),
     defineField({
       name: 'title',

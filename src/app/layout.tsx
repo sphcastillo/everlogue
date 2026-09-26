@@ -1,25 +1,40 @@
 import type {Metadata} from 'next'
 import {ClerkProvider} from '@clerk/nextjs'
-import {Figtree, Fraunces} from 'next/font/google'
-import {AppShell} from '@/components/AppShell'
+import {DM_Mono, DM_Sans, Inter, Playfair_Display} from 'next/font/google'
 import {AuthControl} from '@/components/AuthControl'
 import {getOptionalReader} from '@/lib/reader'
 import './globals.css'
+import Header from '@/components/Header'
 
-const display = Fraunces({
+const display = DM_Sans({
   subsets: ['latin'],
-  variable: '--font-fraunces',
+  weight: ['700', '900'],
+  variable: '--font-dm-sans',
 })
 
-const sans = Figtree({
+const sans = Inter({
   subsets: ['latin'],
-  variable: '--font-figtree',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+})
+
+const accent = Playfair_Display({
+  subsets: ['latin'],
+  style: ['italic'],
+  weight: ['400', '500'],
+  variable: '--font-playfair',
+})
+
+const mono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['500'],
+  variable: '--font-dm-mono',
 })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Read Evermore',
-    template: '%s · Read Evermore',
+    default: 'Everlogue',
+    template: '%s · Everlogue',
   },
   description: 'A home for everything you read.',
 }
@@ -30,13 +45,13 @@ export default async function RootLayout({children}: {children: React.ReactNode}
   return (
     <html lang="en">
       <body
-        className={`${display.variable} ${sans.variable} antialiased`}
-        style={{fontFamily: 'var(--font-figtree), ui-sans-serif, system-ui'}}
+        className={`${display.variable} ${sans.variable} ${accent.variable} ${mono.variable} antialiased`}
+        style={{fontFamily: 'var(--font-inter), ui-sans-serif, system-ui'}}
       >
         <ClerkProvider>
-          <AppShell auth={<AuthControl />} signedIn={Boolean(reader)} spaceColor={reader?.spaceColor}>
+          <Header auth={<AuthControl />} signedIn={Boolean(reader)}  />
             {children}
-          </AppShell>
+
         </ClerkProvider>
       </body>
     </html>

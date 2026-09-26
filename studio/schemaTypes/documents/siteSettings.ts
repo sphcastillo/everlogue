@@ -24,7 +24,7 @@ export const siteSettings = defineType({
       type: 'text',
       rows: 5,
       initialValue:
-        'Fantasy by Year ranks works whose first publication year matches the selected year. The score is the average of current Read Evermore half-star ratings (0.5–5). A work appears in the ranked list only when it has at least 3 ratings. We do not import or invent Goodreads or other community scores. If too few ratings exist, you may see an empty state or a separately labeled editorial collection.',
+        'Fantasy by Year ranks books whose first publication year matches the selected year. The score is the average of current Read Evermore half-star ratings (0.5–5). A book appears in the ranked list only when it has at least 3 ratings. We do not import or invent Goodreads or other community scores. If too few ratings exist, you may see an empty state or a separately labeled editorial collection.',
     }),
     defineField({
       name: 'minimumRatingCount',

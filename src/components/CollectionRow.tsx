@@ -1,16 +1,16 @@
 import Link from 'next/link'
-import {BookCard, type WorkCardData} from './BookCard'
+import {BookCard, type BookCardData} from './BookCard'
 
 export function CollectionRow({
   title,
   href,
   description,
-  works,
+  books,
 }: {
   title: string
   href: string
   description?: string | null
-  works: WorkCardData[]
+  books: BookCardData[]
 }) {
   return (
     <section className="mb-14">
@@ -24,8 +24,8 @@ export function CollectionRow({
         </Link>
       </div>
       <div className="shelf-scroll -mx-1 px-1">
-        {works.slice(0, 12).map((work) => (
-          <BookCard key={work._id} work={work} />
+        {books.slice(0, 12).map((book) => (
+          <BookCard key={book._id} book={book} />
         ))}
       </div>
     </section>

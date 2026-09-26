@@ -3,7 +3,7 @@ import {fetchCatalog} from '@/sanity/fetch'
 import {COMMUNITY_CLUB_BY_SLUG_QUERY} from '@/sanity/queries'
 import {getClubExperience} from '@/lib/actions'
 import {getOptionalReader} from '@/lib/reader'
-import {BookCard, type WorkCardData} from '@/components/BookCard'
+import {BookCard, type BookCardData} from '@/components/BookCard'
 import {ClubActions} from '@/components/ClubActions'
 import {PageHeader} from '@/components/PageHeader'
 
@@ -14,7 +14,7 @@ export default async function ClubPage({params}: {params: Promise<{slug: string}
     name: string
     description?: string
     isDemoClub?: boolean
-    currentRead?: WorkCardData | null
+    currentRead?: BookCardData | null
   } | null>(COMMUNITY_CLUB_BY_SLUG_QUERY, {slug})
   if (!club) notFound()
 
@@ -58,7 +58,7 @@ export default async function ClubPage({params}: {params: Promise<{slug: string}
         <h2 className="font-[family-name:var(--font-display)] text-3xl">Current read</h2>
         {club.currentRead ? (
           <div className="mt-4 w-40">
-            <BookCard work={club.currentRead} />
+            <BookCard book={club.currentRead} />
           </div>
         ) : (
           <p className="mt-3 text-[var(--muted)]">No current read selected.</p>

@@ -14,9 +14,9 @@ export const review = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'work',
+      name: 'book',
       type: 'reference',
-      to: [{type: 'work'}],
+      to: [{type: 'book'}],
       validation: (rule) => rule.required(),
     }),
     defineField({

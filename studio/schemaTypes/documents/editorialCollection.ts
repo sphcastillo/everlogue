@@ -7,7 +7,7 @@ export const editorialCollection = defineType({
   type: 'document',
   icon: DocumentIcon,
   fields: [
-    defineField({name: 'featuredEditions', title: 'Featured editions', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'edition'}]})], description: 'Choose the specific editions featured in this collection. Their covers take priority over the default work cover.'}),
+    defineField({name: 'featuredEditions', title: 'Featured editions', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'edition'}]})], description: 'Choose the specific editions featured in this collection. Their covers take priority over the default book cover.'}),
     defineField({
       name: 'title',
       type: 'string',
@@ -52,9 +52,9 @@ export const editorialCollection = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'works',
+      name: 'books',
       type: 'array',
-      of: [defineArrayMember({type: 'reference', to: [{type: 'work'}]})],
+      of: [defineArrayMember({type: 'reference', to: [{type: 'book'}]})],
     }),
     defineField({
       name: 'year',

@@ -11,17 +11,19 @@ export function BookCover({
   title,
   priority = false,
   className = '',
+  sizes = '(max-width: 768px) 40vw, 180px',
 }: {
   cover?: CoverSource | null
   title: string
   priority?: boolean
   className?: string
+  sizes?: string
 }) {
   const urls = coverUrls(cover)
-  return <CoverImage key={urls.join('|')} urls={urls} title={title} alt={cover?.coverOverride?.alt} priority={priority} className={className} />
+  return <CoverImage key={urls.join('|')} urls={urls} title={title} alt={cover?.coverOverride?.alt} priority={priority} className={className} sizes={sizes} />
 }
 
-function CoverImage({urls, title, alt, priority, className}: {urls: string[]; title: string; alt?: string; priority: boolean; className: string}) {
+function CoverImage({urls, title, alt, priority, className, sizes}: {urls: string[]; title: string; alt?: string; priority: boolean; className: string; sizes: string}) {
   const [index, setIndex] = useState(0)
   const src = urls[index]
   return (
@@ -31,7 +33,7 @@ function CoverImage({urls, title, alt, priority, className}: {urls: string[]; ti
           src={src}
           alt={index === 0 && alt ? alt : `Cover of ${title}`}
           fill
-          sizes="(max-width: 768px) 40vw, 180px"
+          sizes={sizes}
           className="object-cover"
           priority={priority}
           unoptimized={src.includes('books.google') || src.includes('covers.openlibrary.org')}

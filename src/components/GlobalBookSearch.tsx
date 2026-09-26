@@ -5,9 +5,12 @@ import {useEffect, useId, useRef, useState} from 'react'
 import {BookCover} from './BookCover'
 import {bookTitle, coverSrc, type GoogleBook, type GoogleSearchResponse} from '@/lib/google-books'
 
-export function GlobalBookSearch() {
-  const inputId = useId()
+export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | 'header'}) {
+  const generatedId = useId()
+  const header = variant === 'header'
+  const inputId = header ? 'header-book-search' : generatedId
   const rootRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle')
@@ -21,6 +24,10 @@ export function GlobalBookSearch() {
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') setOpen(false)
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -28,7 +35,7 @@ export function GlobalBookSearch() {
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [])
+  }, [inputId])
 
   async function searchBooks(value: string) {
     const q = value.trim()
@@ -61,19 +68,33 @@ export function GlobalBookSearch() {
   }
 
   return (
-    <div ref={rootRef} className="relative max-w-2xl mx-auto">
+    <div ref={rootRef} className={header ? 'relative w-72 min-w-0' : 'relative mx-auto max-w-2xl'}>
       <form
         role="search"
-        className="flex items-center gap-2"
+        className={
+          header
+            ? 'flex h-11 items-center gap-2.5 rounded-md border bg-paper px-4 !border-[#d6d6d6]'
+            : 'flex items-center gap-2'
+        }
         onSubmit={(event) => {
           event.preventDefault()
           void searchBooks(query)
+        }}
+        onClick={() => {
+          if (header) inputRef.current?.focus()
         }}
       >
         <label htmlFor={inputId} className="sr-only">
           Search books
         </label>
+        {header ? (
+          <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-muted" fill="none" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.2" stroke="currentColor" strokeWidth="1.4" />
+            <path d="m10.2 10.2 3 3" stroke="currentColor" strokeWidth="1.4" />
+          </svg>
+        ) : null}
         <input
+          ref={inputRef}
           id={inputId}
           name="q"
           type="search"
@@ -84,38 +105,54 @@ export function GlobalBookSearch() {
           }}
           minLength={2}
           maxLength={200}
-          placeholder="Search books by title, author, or ISBN"
+          placeholder={header ? 'Books, people, ideas' : 'Search books by title, author, or ISBN'}
           autoComplete="off"
-          className="field min-w-0 flex-1"
+          className={
+            header
+              ? 'min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-ink outline-none placeholder:text-muted'
+              : 'min-w-0 flex-1 rounded-xl border border-ink/10 bg-white/80 px-3.5 py-2.5 outline-none focus:border-accent'
+          }
         />
-        <button type="submit" className="pill is-active shrink-0 px-4 py-2.5 text-sm" disabled={status === 'loading'}>
-          {status === 'loading' ? 'Searching…' : 'Search'}
-        </button>
+        {header ? (
+          <kbd className="shrink-0 font-sans text-sm font-normal text-muted">⌘K</kbd>
+        ) : (
+          <button
+            type="submit"
+            className="shrink-0 rounded-full bg-ink px-4 py-2.5 text-sm text-paper disabled:opacity-60"
+            disabled={status === 'loading'}
+          >
+            {status === 'loading' ? 'Searching…' : 'Search'}
+          </button>
+        )}
       </form>
       {open ? (
         <div
-          className="absolute inset-x-0 top-[calc(100%+10px)] z-40 max-h-[min(28rem,70vh)] overflow-auto rounded-[20px] bg-[var(--paper)] p-3 shadow-[var(--shadow)]"
+          className="absolute inset-x-0 top-full z-40 mt-2.5 max-h-112 overflow-auto rounded-2xl bg-paper p-3 shadow-lg"
           role="region"
           aria-live="polite"
           aria-label="Book search results"
         >
-          {status === 'loading' ? <p className="px-3 py-4 text-sm text-[var(--muted)]">Searching for books…</p> : null}
+          {status === 'loading' ? <p className="px-3 py-4 text-sm text-muted">Searching for books…</p> : null}
           {status === 'error' ? (
             <div className="px-3 py-4">
               <p role="alert" className="text-sm">
                 {error}
               </p>
-              <button type="button" className="pill mt-3 px-4 py-2 text-sm" onClick={() => void searchBooks(query)}>
+              <button
+                type="button"
+                className="mt-3 rounded-full border border-ink/10 bg-white/80 px-4 py-2 text-sm hover:bg-white"
+                onClick={() => void searchBooks(query)}
+              >
                 Try again
               </button>
             </div>
           ) : null}
           {status === 'done' && !books.length ? (
-            <p className="px-3 py-4 text-sm text-[var(--muted)]">No books found. Try a different title, author, or ISBN.</p>
+            <p className="px-3 py-4 text-sm text-muted">No books found. Try a different title, author, or ISBN.</p>
           ) : null}
           {status === 'done' && books.length ? (
             <>
-              <p className="px-3 pb-2 text-xs text-[var(--muted)]">
+              <p className="px-3 pb-2 text-xs text-muted">
                 {total.toLocaleString('en-US')} {total === 1 ? 'book' : 'books'} matching “{query.trim()}”
               </p>
               <ul className="grid gap-1">
@@ -128,18 +165,26 @@ export function GlobalBookSearch() {
                     <li key={book.id}>
                       <Link
                         href={`/search/${book.id}`}
-                        className="flex gap-3 rounded-2xl px-3 py-2 hover:bg-[color-mix(in_srgb,var(--accent-soft)_55%,white)]"
+                        className="flex gap-3 rounded-2xl px-3 py-2 hover:bg-ink/5"
                         onClick={() => {
                           console.log('[search] Selected book', book)
                           setOpen(false)
                         }}
                       >
-                        <BookCover cover={{coverUrl: cover, isbn13: book.volumeInfo?.industryIdentifiers?.find((id) => id.type === 'ISBN_13')?.identifier, isbn10: book.volumeInfo?.industryIdentifiers?.find((id) => id.type === 'ISBN_10')?.identifier}} title={title} className="h-16 w-11 shrink-0 rounded-md" />
+                        <BookCover
+                          cover={{
+                            coverUrl: cover,
+                            isbn13: book.volumeInfo?.industryIdentifiers?.find((id) => id.type === 'ISBN_13')?.identifier,
+                            isbn10: book.volumeInfo?.industryIdentifiers?.find((id) => id.type === 'ISBN_10')?.identifier,
+                          }}
+                          title={title}
+                          className="h-16 w-11 shrink-0 rounded-md"
+                        />
                         <div className="min-w-0">
                           <p className="truncate font-medium leading-snug">{title}</p>
-                          <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{authors || 'Author unknown'}</p>
-                          {year ? <p className="mt-0.5 text-xs text-[var(--muted)]">{year}</p> : null}
-                          <p className="mt-1 text-xs text-[var(--accent)]">View book</p>
+                          <p className="mt-0.5 truncate text-sm text-muted">{authors || 'Author unknown'}</p>
+                          {year ? <p className="mt-0.5 text-xs text-muted">{year}</p> : null}
+                          <p className="mt-1 text-xs text-accent">View book</p>
                         </div>
                       </Link>
                     </li>

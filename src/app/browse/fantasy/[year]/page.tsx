@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {fetchCatalog} from '@/sanity/fetch'
-import {SITE_SETTINGS_QUERY, workCardFields} from '@/sanity/queries'
-import {BookCard, type WorkCardData} from '@/components/BookCard'
+import {SITE_SETTINGS_QUERY, bookCardFields} from '@/sanity/queries'
+import {BookCard, type BookCardData} from '@/components/BookCard'
 import {EmptyState} from '@/components/States'
 import {PageHeader} from '@/components/PageHeader'
 
@@ -17,8 +17,8 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
   )
   const minimum = settings?.minimumRatingCount || 3
 
-  const ranked = await fetchCatalog<WorkCardData[]>(
-    `*[_type == "work" && firstPublicationYear == $year && "fantasy" in genres[]->slug.current && ratingStats.count >= $minimum] | order(ratingStats.average desc, title asc){ ${workCardFields} }`,
+  const ranked = await fetchCatalog<BookCardData[]>(
+    `*[_type == "book" && firstPublicationYear == $year && "fantasy" in genres[]->slug.current && ratingStats.count >= $minimum] | order(ratingStats.average desc, title asc){ ${bookCardFields} }`,
     {year, minimum},
   )
   const editorial = await fetchCatalog<{
@@ -26,10 +26,10 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
     slug?: string
     editorialLabel?: string
     description?: string
-    works?: WorkCardData[]
+    books?: BookCardData[]
   } | null>(
     `*[_type == "editorialCollection" && kind == "fantasyByYear" && year == $year && workflowStatus == "approved"][0]{
-      title, "slug": slug.current, editorialLabel, description, "works": works[]->{ ${workCardFields} }
+      title, "slug": slug.current, editorialLabel, description, "books": books[]->{ ${bookCardFields} }
     }`,
     {year},
   )
@@ -55,19 +55,19 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
       </div>
       {ranked.length ? (
         <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4">
-          {ranked.map((work) => (
-            <BookCard key={work._id} work={work} fill />
+          {ranked.map((book) => (
+            <BookCard key={book._id} book={book} fill />
           ))}
         </div>
       ) : (
         <div className="mt-10">
           <EmptyState
             title="Not enough Read Evermore ratings yet"
-            body={`No fantasy work first published in ${year} currently has at least ${minimum} in-app ratings. We do not invent community scores.`}
+            body={`No fantasy book first published in ${year} currently has at least ${minimum} in-app ratings. We do not invent community scores.`}
           />
         </div>
       )}
-      {editorial?.works?.length ? (
+      {editorial?.books?.length ? (
         <section className="mt-12">
           <p className="pill inline-block px-3 py-1 text-sm">
             {editorial.editorialLabel || 'Editorial collection — not a community ranking'}
@@ -75,8 +75,8 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl">{editorial.title}</h2>
           <p className="mt-2 text-[var(--muted)]">{editorial.description}</p>
           <div className="mt-6 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4">
-            {editorial.works.map((work) => (
-              <BookCard key={work._id} work={work} fill />
+            {editorial.books.map((book) => (
+              <BookCard key={book._id} book={book} fill />
             ))}
           </div>
         </section>

@@ -5,22 +5,25 @@ export const editionCoverFields = /* groq */ `
   coverOverride{asset->{_id, url}, alt, hotspot, crop}
 `
 
-export const workCardFields = /* groq */ `
+export const bookCoverProjection = /* groq */ `coalesce(
+  select(defined(coverOverride.asset) => @{${editionCoverFields}}),
+  (^.featuredEditions[]->)[book._ref == ^._id][0]{${editionCoverFields}},
+  edition->{${editionCoverFields}},
+  select(defined(cover.url) || defined(coverUrl) => @{${editionCoverFields}}),
+  *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{${editionCoverFields}},
+  @{${editionCoverFields}}
+)`
+
+export const bookCardFields = /* groq */ `
   _id,
   title,
-  "slug": slug.current,
+  "slug": coalesce(slug.current, _id),
   firstPublicationYear,
   description,
   ratingStats,
-  "authors": authors[]->{ _id, name, "slug": slug.current },
+  "authors": authors,
   "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },
-  "cover": coalesce((^.featuredEditions[]->)[work._ref == ^._id][0]{${editionCoverFields}}, *[_type == "edition" && work._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc, firstPublicationOfWork desc)[0]{
-    ${editionCoverFields},
-    isReprint,
-    firstPublicationOfWork,
-    onSaleDate,
-    market
-  })
+  "cover": ${bookCoverProjection}
 `
 
 export const SITE_SETTINGS_QUERY = defineQuery(`
@@ -39,7 +42,7 @@ export const DISCOVER_COLLECTIONS_QUERY = defineQuery(`
     title,
     "slug": slug.current,
     description,
-    "works": works[]->{ ${workCardFields} }
+    "books": books[]->{ ${bookCardFields} }
   }
 `)
 
@@ -47,11 +50,11 @@ export const curatedBookFields = /* groq */ `
   _id,
   title,
   authors,
-  "slug": slug.current,
+  "slug": coalesce(slug.current, _id),
   googleBooksId,
   publishedDate,
   isbn10, isbn13, coverOverride{asset->{_id, url}, alt, hotspot, crop},
-  "edition": edition->{${editionCoverFields}},
+  "edition": ${bookCoverProjection},
   cover
 `
 
@@ -103,18 +106,18 @@ export const COLLECTION_BY_SLUG_QUERY = defineQuery(`
     description,
     editorialLabel,
     kind,
-    "works": works[]->{ ${workCardFields} }
+    "books": books[]->{ ${bookCardFields} }
   }
 `)
 
-export const WORK_BY_SLUG_QUERY = defineQuery(`
-  *[_type == "work" && slug.current == $slug][0]{
-    ${workCardFields},
+export const BOOK_BY_SLUG_QUERY = defineQuery(`
+  *[_type == "book" && (slug.current == $slug || _id == $slug || $slug in slugAliases || $slug in legacyWorkIds)][0]{
+    ${bookCardFields},
     subtitle,
     firstPublicationDate,
     openLibraryWorkKey,
     provenance,
-    "editions": *[_type == "edition" && work._ref == ^._id] | order(onSaleDate desc){
+    "editions": *[_type == "edition" && book._ref == ^._id] | order(onSaleDate desc){
       _id,
       title,
       isbn13,
@@ -123,7 +126,7 @@ export const WORK_BY_SLUG_QUERY = defineQuery(`
       publisher,
       onSaleDate,
       isReprint,
-      firstPublicationOfWork,
+      firstPublicationOfBook,
       ${editionCoverFields}
     }
   }
@@ -163,7 +166,7 @@ export const CELEBRITY_CLUBS_QUERY = defineQuery(`
       sourceUrl,
       verifiedAt,
       emptyReason,
-      "works": works[]->{ ${workCardFields} }
+      "books": books[]->{ ${bookCardFields} }
     }
   }
 `)
@@ -182,7 +185,7 @@ export const CELEBRITY_CLUB_BY_SLUG_QUERY = defineQuery(`
       sourceUrl,
       verifiedAt,
       emptyReason,
-      "works": works[]->{ ${workCardFields} }
+      "books": books[]->{ ${bookCardFields} }
     }
   }
 `)
@@ -194,7 +197,7 @@ export const COMMUNITY_CLUBS_QUERY = defineQuery(`
     "slug": slug.current,
     description,
     isDemoClub,
-    "currentRead": currentRead->{ ${workCardFields} }
+    "currentRead": currentRead->{ ${bookCardFields} }
   }
 `)
 
@@ -206,6 +209,6 @@ export const COMMUNITY_CLUB_BY_SLUG_QUERY = defineQuery(`
     description,
     visibility,
     isDemoClub,
-    "currentRead": currentRead->{ ${workCardFields} }
+    "currentRead": currentRead->{ ${bookCardFields} }
   }
 `)

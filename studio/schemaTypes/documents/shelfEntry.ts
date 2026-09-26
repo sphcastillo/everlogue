@@ -15,9 +15,9 @@ export const shelfEntry = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'work',
+      name: 'book',
       type: 'reference',
-      to: [{type: 'work'}],
+      to: [{type: 'book'}],
       validation: (rule) => rule.required(),
     }),
     defineField({
@@ -27,9 +27,9 @@ export const shelfEntry = defineType({
     }),
   ],
   preview: {
-    select: {work: 'work.title', shelf: 'shelf.name'},
-    prepare({work, shelf}) {
-      return {title: work, subtitle: shelf}
+    select: {book: 'book.title', shelf: 'shelf.name'},
+    prepare({book, shelf}) {
+      return {title: book, subtitle: shelf}
     },
   },
 })

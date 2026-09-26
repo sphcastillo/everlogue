@@ -21,12 +21,12 @@ export const edition = defineType({
     defineField({
       name: 'title',
       type: 'string',
-      description: 'Edition-specific title if it differs from the work.',
+      description: 'Edition-specific title if it differs from the book.',
     }),
     defineField({
-      name: 'work',
+      name: 'book',
       type: 'reference',
-      to: [{type: 'work'}],
+      to: [{type: 'book'}],
       validation: (rule) => rule.required(),
     }),
     defineField({
@@ -73,13 +73,13 @@ export const edition = defineType({
       name: 'isReprint',
       type: 'boolean',
       initialValue: false,
-      description: 'True when this edition is a reprint or reissue, not a first publication of the work.',
+      description: 'True when this edition is a reprint or reissue, not a first publication of the book.',
     }),
     defineField({
-      name: 'firstPublicationOfWork',
+      name: 'firstPublicationOfBook',
       type: 'boolean',
       initialValue: false,
-      description: 'True only when this edition is the first publication of the work.',
+      description: 'True only when this edition is the first publication of the book.',
     }),
     defineField({
       name: 'coverOpenLibraryId',
@@ -118,13 +118,13 @@ export const edition = defineType({
   preview: {
     select: {
       title: 'title',
-      workTitle: 'work.title',
+      bookTitle: 'book.title',
       isbn: 'isbn13',
       reprint: 'isReprint',
     },
-    prepare({title, workTitle, isbn, reprint}) {
+    prepare({title, bookTitle, isbn, reprint}) {
       return {
-        title: title || workTitle || 'Untitled edition',
+        title: title || bookTitle || 'Untitled edition',
         subtitle: [isbn, reprint ? 'Reprint' : 'Original-or-unknown'].filter(Boolean).join(' · '),
       }
     },

@@ -13,6 +13,12 @@ import {
 } from '@sanity/icons'
 
 const SINGLETONS = ['siteSettings']
+const SPOTLIGHT_CLUBS = [
+  {title: 'GMA Book Club', documentId: 'curatedCollection.gma-book-club'},
+  {title: "Oprah's Book Club", documentId: 'curatedCollection.oprahs-book-club'},
+  {title: 'Read with Jenna', documentId: 'curatedCollection.read-with-jenna'},
+  {title: "Reese's Book Club", documentId: 'curatedCollection.reeses-book-club'},
+]
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -30,7 +36,7 @@ export const structure: StructureResolver = (S) =>
           S.list()
             .title('Catalog')
             .items([
-              S.documentTypeListItem('work').title('Works').icon(BookIcon),
+              S.documentTypeListItem('book').title('Books').icon(BookIcon),
               S.documentTypeListItem('edition').title('Editions'),
               S.listItem().title('Editions needing covers').child(
                 S.documentTypeList('edition').title('Editions needing covers')
@@ -51,16 +57,24 @@ export const structure: StructureResolver = (S) =>
       S.listItem()
         .title('Collections')
         .icon(DocumentIcon)
-        .child(S.documentTypeList('editorialCollection').title('Editorial collections')),
-      S.listItem()
-        .title('Celebrity clubs')
-        .icon(StarIcon)
         .child(
           S.list()
-            .title('Celebrity clubs')
+            .title('Collections')
             .items([
-              S.documentTypeListItem('celebrityClub').title('Clubs'),
-              S.documentTypeListItem('celebritySelection').title('Monthly selections'),
+              S.listItem()
+                .title('The Book Club Spotlight')
+                .icon(StarIcon)
+                .child(
+                  S.list()
+                    .title('The Book Club Spotlight')
+                    .items(SPOTLIGHT_CLUBS.map(({title, documentId}) =>
+                      S.listItem()
+                        .id(documentId)
+                        .title(title)
+                        .icon(BookIcon)
+                        .child(S.document().schemaType('curatedCollection').documentId(documentId).title(title)),
+                    )),
+                ),
             ]),
         ),
       S.listItem()
@@ -112,11 +126,12 @@ export const structure: StructureResolver = (S) =>
           !!id &&
           !SINGLETONS.includes(id) &&
           ![
-            'work',
+            'book',
             'edition',
             'author',
             'genre',
             'editorialCollection',
+            'curatedCollection',
             'bestsellerSource',
             'celebrityClub',
             'celebritySelection',

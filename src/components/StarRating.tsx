@@ -5,11 +5,11 @@ import {saveRatingAction} from '@/lib/server-actions'
 import {HALF_STARS} from '@/lib/validation'
 
 export function StarRating({
-  workId,
+  bookId,
   value,
   signedIn,
 }: {
-  workId: string
+  bookId: string
   value: number | null
   signedIn: boolean
 }) {
@@ -20,7 +20,7 @@ export function StarRating({
     if (!signedIn) return
     start(async () => {
       setOptimistic(next)
-      await saveRatingAction(workId, next)
+      await saveRatingAction(bookId, next)
     })
   }
 

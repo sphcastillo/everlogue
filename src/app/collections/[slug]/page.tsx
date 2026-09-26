@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {notFound} from 'next/navigation'
 import {fetchCatalog} from '@/sanity/fetch'
 import {COLLECTION_BY_SLUG_QUERY, CURATED_COLLECTION_BY_SLUG_QUERY} from '@/sanity/queries'
-import {BookCard, type WorkCardData} from '@/components/BookCard'
+import {BookCard, type BookCardData} from '@/components/BookCard'
 import {BookCover} from '@/components/BookCover'
 import {PageHeader} from '@/components/PageHeader'
 import {clubSelectionLabel} from '@/lib/club-selection-dates'
@@ -16,7 +16,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
       title: string
       description?: string
       editorialLabel?: string
-      works?: WorkCardData[]
+      books?: BookCardData[]
     } | null>(COLLECTION_BY_SLUG_QUERY, {slug}),
     fetchCatalog<CarouselCollection | null>(CURATED_COLLECTION_BY_SLUG_QUERY, {slug}),
   ])
@@ -29,8 +29,8 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
           <p className="pill mt-4 inline-block px-3 py-1 text-sm">{editorial.editorialLabel}</p>
         ) : null}
         <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {(editorial.works || []).map((work) => (
-            <BookCard key={work._id} work={work} fill />
+          {(editorial.books || []).map((book) => (
+            <BookCard key={book._id} book={book} fill />
           ))}
         </div>
       </div>
@@ -56,7 +56,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
       <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {entries.map((entry) => {
           const book = entry.book!
-          const href = book.googleBooksId ? `/search/${book.googleBooksId}` : '#'
+          const href = `/books/${book.slug || book._id}`
           const year = book.publishedDate?.slice(0, 4)
           const selected = clubSelectionLabel(curated, entry)
           return (

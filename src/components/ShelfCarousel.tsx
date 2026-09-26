@@ -1,7 +1,7 @@
 'use client'
 
 import {useRef} from 'react'
-import {BookCard, type WorkCardData} from './BookCard'
+import {BookCard, type BookCardData} from './BookCard'
 
 export function ShelfCarousel({
   id,
@@ -12,7 +12,7 @@ export function ShelfCarousel({
   id: string
   title: string
   description?: string
-  books: WorkCardData[]
+  books: BookCardData[]
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const count = books.length
@@ -77,8 +77,8 @@ export function ShelfCarousel({
                   tabIndex={0}
                   aria-label={`${title} books`}
                 >
-                  {books.map((work) => (
-                    <BookCard key={work._id} work={work} compact resolveMissingCover />
+                  {books.map((book) => (
+                    <BookCard key={book._id} book={book} compact resolveMissingCover />
                   ))}
                 </div>
               </div>

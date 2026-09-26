@@ -14,13 +14,13 @@ function database(initial: Doc[] = []) {
   const client = {
     async fetch(query: string, params: Record<string, string>) {
       const all = [...docs.values()]
-      if (query.startsWith('coalesce')) return all.find((doc) => doc._type === 'work' && (doc.importKey === params.importKey || String(doc.title).toLowerCase() === params.title))?._id || null
+      if (query.startsWith('coalesce')) return all.find((doc) => doc._type === 'book' && (doc.importKey === params.importKey || String(doc.title).toLowerCase() === params.title))?._id || null
       if (query.includes('_type == "author"')) return all.find((doc) => doc._type === 'author')?._id || null
       if (query.includes('_type == "rating"')) {
-        const ratings = all.filter((doc) => doc._type === 'rating' && ref(doc.work) === params.workId && (!params.readerId || ref(doc.reader) === params.readerId))
+        const ratings = all.filter((doc) => doc._type === 'rating' && ref(doc.book) === params.bookId && (!params.readerId || ref(doc.reader) === params.readerId))
         return query.includes('.value') ? ratings.map((doc) => doc.value) : ratings.length > 0
       }
-      return all.some((doc) => doc._type === 'readingProgress' && ref(doc.reader) === params.readerId && ref(doc.work) === params.workId)
+      return all.some((doc) => doc._type === 'readingProgress' && ref(doc.reader) === params.readerId && ref(doc.book) === params.bookId)
     },
     async create(doc: Record<string, unknown>) {
       const result = {...doc, _id: String(doc._id || `generated-${++sequence}`)}
@@ -56,7 +56,7 @@ function database(initial: Doc[] = []) {
 }
 
 test('saves imported dates and correct shelf, preserving existing entries on reimport', async () => {
-  const {client, docs} = database([{_id: 'existing-book', _type: 'work', title: book.title}])
+  const {client, docs} = database([{_id: 'existing-book', _type: 'book', title: book.title}])
   assert.equal((await importGoodreadsBook(client, 'reader-1', book)).status, 'imported')
   const progress = docs.get('progress-reader-1-existing-book')!
   assert.equal(progress.finishedAt, '2020-01-02')
@@ -72,7 +72,7 @@ test('saves imported dates and correct shelf, preserving existing entries on rei
 })
 
 test('reimport fills a missing rating without changing the existing shelf or dates', async () => {
-  const {client, docs} = database([{_id: 'existing-book', _type: 'work', title: book.title}])
+  const {client, docs} = database([{_id: 'existing-book', _type: 'book', title: book.title}])
   await importGoodreadsBook(client, 'reader', {...book, rating: undefined, status: 'wantToRead'})
   assert.equal((await importGoodreadsBook(client, 'reader', book)).status, 'updated')
   assert.equal(docs.get('rating-reader-existing-book')?.value, 4)
@@ -84,19 +84,19 @@ test('reimport fills a missing rating without changing the existing shelf or dat
 
 test('a pre-existing rating does not prevent importing shelf membership', async () => {
   const {client, docs} = database([
-    {_id: 'existing-book', _type: 'work', title: book.title},
-    {_id: 'rating-reader-existing-book', _type: 'rating', reader: {_ref: 'reader'}, work: {_ref: 'existing-book'}, value: 2},
+    {_id: 'existing-book', _type: 'book', title: book.title},
+    {_id: 'rating-reader-existing-book', _type: 'rating', reader: {_ref: 'reader'}, book: {_ref: 'existing-book'}, value: 2},
   ])
   assert.equal((await importGoodreadsBook(client, 'reader', book)).status, 'imported')
   assert.equal(docs.get('rating-reader-existing-book')?.value, 2)
   assert.ok(docs.has('progress-reader-existing-book'))
 })
 
-test('concurrent imports create one work and one library entry', async () => {
+test('concurrent imports create one book and one library entry', async () => {
   const {client, docs} = database()
   const results = await Promise.all([importGoodreadsBook(client, 'reader', book), importGoodreadsBook(client, 'reader', book)])
   assert.equal(results.filter((result) => result.status === 'imported').length, 1)
-  assert.equal([...docs.values()].filter((doc) => doc._type === 'work').length, 1)
+  assert.equal([...docs.values()].filter((doc) => doc._type === 'book').length, 1)
   assert.equal([...docs.values()].filter((doc) => doc._type === 'shelfEntry').length, 1)
 })
 
@@ -107,5 +107,5 @@ test('failed writes leave no partial reading progress and can be retried', async
   assert.equal([...docs.values()].filter((doc) => doc._type === 'readingProgress').length, 0)
   setFailure(false)
   assert.equal((await importGoodreadsBook(client, 'reader', book)).status, 'imported')
-  assert.equal([...docs.values()].filter((doc) => doc._type === 'work').length, 1)
+  assert.equal([...docs.values()].filter((doc) => doc._type === 'book').length, 1)
 })

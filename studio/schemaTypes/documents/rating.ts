@@ -14,9 +14,9 @@ export const rating = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'work',
+      name: 'book',
       type: 'reference',
-      to: [{type: 'work'}],
+      to: [{type: 'book'}],
       validation: (rule) => rule.required(),
     }),
     defineField({
@@ -33,9 +33,9 @@ export const rating = defineType({
     }),
   ],
   preview: {
-    select: {value: 'value', work: 'work.title'},
-    prepare({value, work}) {
-      return {title: `${value ?? '—'} ★`, subtitle: work}
+    select: {value: 'value', book: 'book.title'},
+    prepare({value, book}) {
+      return {title: `${value ?? '—'} ★`, subtitle: book}
     },
   },
 })

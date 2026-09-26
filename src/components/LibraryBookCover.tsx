@@ -7,20 +7,20 @@ import {coverCandidates} from '@/lib/book-covers'
 // Bound client requests so a long shelf doesn't start hundreds of lookups.
 let queue = Promise.resolve()
 const requests = new Map<string, Promise<CoverSource | null>>()
-function lookup(workId: string) {
-  const existing = requests.get(workId)
+function lookup(bookId: string) {
+  const existing = requests.get(bookId)
   if (existing) return existing
   const result = queue.then(async () => {
-    const response = await fetch(`/api/library/covers/${encodeURIComponent(workId)}`, {method: 'POST'})
+    const response = await fetch(`/api/library/covers/${encodeURIComponent(bookId)}`, {method: 'POST'})
     if (!response.ok) throw new Error('Cover lookup failed')
     return (await response.json()).cover as CoverSource | null
   })
-  requests.set(workId, result)
-  queue = result.then(() => {}, () => { requests.delete(workId) })
+  requests.set(bookId, result)
+  queue = result.then(() => {}, () => { requests.delete(bookId) })
   return result
 }
 
-export function LibraryBookCover({workId, cover, title, className}: {workId: string; cover?: CoverSource | null; title: string; className: string}) {
+export function LibraryBookCover({bookId, cover, title, className}: {bookId: string; cover?: CoverSource | null; title: string; className: string}) {
   const root = useRef<HTMLDivElement>(null)
   const [resolved, setResolved] = useState<CoverSource | null>(null)
   const missing = !coverCandidates(cover).length && !cover?.coverOverride?.asset
@@ -30,10 +30,10 @@ export function LibraryBookCover({workId, cover, title, className}: {workId: str
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return
       observer.disconnect()
-      void lookup(workId).then((value) => { if (!cancelled) setResolved(value) }).catch(() => {})
+      void lookup(bookId).then((value) => { if (!cancelled) setResolved(value) }).catch(() => {})
     }, {rootMargin: '200px'})
     observer.observe(root.current)
     return () => { cancelled = true; observer.disconnect() }
-  }, [workId, missing])
+  }, [bookId, missing])
   return <div ref={root}><BookCover cover={missing ? resolved || cover : cover} title={title} className={className} /></div>
 }

@@ -1,5 +1,5 @@
 import {getMyBooks} from '@/lib/actions'
-import {type WorkCardData} from '@/components/BookCard'
+import {type BookCardData} from '@/components/BookCard'
 import {EmptyState} from '@/components/States'
 import {ShelfCarousel} from '@/components/ShelfCarousel'
 
@@ -11,7 +11,7 @@ export default async function MyBooksPage() {
       _id: string
       name: string
       kind: string
-      entries?: {work?: WorkCardData | null}[]
+      entries?: {book?: BookCardData | null}[]
     }[]
   } | null
 
@@ -27,7 +27,7 @@ export default async function MyBooksPage() {
   return (
     <div className="space-y-6">
       {(data.shelves || []).map((shelf) => {
-        const books = (shelf.entries || []).flatMap((entry) => (entry.work ? [entry.work] : []))
+        const books = (shelf.entries || []).flatMap((entry) => (entry.book ? [entry.book] : []))
         return (
           <ShelfCarousel
             key={shelf._id}

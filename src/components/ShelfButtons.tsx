@@ -10,11 +10,11 @@ const OPTIONS = [
 ] as const
 
 export function ShelfButtons({
-  workId,
+  bookId,
   status,
   signedIn,
 }: {
-  workId: string
+  bookId: string
   status: string | null
   signedIn: boolean
 }) {
@@ -25,7 +25,7 @@ export function ShelfButtons({
     if (!signedIn) return
     start(async () => {
       setOptimistic(next)
-      await saveStatusAction(workId, next)
+      await saveStatusAction(bookId, next)
     })
   }
 

@@ -1,10 +1,12 @@
 import {author} from './documents/author'
 import {catalogImportIdentity} from './documents/catalogImportIdentity'
 import {bestsellerSource} from './documents/bestsellerSource'
+import {book} from './documents/book'
 import {celebrityClub} from './documents/celebrityClub'
 import {celebritySelection} from './documents/celebritySelection'
 import {clubMembership} from './documents/clubMembership'
 import {communityClub} from './documents/communityClub'
+import {curatedCollection} from './documents/curatedCollection'
 import {discussionPost} from './documents/discussionPost'
 import {discussionThread} from './documents/discussionThread'
 import {edition} from './documents/edition'
@@ -20,7 +22,6 @@ import {shelf} from './documents/shelf'
 import {shelfEntry} from './documents/shelfEntry'
 import {siteSettings} from './documents/siteSettings'
 import {vote} from './documents/vote'
-import {work} from './documents/work'
 import {ratingStats} from './objects/ratingStats'
 import {sourceProvenance} from './objects/sourceProvenance'
 
@@ -28,8 +29,9 @@ export const schemaTypes = [
   catalogImportIdentity,
   sourceProvenance,
   ratingStats,
-  work,
   edition,
+  book,
+  curatedCollection,
   author,
   genre,
   editorialCollection,

@@ -1,16 +1,15 @@
-import {Show, SignInButton, SignUpButton} from '@clerk/nextjs'
+import {Show, SignInButton} from '@clerk/nextjs'
 import {AccountMenu} from './AccountMenu'
 
 export function AuthControl() {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center">
       <Show when="signed-out">
         <SignInButton mode="modal">
-          <button className="pill px-4 py-2 text-sm">Sign in</button>
+          <button className="text-[0.7rem] font-medium tracking-[0.14em] text-muted uppercase hover:text-ink">
+            Sign in
+          </button>
         </SignInButton>
-        <SignUpButton mode="modal">
-          <button className="pill is-active px-4 py-2 text-sm">Sign up</button>
-        </SignUpButton>
       </Show>
       <Show when="signed-in">
         <AccountMenu />

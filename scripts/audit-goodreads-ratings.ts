@@ -10,7 +10,7 @@ import {parseGoodreadsCsv, type GoodreadsBook} from '../src/lib/goodreads-csv'
 import {stableId} from '../src/lib/validation'
 
 type SavedRating = {_id: string; _rev: string; value?: number | null}
-type LibraryWork = {
+type LibraryBook = {
   _id: string; title: string; goodreadsBookId?: string; authors?: string[]
   editions: {isbn10?: string; isbn13?: string}[]
   ratings: SavedRating[]
@@ -19,14 +19,14 @@ type LibraryWork = {
 }
 const normalize = (text: string) => text.trim().toLowerCase()
 
-function matchBook(book: GoodreadsBook, works: LibraryWork[]) {
-  const bySource = works.filter((work) => book.goodreadsId && work.goodreadsBookId === book.goodreadsId)
+function matchBook(source: GoodreadsBook, books: LibraryBook[]) {
+  const bySource = books.filter((book) => source.goodreadsId && book.goodreadsBookId === source.goodreadsId)
   if (bySource.length) return bySource
-  const byIsbn = works.filter((work) => work.editions.some((edition) =>
-    Boolean(book.isbn13 && book.isbn13 === edition.isbn13 || book.isbn10 && book.isbn10 === edition.isbn10)))
+  const byIsbn = books.filter((book) => book.editions.some((edition) =>
+    Boolean(source.isbn13 && source.isbn13 === edition.isbn13 || source.isbn10 && source.isbn10 === edition.isbn10)))
   if (byIsbn.length) return byIsbn
-  return works.filter((work) => normalize(work.title) === normalize(book.title) &&
-    work.authors?.some((author) => normalize(author) === normalize(book.author)))
+  return books.filter((book) => normalize(book.title) === normalize(source.title) &&
+    book.authors?.some((author) => normalize(author) === normalize(source.author)))
 }
 
 async function main() {
@@ -45,35 +45,35 @@ async function main() {
   })
   const parsed = parseGoodreadsCsv(await readFile(csvPath, 'utf8'))
   if (parsed.issues.length || parsed.total !== parsed.books.length) throw new Error('CSV contains skipped rows; resolve them before auditing.')
-  const query = /* groq */ `*[_type == "work" && !(_id in path("drafts.**")) && (
-    count(*[_type == "readingProgress" && work._ref == ^._id && reader._ref == $readerId]) > 0 ||
-    count(*[_type == "shelfEntry" && work._ref == ^._id && shelf->owner._ref == $readerId]) > 0
+  const query = /* groq */ `*[_type == "book" && !(_id in path("drafts.**")) && (
+    count(*[_type == "readingProgress" && book._ref == ^._id && reader._ref == $readerId]) > 0 ||
+    count(*[_type == "shelfEntry" && book._ref == ^._id && shelf->owner._ref == $readerId]) > 0
   )]{
-    _id, title, goodreadsBookId, "authors": authors[]->name,
-    "editions": *[_type == "edition" && work._ref == ^._id]{isbn10, isbn13},
-    "ratings": *[_type == "rating" && reader._ref == $readerId && work._ref == ^._id] | order(_createdAt asc){_id, _rev, value},
-    "progress": *[_type == "readingProgress" && reader._ref == $readerId && work._ref == ^._id]{status, finishedAt, readCount},
-    "entries": *[_type == "shelfEntry" && work._ref == ^._id && shelf->owner._ref == $readerId]{"kind": shelf->kind, addedAt}
+    _id, title, goodreadsBookId, authors,
+    "editions": *[_type == "edition" && book._ref == ^._id]{isbn10, isbn13},
+    "ratings": *[_type == "rating" && reader._ref == $readerId && book._ref == ^._id] | order(_createdAt asc){_id, _rev, value},
+    "progress": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^._id]{status, finishedAt, readCount},
+    "entries": *[_type == "shelfEntry" && book._ref == ^._id && shelf->owner._ref == $readerId]{"kind": shelf->kind, addedAt}
   }`
-  const load = () => client.fetch<LibraryWork[]>(query, {readerId})
-  function audit(works: LibraryWork[]) {
-    return parsed.books.map((book) => {
-      const matches = matchBook(book, works)
-      const work = matches.length === 1 ? matches[0] : undefined
-      const rating = work?.ratings[0]
-      const expected = book.rating ?? null
+  const load = () => client.fetch<LibraryBook[]>(query, {readerId})
+  function audit(books: LibraryBook[]) {
+    return parsed.books.map((source) => {
+      const matches = matchBook(source, books)
+      const book = matches.length === 1 ? matches[0] : undefined
+      const rating = book?.ratings[0]
+      const expected = source.rating ?? null
       const saved = rating?.value ?? null
-      const status = !work ? matches.length ? 'ambiguous-book' : 'missing-book'
-        : work.ratings.length > 1 ? 'duplicate-ratings'
+      const status = !book ? matches.length ? 'ambiguous-book' : 'missing-book'
+        : book.ratings.length > 1 ? 'duplicate-ratings'
         : saved === expected ? 'matches'
         : saved === null && expected !== null ? 'missing-rating' : 'different-rating'
       return {
-        row: book.row, title: book.title, goodreadsId: book.goodreadsId,
-        workId: work?._id, expectedRating: expected, savedRating: saved, status,
+        row: source.row, title: source.title, goodreadsId: source.goodreadsId,
+        bookId: book?._id, expectedRating: expected, savedRating: saved, status,
         ratingDocument: rating || null,
-        expectedShelf: book.status, savedShelves: work?.entries.map((entry) => entry.kind) || [],
-        expectedDateRead: book.finishedAt || null, savedDateRead: work?.progress[0]?.finishedAt || null,
-        expectedReadCount: book.readCount ?? null, savedReadCount: work?.progress[0]?.readCount ?? null,
+        expectedShelf: source.status, savedShelves: book?.entries.map((entry) => entry.kind) || [],
+        expectedDateRead: source.finishedAt || null, savedDateRead: book?.progress[0]?.finishedAt || null,
+        expectedReadCount: source.readCount ?? null, savedReadCount: book?.progress[0]?.readCount ?? null,
       }
     })
   }
@@ -87,7 +87,7 @@ async function main() {
   console.log(JSON.stringify({phase: 'before', rows: parsed.total, summary: summary(before), reportPath}))
   const repairs = before.filter((row) => row.status === 'missing-rating')
   if (!apply || !repairs.length) return
-  if (new Set(repairs.map((row) => row.workId)).size !== repairs.length) throw new Error('Multiple CSV rows target one work; review before applying.')
+  if (new Set(repairs.map((row) => row.bookId)).size !== repairs.length) throw new Error('Multiple CSV rows target one book; review before applying.')
   await writeFile('/tmp/everlogue-goodreads-rating-audit.before.json', JSON.stringify({readerId, rows: before}, null, 2))
   const transaction = client.transaction()
   for (const row of repairs) {
@@ -95,21 +95,21 @@ async function main() {
       transaction.patch(row.ratingDocument._id, (patch) => patch.ifRevisionId(row.ratingDocument!._rev).set({value: row.expectedRating}))
     } else {
       transaction.create({
-        _id: stableId(['rating', readerId, row.workId!]), _type: 'rating',
-        reader: {_type: 'reference', _ref: readerId}, work: {_type: 'reference', _ref: row.workId!}, value: row.expectedRating,
+        _id: stableId(['rating', readerId, row.bookId!]), _type: 'rating',
+        reader: {_type: 'reference', _ref: readerId}, book: {_type: 'reference', _ref: row.bookId!}, value: row.expectedRating,
       })
     }
   }
   await transaction.commit({visibility: 'sync'})
-  const workIds = repairs.map((row) => row.workId!)
-  const ratings = await client.fetch<{workId: string; value: number}[]>(
-    `*[_type == "rating" && work._ref in $workIds && value > 0 && value <= 5]{"workId": work._ref, value}`,
-    {workIds},
+  const bookIds = repairs.map((row) => row.bookId!)
+  const ratings = await client.fetch<{bookId: string; value: number}[]>(
+    `*[_type == "rating" && book._ref in $bookIds && value > 0 && value <= 5]{"bookId": book._ref, value}`,
+    {bookIds},
   )
   const aggregates = client.transaction()
-  for (const workId of workIds) {
-    const values = ratings.filter((rating) => rating.workId === workId).map((rating) => rating.value)
-    aggregates.patch(workId, (patch) => patch.set({ratingStats: {
+  for (const bookId of bookIds) {
+    const values = ratings.filter((rating) => rating.bookId === bookId).map((rating) => rating.value)
+    aggregates.patch(bookId, (patch) => patch.set({ratingStats: {
       _type: 'ratingStats', count: values.length,
       average: Math.round(values.reduce((total, value) => total + value, 0) / values.length * 100) / 100,
       updatedAt: new Date().toISOString(),

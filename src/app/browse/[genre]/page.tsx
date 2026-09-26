@@ -1,8 +1,8 @@
 import {notFound} from 'next/navigation'
 import Link from 'next/link'
 import {fetchCatalog} from '@/sanity/fetch'
-import {workCardFields} from '@/sanity/queries'
-import {BookCard, type WorkCardData} from '@/components/BookCard'
+import {bookCardFields} from '@/sanity/queries'
+import {BookCard, type BookCardData} from '@/components/BookCard'
 import {EmptyState} from '@/components/States'
 import {PageHeader} from '@/components/PageHeader'
 
@@ -34,12 +34,12 @@ export default async function GenrePage({
     `*[_type == "genre" && parent->slug.current == $genre] | order(title asc){title, "slug": slug.current}`,
     {genre},
   )
-  const works = await fetchCatalog<WorkCardData[]>(
-    `*[_type == "work" && defined(slug.current) && $genre in genres[]->slug.current] | order(title asc) [${start}...${end}]{ ${workCardFields} }`,
+  const books = await fetchCatalog<BookCardData[]>(
+    `*[_type == "book" && defined(slug.current) && $genre in genres[]->slug.current] | order(title asc) [${start}...${end}]{ ${bookCardFields} }`,
     {genre},
   )
   const total = await fetchCatalog<number>(
-    `count(*[_type == "work" && defined(slug.current) && $genre in genres[]->slug.current])`,
+    `count(*[_type == "book" && defined(slug.current) && $genre in genres[]->slug.current])`,
     {genre},
   )
 
@@ -62,15 +62,15 @@ export default async function GenrePage({
           </Link>
         </p>
       ) : null}
-      {works.length ? (
+      {books.length ? (
         <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4">
-          {works.map((work) => (
-            <BookCard key={work._id} work={work} fill />
+          {books.map((book) => (
+            <BookCard key={book._id} book={book} fill />
           ))}
         </div>
       ) : (
         <div className="mt-10">
-          <EmptyState title="No books in this genre yet" body="This is a full genre page. When more verified works are imported, they will appear here." />
+          <EmptyState title="No books in this genre yet" body="This is a full genre page. When more verified books are imported, they will appear here." />
         </div>
       )}
       <div className="mt-8 flex gap-3">
@@ -79,7 +79,7 @@ export default async function GenrePage({
             Previous
           </Link>
         ) : null}
-        {start + works.length < total ? (
+        {start + books.length < total ? (
           <Link href={`/browse/${genre}?page=${page + 1}`} className="pill px-4 py-2 text-sm">
             Next
           </Link>

@@ -124,7 +124,7 @@ async function main() {
     genreIds[genre.slug] = id
   }
 
-  const workIds: string[] = []
+  const bookIds: string[] = []
   const fantasyIds: string[] = []
 
   for (const seed of SEED) {
@@ -159,10 +159,11 @@ async function main() {
           ? workJson.description
           : workJson.description?.value || undefined
 
-      const workId = await upsert('work', 'openLibraryWorkKey', workKey, {
+      const bookId = await upsert('book', 'openLibraryWorkKey', workKey, {
         title: workJson.title || seed.title,
         slug: {_type: 'slug', current: slugify(workJson.title || seed.title)},
-        authors: [{_type: 'reference', _ref: authorId, _key: authorId}],
+        authors: [seed.author],
+        authorReferences: [{_type: 'reference', _ref: authorId, _key: authorId}],
         genres: [{_type: 'reference', _ref: genreIds[seed.genre], _key: seed.genre}],
         description,
         firstPublicationYear: seed.year,
@@ -175,22 +176,21 @@ async function main() {
           retrievedAt,
           attribution: 'Open Library',
         },
-        ratingStats: {_type: 'ratingStats', average: 0, count: 0},
       })
-      workIds.push(workId)
-      if (seed.genre === 'fantasy') fantasyIds.push(workId)
+      bookIds.push(bookId)
+      if (seed.genre === 'fantasy') fantasyIds.push(bookId)
 
       const editionKey = doc.cover_edition_key || doc.edition_key?.[0]
       const isbn13 = doc.isbn?.find((value: string) => value.length === 13)
       if (editionKey) {
         await upsert('edition', 'openLibraryEditionKey', editionKey, {
           title: workJson.title || seed.title,
-          work: {_type: 'reference', _ref: workId},
+          book: {_type: 'reference', _ref: bookId},
           isbn13,
           openLibraryEditionKey: editionKey,
           onSaleDate: seed.year ? `${seed.year}-01-01` : undefined,
           isReprint: seed.reprint,
-          firstPublicationOfWork: !seed.reprint,
+          firstPublicationOfBook: !seed.reprint,
           market: 'US',
           coverOpenLibraryId: editionKey,
           coverUrl: `https://covers.openlibrary.org/b/olid/${editionKey}-L.jpg`,
@@ -218,7 +218,7 @@ async function main() {
     catalogDisclaimer:
       'Read Evermore keeps a small, verified catalog. New-release pages show books we have actually imported. This is not a complete record of every book published.',
     ratingMethod:
-      'Fantasy by Year ranks works whose first publication year matches the selected year. The score is the average of current Read Evermore half-star ratings (0.5–5). A work appears in the ranked list only when it has at least 3 ratings. We do not import or invent Goodreads or other community scores. If too few ratings exist, you may see an empty state or a separately labeled editorial collection.',
+      'Fantasy by Year ranks books whose first publication year matches the selected year. The score is the average of current Read Evermore half-star ratings (0.5–5). A book appears in the ranked list only when it has at least 3 ratings. We do not import or invent Goodreads or other community scores. If too few ratings exist, you may see an empty state or a separately labeled editorial collection.',
     minimumRatingCount: 3,
     openLibraryAttribution: 'Book metadata and cover images from Open Library, used with attribution.',
   })
@@ -226,10 +226,10 @@ async function main() {
   const collectionId = await upsert('editorialCollection', 'slug.current', 'forever-fantasy', {
     title: 'Forever fantasy',
     slug: {_type: 'slug', current: 'forever-fantasy'},
-    description: 'A starter shelf of verified fantasy and adjacent works. Preview rows link here in full.',
+    description: 'A starter shelf of verified fantasy and adjacent books. Preview rows link here in full.',
     kind: 'discover',
     workflowStatus: 'proposed',
-    works: workIds.map((id) => ({_type: 'reference', _ref: id, _key: id})),
+    books: bookIds.map((id) => ({_type: 'reference', _ref: id, _key: id})),
   })
 
   const review = await client.create({
@@ -261,7 +261,7 @@ async function main() {
       editorialLabel: 'Editorial collection — not a community ranking',
       description: 'Shown because this catalog does not yet have enough in-app ratings for a 2019 ranked list.',
       workflowStatus: 'approved',
-      works: fantasyIds.slice(0, 6).map((id) => ({_type: 'reference', _ref: id, _key: id})),
+      books: fantasyIds.slice(0, 6).map((id) => ({_type: 'reference', _ref: id, _key: id})),
     })
     void editorialFantasy
   }
@@ -313,7 +313,7 @@ async function main() {
       club: {_type: 'reference', _ref: clubId},
       year: 2026,
       month: 9,
-      works: [],
+      books: [],
       workflowStatus: 'approved',
       emptyReason: `No pick listed here because an official ${club.name} selection was not independently verified during import on ${retrievedAt.slice(0, 10)}.`,
     }
@@ -330,7 +330,7 @@ async function main() {
     description: 'A complete first club: current read, next-read voting, and a spoiler-aware thread.',
     visibility: 'public',
     isDemoClub: true,
-    currentRead: workIds[0] ? {_type: 'reference', _ref: workIds[0]} : undefined,
+    currentRead: bookIds[0] ? {_type: 'reference', _ref: bookIds[0]} : undefined,
   })
 
   const demoReader = await client.createIfNotExists({
@@ -342,20 +342,20 @@ async function main() {
     bio: 'Labeled demo account used only for sample club activity.',
   })
 
-  if (workIds.length >= 3) {
+  if (bookIds.length >= 3) {
     const poll = await upsert('poll', 'title', 'What should we read next?', {
       club: {_type: 'reference', _ref: demoClub},
       title: 'What should we read next?',
       status: 'open',
       allowVoteChange: true,
-      options: workIds.slice(1, 4).map((id) => ({_type: 'reference', _ref: id, _key: id})),
+      options: bookIds.slice(1, 4).map((id) => ({_type: 'reference', _ref: id, _key: id})),
     })
     void poll
   }
 
   const thread = await upsert('discussionThread', 'title', 'Opening thoughts (demo)', {
     club: {_type: 'reference', _ref: demoClub},
-    work: workIds[0] ? {_type: 'reference', _ref: workIds[0]} : undefined,
+    book: bookIds[0] ? {_type: 'reference', _ref: bookIds[0]} : undefined,
     title: 'Opening thoughts (demo)',
     spoilerBoundary: 'unmarked',
     isDemoThread: true,
@@ -377,7 +377,7 @@ async function main() {
     })
   }
 
-  console.log(`Imported ${workIds.length} works into ${projectId}/${dataset}`)
+  console.log(`Imported ${bookIds.length} books into ${projectId}/${dataset}`)
 }
 
 main().catch((error) => {

@@ -1,6 +1,6 @@
 import {notFound} from 'next/navigation'
 import {fetchCatalog} from '@/sanity/fetch'
-import {WORK_BY_SLUG_QUERY} from '@/sanity/queries'
+import {BOOK_BY_SLUG_QUERY} from '@/sanity/queries'
 import {BookCover} from '@/components/BookCover'
 import {StarRating} from '@/components/StarRating'
 import {ShelfButtons} from '@/components/ShelfButtons'
@@ -17,14 +17,14 @@ function formatLibraryDate(value?: string | null) {
 
 export default async function BookPage({params}: {params: Promise<{slug: string}>}) {
   const {slug} = await params
-  const work = await fetchCatalog<{
+  const book = await fetchCatalog<{
     _id: string
     title: string
     description?: string
     firstPublicationYear?: number
     firstPublicationDate?: string
     openLibraryWorkKey?: string
-    authors?: {name?: string}[]
+    authors?: string[]
     genres?: {title?: string; slug?: string}[]
     cover?: Parameters<typeof BookCover>[0]['cover']
     ratingStats?: {average?: number; count?: number}
@@ -36,48 +36,48 @@ export default async function BookPage({params}: {params: Promise<{slug: string}
       market?: string
       onSaleDate?: string
       isReprint?: boolean
-      firstPublicationOfWork?: boolean
+      firstPublicationOfBook?: boolean
       publisher?: string
     }[]
-  } | null>(WORK_BY_SLUG_QUERY, {slug})
+  } | null>(BOOK_BY_SLUG_QUERY, {slug})
 
-  if (!work) notFound()
+  if (!book) notFound()
 
   const reader = await getOptionalReader().catch(() => null)
-  const state = await getReaderBookState(work._id)
+  const state = await getReaderBookState(book._id)
   console.log('[Goodreads CSV]', state.csv)
 
   return (
     <article className="grid gap-10 lg:grid-cols-[240px_1fr]">
       <div className="group max-w-60">
-        <BookCover cover={work.cover} title={work.title} priority className="aspect-2/3 w-full" />
+        <BookCover cover={book.cover} title={book.title} priority className="aspect-2/3 w-full" />
       </div>
       <div>
         <p className="text-sm text-muted">
-          {work.authors?.map((author) => author.name).filter(Boolean).join(', ') || 'Author unknown'}
+          {book.authors?.filter(Boolean).join(', ') || 'Author unknown'}
         </p>
         <h1 className="mt-1 font-(family-name:--font-display) text-[2.7rem] leading-[1.05] tracking-[-0.03em] sm:text-5xl">
-          {work.title}
+          {book.title}
         </h1>
         <p className="mt-3 text-muted">
-          First published {work.firstPublicationYear || 'year unknown'}
-          {work.firstPublicationDate ? ` · dated ${work.firstPublicationDate}` : ''}
+          First published {book.firstPublicationYear || 'year unknown'}
+          {book.firstPublicationDate ? ` · dated ${book.firstPublicationDate}` : ''}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {work.genres?.map((genre) => (
+          {book.genres?.map((genre) => (
             <a key={genre.slug} href={`/browse/${genre.slug}`} className="pill px-3 py-1 text-sm">
               {genre.title}
             </a>
           ))}
         </div>
         <p className="mt-6 max-w-2xl leading-7">
-          {work.description || 'No description is in this catalog yet. We do not invent one.'}
+          {book.description || 'No description is in this catalog yet. We do not invent one.'}
         </p>
         <div className="mt-6">
-          <ShelfButtons workId={work._id} status={state.status} signedIn={Boolean(reader)} />
+          <ShelfButtons bookId={book._id} status={state.status} signedIn={Boolean(reader)} />
         </div>
         <div className="mt-6 max-w-md">
-          <StarRating workId={work._id} value={state.rating} signedIn={Boolean(reader)} />
+          <StarRating bookId={book._id} value={state.rating} signedIn={Boolean(reader)} />
         </div>
         <LibraryCsvLog data={state.csv} />
         <dl className="mt-6 grid max-w-md grid-cols-1 gap-3 text-sm sm:grid-cols-3">
@@ -99,9 +99,9 @@ export default async function BookPage({params}: {params: Promise<{slug: string}
         ) : (
           <p className="mt-3 text-sm text-sage">Saved to your Read Evermore shelves.</p>
         )}
-        {work.ratingStats?.count ? (
+        {book.ratingStats?.count ? (
           <p className="mt-4 text-sm">
-            Read Evermore average {work.ratingStats.average} from {work.ratingStats.count} ratings. This is not a
+            Read Evermore average {book.ratingStats.average} from {book.ratingStats.count} ratings. This is not a
             Goodreads score.
           </p>
         ) : (
@@ -110,11 +110,11 @@ export default async function BookPage({params}: {params: Promise<{slug: string}
         <section className="mt-10">
           <h2 className="font-(family-name:--font-display) text-2xl">Editions in this catalog</h2>
           <ul className="mt-4 space-y-3">
-            {(work.editions || []).map((edition) => (
+            {(book.editions || []).map((edition) => (
               <li key={edition._id} className="surface px-4 py-3 text-sm">
                 <p className="font-medium">
-                  {edition.title || work.title}
-                  {edition.firstPublicationOfWork ? ' · First publication' : ''}
+                  {edition.title || book.title}
+                  {edition.firstPublicationOfBook ? ' · First publication' : ''}
                   {edition.isReprint ? ' · Reprint' : ''}
                 </p>
                 <p className="text-muted">
@@ -126,11 +126,11 @@ export default async function BookPage({params}: {params: Promise<{slug: string}
             ))}
           </ul>
         </section>
-        {work.openLibraryWorkKey ? (
+        {book.openLibraryWorkKey ? (
           <p className="mt-6 text-sm text-muted">
             Open Library:{' '}
-            <a className="underline" href={`https://openlibrary.org/works/${work.openLibraryWorkKey}`}>
-              {work.openLibraryWorkKey}
+            <a className="underline" href={`https://openlibrary.org/works/${book.openLibraryWorkKey}`}>
+              {book.openLibraryWorkKey}
             </a>
           </p>
         ) : null}

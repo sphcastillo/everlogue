@@ -7,7 +7,7 @@ export const celebritySelection = defineType({
   type: 'document',
   icon: CalendarIcon,
   fields: [
-    defineField({name: 'featuredEditions', title: 'Featured editions', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'edition'}]})], description: 'Choose the specific editions featured in this collection. Their covers take priority over the default work cover.'}),
+    defineField({name: 'featuredEditions', title: 'Featured editions', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'edition'}]})], description: 'Choose the specific editions featured in this collection. Their covers take priority over the default book cover.'}),
     defineField({
       name: 'club',
       type: 'reference',
@@ -25,9 +25,9 @@ export const celebritySelection = defineType({
       validation: (rule) => rule.required().min(1).max(12).integer(),
     }),
     defineField({
-      name: 'works',
+      name: 'books',
       type: 'array',
-      of: [defineArrayMember({type: 'reference', to: [{type: 'work'}]})],
+      of: [defineArrayMember({type: 'reference', to: [{type: 'book'}]})],
       description: 'Leave empty when a month has no verified selection.',
     }),
     defineField({
@@ -35,8 +35,8 @@ export const celebritySelection = defineType({
       type: 'url',
       validation: (rule) =>
         rule.custom((url, context) => {
-          const works = (context.document as {works?: unknown[]} | undefined)?.works
-          if (works && works.length > 0 && !url) {
+          const books = (context.document as {books?: unknown[]} | undefined)?.books
+          if (books && books.length > 0 && !url) {
             return 'A source URL is required when listing verified picks'
           }
           return true
@@ -47,8 +47,8 @@ export const celebritySelection = defineType({
       type: 'datetime',
       validation: (rule) =>
         rule.custom((value, context) => {
-          const works = (context.document as {works?: unknown[]} | undefined)?.works
-          if (works && works.length > 0 && !value) {
+          const books = (context.document as {books?: unknown[]} | undefined)?.books
+          if (books && books.length > 0 && !value) {
             return 'Verification date is required when listing verified picks'
           }
           return true

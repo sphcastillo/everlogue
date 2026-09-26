@@ -19,7 +19,7 @@ export const editorialReview = defineType({
         {type: 'celebritySelection'},
         {type: 'editorialCollection'},
         {type: 'edition'},
-        {type: 'work'},
+        {type: 'book'},
       ],
       validation: (rule) => rule.required(),
     }),

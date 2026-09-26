@@ -2,31 +2,31 @@ import Link from 'next/link'
 import {BookCover, type CoverSource} from './BookCover'
 import {LibraryBookCover} from './LibraryBookCover'
 
-export type WorkCardData = {
+export type BookCardData = {
   _id: string
   title: string
   slug?: string | null
   firstPublicationYear?: number | null
-  authors?: {name?: string | null}[] | null
+  authors?: string[] | null
   cover?: CoverSource | null
   myRating?: number | null
   ratingStats?: {average?: number | null; count?: number | null} | null
 }
 
 export function BookCard({
-  work,
+  book,
   large = false,
   fill = false,
   compact = false,
   resolveMissingCover = false,
 }: {
-  work: WorkCardData
+  book: BookCardData
   large?: boolean
   fill?: boolean
   compact?: boolean
   resolveMissingCover?: boolean
 }) {
-  const href = work.slug ? `/books/${work.slug}` : '#'
+  const href = book.slug ? `/books/${book.slug}` : '#'
   const width = fill
     ? 'w-full'
     : compact
@@ -36,19 +36,19 @@ export function BookCard({
         : 'w-[148px] sm:w-[168px] shrink-0'
   return (
     <Link href={href} className={`group block ${width}`}>
-      {resolveMissingCover ? <LibraryBookCover workId={work._id} cover={work.cover} title={work.title} className="aspect-[2/3] w-full" /> : <BookCover cover={work.cover} title={work.title} className="aspect-[2/3] w-full" />}
-      <p className={`font-medium leading-snug tracking-[-0.01em] ${compact ? 'mt-2 line-clamp-2 text-sm' : 'mt-3'}`}>{work.title}</p>
+      {resolveMissingCover ? <LibraryBookCover bookId={book._id} cover={book.cover} title={book.title} className="aspect-[2/3] w-full" /> : <BookCover cover={book.cover} title={book.title} className="aspect-[2/3] w-full" />}
+      <p className={`font-medium leading-snug tracking-[-0.01em] ${compact ? 'mt-2 line-clamp-2 text-sm' : 'mt-3'}`}>{book.title}</p>
       <p className={`mt-0.5 text-[var(--muted)] ${compact ? 'truncate text-xs' : 'text-sm'}`}>
-        {work.authors?.map((author) => author.name).filter(Boolean).join(', ') || 'Author unknown'}
+        {book.authors?.filter(Boolean).join(', ') || 'Author unknown'}
       </p>
-      {compact && work.firstPublicationYear ? (
-        <p className="mt-0.5 text-xs text-[var(--muted)]">{work.firstPublicationYear}</p>
+      {compact && book.firstPublicationYear ? (
+        <p className="mt-0.5 text-xs text-[var(--muted)]">{book.firstPublicationYear}</p>
       ) : null}
-      {typeof work.myRating === 'number' ? <p className="mt-1 text-xs text-[var(--sage)]" aria-label={`Your rating: ${work.myRating} out of 5 stars`}>Your rating: {work.myRating} ★</p> : null}
-      {typeof work.ratingStats?.count === 'number' && work.ratingStats.count > 0 ? (
+      {typeof book.myRating === 'number' ? <p className="mt-1 text-xs text-[var(--sage)]" aria-label={`Your rating: ${book.myRating} out of 5 stars`}>Your rating: {book.myRating} ★</p> : null}
+      {typeof book.ratingStats?.count === 'number' && book.ratingStats.count > 0 ? (
         <p className="mt-1 text-xs text-[var(--sage)]">
-          {work.ratingStats.average} · {work.ratingStats.count} Read Evermore{' '}
-          {work.ratingStats.count === 1 ? 'rating' : 'ratings'}
+          {book.ratingStats.average} · {book.ratingStats.count} Read Evermore{' '}
+          {book.ratingStats.count === 1 ? 'rating' : 'ratings'}
         </p>
       ) : null}
     </Link>

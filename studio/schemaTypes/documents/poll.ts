@@ -32,7 +32,7 @@ export const poll = defineType({
     defineField({
       name: 'options',
       type: 'array',
-      of: [defineArrayMember({type: 'reference', to: [{type: 'work'}]})],
+      of: [defineArrayMember({type: 'reference', to: [{type: 'book'}]})],
       validation: (rule) => rule.min(2).unique(),
     }),
     defineField({name: 'closesAt', type: 'datetime'}),

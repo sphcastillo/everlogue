@@ -9,6 +9,7 @@ import {collectionTypeLabel} from '@/lib/collection-type'
 export type CarouselBook = {
   _id: string
   title: string
+  slug?: string | null
   authors?: string[] | null
   googleBooksId?: string | null
   publishedDate?: string | null
@@ -38,7 +39,7 @@ export type CarouselCollection = {
 }
 
 function bookHref(book: CarouselBook) {
-  return book.googleBooksId ? `/search/${book.googleBooksId}` : '#'
+  return `/books/${book.slug || book._id}`
 }
 
 export function CollectionCarousel({collection}: {collection: CarouselCollection}) {

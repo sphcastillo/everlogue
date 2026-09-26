@@ -42,7 +42,7 @@ export const communityClub = defineType({
     defineField({
       name: 'currentRead',
       type: 'reference',
-      to: [{type: 'work'}],
+      to: [{type: 'book'}],
     }),
     defineField({
       name: 'isDemoClub',

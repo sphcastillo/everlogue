@@ -10,11 +10,11 @@ export async function GET() {
     if (!reader) return Response.json({error: 'Sign in to export your library.'}, {status: 401, headers: privateHeaders()})
     const entries = await privateClient.fetch<ExportEntry[]>(
       `*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["finished", "wantToRead", "currentlyReading"]] | order(addedAt desc){
-        "title": work->title, "author": work->authors[0]->name, "kind": shelf->kind, addedAt,
-        "rating": *[_type == "rating" && reader._ref == $readerId && work._ref == ^.work._ref][0].value,
-        "isbn10": edition->isbn10, "isbn13": edition->isbn13,
-        "finishedAt": *[_type == "readingProgress" && reader._ref == $readerId && work._ref == ^.work._ref][0].finishedAt,
-        "readCount": *[_type == "readingProgress" && reader._ref == $readerId && work._ref == ^.work._ref][0].readCount
+        "title": book->title, "author": book->authors[0], "kind": shelf->kind, addedAt,
+        "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^.book._ref][0].value,
+        "isbn10": coalesce(edition->isbn10, book->isbn10), "isbn13": coalesce(edition->isbn13, book->isbn13),
+        "finishedAt": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^.book._ref][0].finishedAt,
+        "readCount": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^.book._ref][0].readCount
       }`, {readerId: reader.readerId}, {cache: 'no-store'},
     )
     const shelves: Record<string, string> = {finished: 'read', wantToRead: 'to-read', currentlyReading: 'currently-reading'}

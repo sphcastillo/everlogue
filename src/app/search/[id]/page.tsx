@@ -1,9 +1,10 @@
-import {notFound} from 'next/navigation'
+import {notFound, redirect} from 'next/navigation'
 import {auth} from '@clerk/nextjs/server'
 import {bookTitle, GOOGLE_VOLUME_ID} from '@/lib/google-books'
 import {fetchGoogleVolume} from '@/lib/google-books-api'
 import {SearchBookDetail} from '@/components/SearchBookDetail'
 import {EmptyState, ErrorState} from '@/components/States'
+import {fetchCatalog} from '@/sanity/fetch'
 
 export async function generateMetadata({params}: {params: Promise<{id: string}>}) {
   const {isAuthenticated} = await auth()
@@ -32,10 +33,15 @@ export default async function SearchBookPage({params}: {params: Promise<{id: str
   const {id} = await params
   if (!GOOGLE_VOLUME_ID.test(id)) notFound()
 
+  const catalogBook = await fetchCatalog<{slug: string} | null>(
+    `*[_type == "book" && (googleBooksId == $id || _id in *[_type == "edition" && googleBooksId == $id].book._ref)][0]{"slug": coalesce(slug.current, _id)}`,
+    {id},
+  )
+  if (catalogBook) redirect(`/books/${catalogBook.slug}`)
+
+  let book
   try {
-    const book = await fetchGoogleVolume(id)
-    if (!book) notFound()
-    return <SearchBookDetail book={book} />
+    book = await fetchGoogleVolume(id)
   } catch {
     return (
       <ErrorState
@@ -44,4 +50,6 @@ export default async function SearchBookPage({params}: {params: Promise<{id: str
       />
     )
   }
+  if (!book) notFound()
+  return <SearchBookDetail book={book} />
 }

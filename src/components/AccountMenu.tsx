@@ -70,7 +70,7 @@ export function AccountMenu() {
       <button
         ref={trigger}
         type="button"
-        className="account-trigger"
+        className="grid size-8 place-items-center rounded-full bg-ink text-[0.7rem] font-medium tracking-wide text-white uppercase"
         aria-label={`Account menu for ${name}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -84,11 +84,7 @@ export function AccountMenu() {
           }
         }}
       >
-        <span className="account-initials" aria-hidden="true">{initials}</span>
-        <span className="hidden text-sm font-medium sm:inline">Account</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-          <path d={open ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'} />
-        </svg>
+        <span aria-hidden="true">{initials}</span>
       </button>
       {open ? (
         <div className="account-dropdown">

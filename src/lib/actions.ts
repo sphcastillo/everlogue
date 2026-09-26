@@ -1,110 +1,28 @@
 import 'server-only'
 import {revalidatePath} from 'next/cache'
 import {privateClient, writeClient} from '@/sanity/client'
-import {editionCoverFields} from '@/sanity/queries'
+import {bookCoverProjection, editionCoverFields} from '@/sanity/queries'
 import {getOptionalReader, requireReader} from './reader'
+import {saveBookRating, saveBookStatus} from './library-book'
 import {
   canTransition,
-  ratingValueSchema,
-  readingStatusSchema,
   spaceColorSchema,
   stableId,
   workflowStatusSchema,
 } from './validation'
 
-async function refreshRatingStats(workId: string) {
-  const ratings = await privateClient.fetch<number[]>(
-    `*[_type == "rating" && work._ref == $workId].value`,
-    {workId},
-    {cache: 'no-store'},
-  )
-  const count = ratings.length
-  const average = count ? ratings.reduce((sum, value) => sum + value, 0) / count : 0
-  await writeClient()
-    .patch(workId)
-    .set({
-      ratingStats: {
-        _type: 'ratingStats',
-        average: count ? Math.round(average * 100) / 100 : 0,
-        count,
-        updatedAt: new Date().toISOString(),
-      },
-    })
-    .commit()
-}
-
-export async function setRating(workId: string, value: number | null) {
+export async function setRating(bookId: string, value: number | null) {
   const reader = await requireReader()
-  const client = writeClient()
-  const id = stableId(['rating', reader.readerId, workId])
-
-  if (value === null) {
-    await client.delete(id).catch(() => undefined)
-  } else {
-    const parsed = ratingValueSchema.parse(value)
-    await client.createOrReplace({
-      _id: id,
-      _type: 'rating',
-      reader: {_type: 'reference', _ref: reader.readerId},
-      work: {_type: 'reference', _ref: workId},
-      value: parsed,
-    })
-  }
-
-  await refreshRatingStats(workId)
-  revalidatePath('/books')
+  await saveBookRating(writeClient(), reader.readerId, bookId, value)
+  revalidatePath('/books/[slug]', 'page')
   revalidatePath('/my-books')
 }
 
-export async function setReadingStatus(workId: string, status: string | null) {
+export async function setReadingStatus(bookId: string, status: string | null) {
   const reader = await requireReader()
-  const client = writeClient()
-  const progressId = stableId(['progress', reader.readerId, workId])
-  const kinds = ['wantToRead', 'currentlyReading', 'finished'] as const
-  const edition = await privateClient.fetch<{_type: 'reference'; _ref: string} | null>(
-    `*[_id == $progressId][0].edition`, {progressId}, {cache: 'no-store'},
-  )
-
-  const shelves = await privateClient.fetch<{_id: string; kind: string}[]>(
-    `*[_type == "shelf" && owner._ref == $readerId && kind in $kinds]{_id, kind}`,
-    {readerId: reader.readerId, kinds},
-    {cache: 'no-store'},
-  )
-
-  for (const shelf of shelves) {
-    const entryId = stableId(['shelfEntry', shelf._id, workId])
-    if (status && shelf.kind === status) {
-      await client.createOrReplace({
-        _id: entryId,
-        _type: 'shelfEntry',
-        shelf: {_type: 'reference', _ref: shelf._id},
-        work: {_type: 'reference', _ref: workId},
-        addedAt: new Date().toISOString(),
-        ...(edition ? {edition} : {}),
-      })
-    } else {
-      await client.delete(entryId).catch(() => undefined)
-    }
-  }
-
-  if (!status) {
-    await client.delete(progressId).catch(() => undefined)
-  } else {
-    const parsed = readingStatusSchema.parse(status)
-    await client.createOrReplace({
-      _id: progressId,
-      _type: 'readingProgress',
-      reader: {_type: 'reference', _ref: reader.readerId},
-      work: {_type: 'reference', _ref: workId},
-      status: parsed,
-      ...(edition ? {edition} : {}),
-      startedAt: parsed === 'currentlyReading' ? new Date().toISOString().slice(0, 10) : undefined,
-      finishedAt: parsed === 'finished' ? new Date().toISOString().slice(0, 10) : undefined,
-    })
-  }
-
+  await saveBookStatus(writeClient(), reader.readerId, bookId, status)
   revalidatePath('/my-books')
-  revalidatePath('/books')
+  revalidatePath('/books/[slug]', 'page')
 }
 
 export type ReaderBookState = {
@@ -140,7 +58,7 @@ const emptyReaderBookState: ReaderBookState = {
   csv: null,
 }
 
-export async function getReaderBookState(workId: string): Promise<ReaderBookState> {
+export async function getReaderBookState(bookId: string): Promise<ReaderBookState> {
   const reader = await getOptionalReader()
   if (!reader) return emptyReaderBookState
 
@@ -153,31 +71,31 @@ export async function getReaderBookState(workId: string): Promise<ReaderBookStat
       importSource?: string | null
     } | null
     addedAt?: string | null
-    work?: {
+    book?: {
       title?: string | null
       goodreadsBookId?: string | null
       firstPublicationYear?: number | null
-      authors?: {name?: string | null}[] | null
+      authors?: string[] | null
       isbn10?: string | null
       isbn13?: string | null
     } | null
   } | null>(
     `{
-      "rating": *[_type == "rating" && reader._ref == $readerId && work._ref == $workId][0].value,
-      "progress": *[_type == "readingProgress" && reader._ref == $readerId && work._ref == $workId][0]{
+      "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == $bookId][0].value,
+      "progress": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0]{
         status, finishedAt, readCount, importSource
       },
-      "addedAt": *[_type == "shelfEntry" && work._ref == $workId && shelf->owner._ref == $readerId] | order(addedAt desc)[0].addedAt,
-      "work": *[_id == $workId][0]{
+      "addedAt": *[_type == "shelfEntry" && book._ref == $bookId && shelf->owner._ref == $readerId] | order(addedAt desc)[0].addedAt,
+      "book": *[_id == $bookId][0]{
         title,
         goodreadsBookId,
         firstPublicationYear,
-        "authors": authors[]->{name},
-        "isbn10": coalesce(*[_type == "edition" && work._ref == ^._id && defined(isbn10)][0].isbn10),
-        "isbn13": coalesce(*[_type == "edition" && work._ref == ^._id && defined(isbn13)][0].isbn13)
+        "authors": authors,
+        "isbn10": coalesce(isbn10, *[_type == "edition" && book._ref == ^._id && defined(isbn10)][0].isbn10),
+        "isbn13": coalesce(isbn13, *[_type == "edition" && book._ref == ^._id && defined(isbn13)][0].isbn13)
       }
     }`,
-    {readerId: reader.readerId, workId},
+    {readerId: reader.readerId, bookId},
     {cache: 'no-store'},
   )
 
@@ -196,17 +114,17 @@ export async function getReaderBookState(workId: string): Promise<ReaderBookStat
     readCount,
     importSource,
     csv: {
-      goodreadsId: data?.work?.goodreadsBookId ?? null,
-      title: data?.work?.title ?? null,
-      authors: data?.work?.authors?.map((author) => author.name).filter((name): name is string => Boolean(name)) ?? [],
-      isbn10: data?.work?.isbn10 ?? null,
-      isbn13: data?.work?.isbn13 ?? null,
+      goodreadsId: data?.book?.goodreadsBookId ?? null,
+      title: data?.book?.title ?? null,
+      authors: data?.book?.authors?.filter(Boolean) ?? [],
+      isbn10: data?.book?.isbn10 ?? null,
+      isbn13: data?.book?.isbn13 ?? null,
       status,
       rating,
       dateAdded,
       dateRead,
       readCount,
-      publicationYear: data?.work?.firstPublicationYear ?? null,
+      publicationYear: data?.book?.firstPublicationYear ?? null,
       importSource,
     },
   }
@@ -223,23 +141,24 @@ export async function getMyBooks() {
         "entries": *[_type == "shelfEntry" && shelf._ref == ^._id] | order(addedAt desc){
           _id,
           addedAt,
-          "work": work->{
+          "book": book->{
             _id,
             title,
-            "slug": slug.current,
+            "slug": coalesce(slug.current, _id),
             firstPublicationYear,
-            "myRating": *[_type == "rating" && reader._ref == $readerId && work._ref == ^._id][0].value,
-            "authors": authors[]->{name},
+            "myRating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^._id][0].value,
+            "authors": authors,
             "cover": coalesce(
+              select(defined(coverOverride.asset) => @{${editionCoverFields}}),
               ^.edition->{${editionCoverFields}},
-              *[_type == "edition" && work._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{${editionCoverFields}}
+              ${bookCoverProjection}
             )
           }
         }
       },
       "ratings": *[_type == "rating" && reader._ref == $readerId]{
         value,
-        "workId": work._ref
+        "bookId": book._ref
       }
     }`,
     {readerId: reader.readerId},
@@ -268,7 +187,7 @@ export async function joinClub(clubId: string) {
   revalidatePath('/clubs')
 }
 
-export async function castVote(pollId: string, workId: string) {
+export async function castVote(pollId: string, bookId: string) {
   const reader = await requireReader()
   const poll = await privateClient.fetch<{
     status?: string
@@ -281,7 +200,7 @@ export async function castVote(pollId: string, workId: string) {
     {cache: 'no-store'},
   )
   if (!poll || poll.status !== 'open') throw new Error('This poll is closed.')
-  if (!poll.options?.some((option) => option._ref === workId)) {
+  if (!poll.options?.some((option) => option._ref === bookId)) {
     throw new Error('That book is not on this ballot.')
   }
 
@@ -307,7 +226,7 @@ export async function castVote(pollId: string, workId: string) {
     _type: 'vote',
     poll: {_type: 'reference', _ref: pollId},
     reader: {_type: 'reference', _ref: reader.readerId},
-    option: {_type: 'reference', _ref: workId},
+    option: {_type: 'reference', _ref: bookId},
   })
   revalidatePath('/clubs')
 }
@@ -417,7 +336,7 @@ export async function getClubExperience(clubId: string) {
         title,
         status,
         allowVoteChange,
-        "options": options[]->{ _id, title, "slug": slug.current, "authors": authors[]->{name} },
+        "options": options[]->{ _id, title, "slug": slug.current, "authors": authors },
         "tallies": options[]{
           "_ref": _ref,
           "count": count(*[_type == "vote" && poll._ref == ^.^._id && option._ref == ^._ref])

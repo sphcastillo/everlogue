@@ -1,6 +1,6 @@
 import {fetchCatalog} from '@/sanity/fetch'
-import {SITE_SETTINGS_QUERY, workCardFields, editionCoverFields} from '@/sanity/queries'
-import {BookCard, type WorkCardData} from '@/components/BookCard'
+import {SITE_SETTINGS_QUERY, bookCardFields, editionCoverFields} from '@/sanity/queries'
+import {BookCard, type BookCardData} from '@/components/BookCard'
 import {EmptyState} from '@/components/States'
 import {PageHeader} from '@/components/PageHeader'
 
@@ -37,14 +37,14 @@ export default async function ReleasesPage({params}: {params: Promise<{window: s
       _id: string
       onSaleDate?: string
       isReprint?: boolean
-      firstPublicationOfWork?: boolean
+      firstPublicationOfBook?: boolean
       market?: string
-      work?: WorkCardData & {_id: string}
+      book?: BookCardData & {_id: string}
     }[]
   >(
     `*[_type == "edition" && defined(onSaleDate) && onSaleDate >= $from && onSaleDate <= $to] | order(onSaleDate desc){
-      _id, onSaleDate, isReprint, firstPublicationOfWork, market,
-      "work": work->{ ${workCardFields}, "cover": ^{${editionCoverFields}} }
+      _id, onSaleDate, isReprint, firstPublicationOfBook, market,
+      "book": book->{ ${bookCardFields}, "cover": ^{${editionCoverFields}} }
     }`,
     {from, to},
   )
@@ -54,7 +54,7 @@ export default async function ReleasesPage({params}: {params: Promise<{window: s
       <PageHeader
         eyebrow="New releases"
         title={config.title}
-        lede="Dates are edition on-sale dates. Reprints are labeled so an older work is not presented as a new book. Market is shown when we have it."
+        lede="Dates are edition on-sale dates. Reprints are labeled so an older book is not presented as a new book. Market is shown when we have it."
       />
       <div className="mt-6 flex flex-wrap gap-2">
         {Object.entries(WINDOWS).map(([slug, item]) => (
@@ -70,22 +70,22 @@ export default async function ReleasesPage({params}: {params: Promise<{window: s
       {editions.length ? (
         <ul className="mt-10 space-y-4">
           {editions.map((edition) =>
-            edition.work ? (
+            edition.book ? (
               <li key={edition._id} className="surface flex gap-4 p-4">
                 <div className="w-24">
-                  <BookCard work={edition.work} fill />
+                  <BookCard book={edition.book} fill />
                 </div>
                 <div className="pt-2 text-sm">
-                  <p className="font-medium">{edition.work.title}</p>
+                  <p className="font-medium">{edition.book.title}</p>
                   <p className="text-[var(--muted)]">
                     On sale {edition.onSaleDate}
                     {edition.market ? ` · ${edition.market}` : ''}
                   </p>
                   <p>
-                    {edition.firstPublicationOfWork
-                      ? 'First publication of this work'
+                    {edition.firstPublicationOfBook
+                      ? 'First publication of this book'
                       : edition.isReprint
-                        ? 'Reprint / reissue — not a new work'
+                        ? 'Reprint / reissue — not a new book'
                         : 'Publication status not fully verified'}
                   </p>
                 </div>

@@ -22,7 +22,7 @@ export const vote = defineType({
     defineField({
       name: 'option',
       type: 'reference',
-      to: [{type: 'work'}],
+      to: [{type: 'book'}],
       validation: (rule) => rule.required(),
     }),
   ],
