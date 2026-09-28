@@ -3,8 +3,6 @@
 import Link from 'next/link'
 import {useRef} from 'react'
 import {BookCover, type CoverSource} from './BookCover'
-import {clubSelectionLabel} from '@/lib/club-selection-dates'
-import {collectionTypeLabel} from '@/lib/collection-type'
 
 export type CarouselBook = {
   _id: string
@@ -42,116 +40,128 @@ function bookHref(book: CarouselBook) {
   return `/books/${book.slug || book._id}`
 }
 
+function clubInitials(collection: CarouselCollection) {
+  const name = collection.curator?.name?.trim()
+  if (name) {
+    const parts = name.split(/\s+/).filter(Boolean)
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+    }
+    return name.slice(0, 2).toUpperCase()
+  }
+  const letters = collection.title.replace(/[^A-Za-z]/g, '')
+  return letters.slice(0, 2).toUpperCase() || 'BC'
+}
+
+const control =
+  'grid size-9 place-items-center rounded-sm border bg-paper text-lg leading-none border-[#d6d6d6]! hover:bg-white'
+
 export function CollectionCarousel({collection}: {collection: CarouselCollection}) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const entries = collection.books.filter((entry) => entry.book)
   const count = collection.totalSelections || entries.length
   const href = collection.slug ? `/collections/${collection.slug}` : undefined
+  const curator = collection.curator?.name
+  const meta = [collection.description, count ? `${count} selections` : null].filter(Boolean).join(' · ')
 
   function scrollByPage(direction: -1 | 1) {
     const node = scrollerRef.current
     if (!node) return
-    node.scrollBy({left: direction * Math.min(node.clientWidth * 0.8, 560), behavior: 'smooth'})
+    node.scrollBy({left: direction * Math.min(node.clientWidth * 0.8, 720), behavior: 'smooth'})
   }
 
   return (
-    <section
-      className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2"
-      aria-labelledby={`${collection._id}-title`}
-    >
-      <div className="grid gap-5 pl-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:items-start lg:gap-8 lg:pl-[max(1rem,calc((100vw-80rem)/2))]">
-        <div className="flex flex-col gap-5 pr-4 lg:pt-1">
-          <div>
-            <p className="pill inline-block px-3 py-1 text-xs font-medium uppercase tracking-[0.14em]">
-              {collectionTypeLabel(collection.collectionType)}
-            </p>
-            <h2
-              id={`${collection._id}-title`}
-              className="mt-4 font-display text-[2.15rem] leading-[1.05] tracking-[-0.03em] sm:text-4xl"
-            >
-              {collection.title}
-            </h2>
-            <p className="mt-3 text-sm text-muted">
-              {[collection.curator?.name ? `Curated by ${collection.curator.name}` : null, count ? `${count} selections` : null]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-            {collection.description ? (
-              <p className="mt-4 max-w-sm text-[0.98rem] leading-7 text-muted">{collection.description}</p>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {href ? (
-              <Link href={href} className="pill is-active px-4 py-2 text-sm">
-                See all {count || ''}
-              </Link>
-            ) : null}
-            {collection.source?.url ? (
-              <a href={collection.source.url} className="pill px-4 py-2 text-sm" rel="noreferrer">
-                Official list
-              </a>
-            ) : null}
-          </div>
-        </div>
-        <div className="min-w-0">
-          <div className="mb-3 flex justify-end gap-2 pr-4">
-            <button
-              type="button"
-              className="pill grid h-9 w-9 place-items-center text-lg leading-none"
-              aria-label={`Previous books in ${collection.title}`}
-              onClick={() => scrollByPage(-1)}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              className="pill grid h-9 w-9 place-items-center text-lg leading-none"
-              aria-label={`Next books in ${collection.title}`}
-              onClick={() => scrollByPage(1)}
-            >
-              ›
-            </button>
-          </div>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-linear-to-r from-paper to-transparent" />
-            <div
-              ref={scrollerRef}
-              className="collection-rail flex gap-3 overflow-x-auto pb-2"
-              tabIndex={0}
-              aria-label={`${collection.title} books`}
-            >
-              {entries.map((entry) => {
-                const book = entry.book!
-                const year = book.publishedDate?.slice(0, 4)
-                const selected = clubSelectionLabel(collection, entry)
-                return (
-                  <Link
-                    key={`${collection._id}-${entry.selectionNumber}-${book._id}`}
-                    href={bookHref(book)}
-                    className="group w-28 shrink-0 sm:w-36"
-                  >
-                    <div className="relative">
-                      {selected ? (
-                        <span className="absolute left-1.5 top-1.5 z-10 whitespace-nowrap bg-ink px-1.5 py-0.5 text-[10px] font-medium text-paper">
-                          {selected}
-                        </span>
-                      ) : null}
-                      <BookCover
-                        cover={book.edition || {...book, coverUrl: book.cover?.url}}
-                        title={book.title}
-                        className="aspect-2/3 w-full rounded-none"
-                      />
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-md font-medium leading-snug tracking-[-0.01em]">{book.title}</p>
-                    <p className="mt-0.5 truncate text-sm text-muted">
-                      {book.authors?.filter(Boolean).join(', ') || 'Author unknown'}
-                    </p>
-                  </Link>
-                )
-              })}
+    <section aria-labelledby={`${collection._id}-title`}>
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-[#d6d6d6]!"
+            aria-hidden="true"
+          >
+            {clubInitials(collection)}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <h2
+                id={`${collection._id}-title`}
+                className="font-display text-[1.35rem] leading-none font-black tracking-[-0.03em] sm:text-[1.5rem]"
+              >
+                {collection.title}
+              </h2>
+              {curator ? <p className="text-sm text-muted">with {curator}</p> : null}
             </div>
+            {meta ? <p className="mt-1.5 truncate text-sm text-muted">{meta}</p> : null}
           </div>
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm border bg-paper px-3 text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]! hover:bg-white"
+          >
+            <span aria-hidden="true">+</span>
+            Follow
+          </button>
+          <button
+            type="button"
+            className={control}
+            aria-label={`Previous books in ${collection.title}`}
+            onClick={() => scrollByPage(-1)}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className={control}
+            aria-label={`Next books in ${collection.title}`}
+            onClick={() => scrollByPage(1)}
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollerRef}
+        className="collection-rail mt-8 flex gap-8 overflow-x-auto pb-2"
+        tabIndex={0}
+        aria-label={`${collection.title} books`}
+      >
+        {entries.map((entry) => {
+          const book = entry.book!
+          return (
+            <Link
+              key={`${collection._id}-${entry.selectionNumber}-${book._id}`}
+              href={bookHref(book)}
+              className="group w-44 shrink-0 sm:w-42"
+            >
+              <BookCover
+                cover={book.edition || {...book, coverUrl: book.cover?.url}}
+                title={book.title}
+                className="aspect-2/3 w-full rounded-none"
+                sizes="(max-width: 640px) 11rem, 12rem"
+              />
+              <p className="mt-3 line-clamp-2 text-[0.95rem] font-medium leading-snug tracking-[-0.01em]">
+                {book.title}
+              </p>
+              <p className="mt-0.5 truncate text-sm text-muted">
+                {book.authors?.filter(Boolean).join(', ') || 'Author unknown'}
+              </p>
+            </Link>
+          )
+        })}
+        {href ? (
+          <Link
+            href={href}
+            className="flex h-66 w-36 shrink-0 flex-col justify-center gap-3 self-start border border-dashed px-5 text-center border-[#d6d6d6]! sm:h-[18rem] sm:w-40"
+          >
+            <span className="text-[0.68rem] font-medium leading-snug tracking-[0.12em] uppercase">
+              More from
+              <br />
+              {collection.title}
+            </span>
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
       </div>
     </section>
   )
