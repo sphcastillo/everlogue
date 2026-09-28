@@ -44,5 +44,8 @@ export function writeClient() {
   })
 }
 
-export const noStore = {cache: 'no-store', next: {revalidate: 0}} as const
-export const catalogRevalidate = {cache: 'no-store', next: {revalidate: 0, tags: ['catalog']}} as const
+export const noStore = {cache: 'no-store' as const, next: {revalidate: 0}}
+export const catalogRevalidate = {
+  cache: 'no-store' as const,
+  next: {revalidate: 0, tags: ['catalog'] as string[]},
+}
