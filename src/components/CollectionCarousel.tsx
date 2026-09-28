@@ -113,7 +113,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
             </button>
           </div>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-[var(--paper)] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-linear-to-r from-paper to-transparent" />
             <div
               ref={scrollerRef}
               className="collection-rail flex gap-3 overflow-x-auto pb-2"
@@ -146,7 +146,6 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
                     <p className="mt-0.5 truncate text-sm text-muted">
                       {book.authors?.filter(Boolean).join(', ') || 'Author unknown'}
                     </p>
-                    {/* {year ? <p className="mt-0.5 text-xs text-muted">{year}</p> : null} */}
                   </Link>
                 )
               })}
