@@ -17,6 +17,7 @@ export type CarouselBook = {
   edition?: CoverSource | null
   coverOverride?: CoverSource['coverOverride']
   cover?: {url?: string | null} | null
+  description?: string | null
 }
 
 export type CarouselCollection = {

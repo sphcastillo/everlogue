@@ -9,6 +9,7 @@ export type BookCardData = {
   firstPublicationYear?: number | null
   authors?: string[] | null
   cover?: CoverSource | null
+  description?: string | null
   myRating?: number | null
   ratingStats?: {average?: number | null; count?: number | null} | null
 }

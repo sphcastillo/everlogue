@@ -97,7 +97,7 @@ export const CURATED_COLLECTION_BY_SLUG_QUERY = defineQuery(`
       month,
       year,
       selectionDate,
-      "book": book->{ ${curatedBookFields} }
+      "book": book->{ ${curatedBookFields}, description }
     }
   }
 `)
