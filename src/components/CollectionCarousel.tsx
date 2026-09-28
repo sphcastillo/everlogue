@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import {useRef} from 'react'
+import {catalogCover} from '@/lib/book-covers'
 import {BookCover, type CoverSource} from './BookCover'
 
 export type CarouselBook = {
@@ -135,7 +136,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
               className="group w-44 shrink-0 sm:w-42"
             >
               <BookCover
-                cover={book.edition || {...book, coverUrl: book.cover?.url}}
+                cover={catalogCover(book)}
                 title={book.title}
                 className="aspect-2/3 w-full rounded-none"
                 sizes="(max-width: 640px) 11rem, 12rem"

@@ -18,6 +18,12 @@ export async function POST(request: Request, {params}: {params: Promise<{bookId:
       {readerId: reader.readerId, bookId}, {cache: 'no-store'},
     )
     if (!book?.author) return Response.json({cover: null}, {headers})
+    const manual = await client.fetch<{coverOverride?: {asset?: {_id?: string}}} | null>(
+      `*[_type == "book" && _id == $bookId][0]{${editionCoverFields}}`,
+      {bookId},
+      {cache: 'no-store'},
+    )
+    if (manual?.coverOverride?.asset) return Response.json({cover: manual}, {headers})
     // Reuse an existing edition before making provider requests.
     let editionId = await client.fetch<string | null>(
       `*[_type == "edition" && book._ref == $bookId && !(_id in path("drafts.**"))] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc)[0]._id`,

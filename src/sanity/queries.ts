@@ -5,14 +5,18 @@ export const editionCoverFields = /* groq */ `
   coverOverride{asset->{_id, url}, alt, hotspot, crop}
 `
 
-export const bookCoverProjection = /* groq */ `coalesce(
-  select(defined(coverOverride.asset) => @{${editionCoverFields}}),
-  (^.featuredEditions[]->)[book._ref == ^._id][0]{${editionCoverFields}},
-  edition->{${editionCoverFields}},
-  select(defined(cover.url) || defined(coverUrl) => @{${editionCoverFields}}),
-  *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{${editionCoverFields}},
-  @{${editionCoverFields}}
-)`
+export const bookCoverProjection = /* groq */ `{
+  ...coalesce(
+    (^.featuredEditions[]->)[book._ref == ^._id][0]{${editionCoverFields}},
+    edition->{${editionCoverFields}},
+    select(defined(cover.url) || defined(coverUrl) => @{${editionCoverFields}}),
+    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{${editionCoverFields}},
+    @{${editionCoverFields}}
+  ),
+  ...select(defined(coverOverride.asset) => {
+    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}
+  })
+}`
 
 export const bookCardFields = /* groq */ `
   _id,

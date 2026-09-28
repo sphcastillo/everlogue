@@ -14,7 +14,7 @@ export const catalogClient = createClient({
   projectId,
   dataset,
   apiVersion,
-  useCdn: true,
+  useCdn: false,
   token: readToken(),
   perspective: 'published',
 })
@@ -44,5 +44,5 @@ export function writeClient() {
   })
 }
 
-export const noStore = {next: {revalidate: 0}} as const
-export const catalogRevalidate = {next: {revalidate: 60}} as const
+export const noStore = {cache: 'no-store', next: {revalidate: 0}} as const
+export const catalogRevalidate = {cache: 'no-store', next: {revalidate: 0, tags: ['catalog']}} as const

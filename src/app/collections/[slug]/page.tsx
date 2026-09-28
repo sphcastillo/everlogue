@@ -8,6 +8,7 @@ import {PageHeader} from '@/components/PageHeader'
 import {clubSelectionLabel} from '@/lib/club-selection-dates'
 import {collectionTypeLabel} from '@/lib/collection-type'
 import type {CarouselCollection} from '@/components/CollectionCarousel'
+import {catalogCover} from '@/lib/book-covers'
 
 export default async function CollectionPage({params}: {params: Promise<{slug: string}>}) {
   const {slug} = await params
@@ -67,7 +68,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
                     {selected}
                   </span>
                 ) : null}
-                <BookCover cover={book.edition || {...book, coverUrl: book.cover?.url}} title={book.title} className="aspect-[2/3] w-full" />
+                <BookCover cover={catalogCover(book)} title={book.title} className="aspect-[2/3] w-full" />
               </div>
               <p className="mt-3 font-medium leading-snug">{book.title}</p>
               <p className="mt-0.5 text-sm text-muted">

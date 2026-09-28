@@ -3,6 +3,9 @@ import {getOptionalReader} from '@/lib/reader'
 import {fetchCatalog} from '@/sanity/fetch'
 import {CURATED_COLLECTIONS_QUERY} from '@/sanity/queries'
 import type {CarouselCollection} from '@/components/CollectionCarousel'
+import {catalogCover} from '@/lib/book-covers'
+
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const [reader, curated] = await Promise.all([
@@ -26,7 +29,7 @@ export default async function HomePage() {
                   ? `/collections/${collection.slug}`
                   : '/discover',
               authors: book.authors,
-              cover: book.edition || {...book, coverUrl: book.cover?.url},
+              cover: catalogCover(book),
               collectionTitle: collection?.title,
             }
           : null

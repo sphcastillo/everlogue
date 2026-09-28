@@ -2,7 +2,7 @@
 
 import {useEffect, useRef, useState} from 'react'
 import {BookCover, type CoverSource} from './BookCover'
-import {coverCandidates} from '@/lib/book-covers'
+import {coverCandidates, hasManualCover} from '@/lib/book-covers'
 
 // Bound client requests so a long shelf doesn't start hundreds of lookups.
 let queue = Promise.resolve()
@@ -23,7 +23,7 @@ function lookup(bookId: string) {
 export function LibraryBookCover({bookId, cover, title, className}: {bookId: string; cover?: CoverSource | null; title: string; className: string}) {
   const root = useRef<HTMLDivElement>(null)
   const [resolved, setResolved] = useState<CoverSource | null>(null)
-  const missing = !coverCandidates(cover).length && !cover?.coverOverride?.asset
+  const missing = !hasManualCover(cover) && !coverCandidates(cover).length
   useEffect(() => {
     if (!missing || !root.current) return
     let cancelled = false

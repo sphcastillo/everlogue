@@ -32,7 +32,11 @@ export const book = defineType({
     defineField({name: 'ratingStats', type: 'ratingStats', readOnly: true}),
     defineField({name: 'editorialLocked', type: 'boolean', initialValue: false, description: 'Protect reviewed metadata from automatic updates.'}),
     defineField({
-      name: 'coverOverride', title: 'Manual cover', type: 'image', options: {hotspot: true},
+      name: 'coverOverride',
+      title: 'Manual cover',
+      type: 'image',
+      options: {hotspot: true},
+      description: 'When set, this image is used everywhere in the app. Provider and edition covers are ignored.',
       fields: [defineField({name: 'alt', title: 'Alternative text', type: 'string'})],
     }),
     defineField({

@@ -3,6 +3,8 @@ import {CURATED_COLLECTIONS_QUERY, DISCOVER_COLLECTIONS_QUERY} from '@/sanity/qu
 import type {CarouselCollection} from '@/components/CollectionCarousel'
 import DiscoverHero from '@/components/DiscoverHero'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DiscoverPage() {
   const [collections, curated] = await Promise.all([
     fetchCatalog<{_id: string}[]>(DISCOVER_COLLECTIONS_QUERY),
