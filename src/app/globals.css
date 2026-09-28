@@ -434,7 +434,7 @@ a.surface:hover {
 }
 
 .cover-frame {
-  border-radius: 16px;
+  border-radius: 0;
   box-shadow:
     0 16px 28px color-mix(in srgb, var(--ink) 16%, transparent),
     inset 0 1px 0 color-mix(in srgb, white 35%, transparent);

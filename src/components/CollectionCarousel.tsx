@@ -38,8 +38,9 @@ export type CarouselCollection = {
   }[]
 }
 
-function bookHref(book: CarouselBook) {
-  return `/books/${book.slug || book._id}`
+function bookHref(book: CarouselBook, clubSlug?: string | null) {
+  const path = `/books/${book.slug || book._id}`
+  return clubSlug ? `${path}?club=${encodeURIComponent(clubSlug)}` : path
 }
 
 function clubInitials(collection: CarouselCollection) {
@@ -76,19 +77,35 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
     <section aria-labelledby={`${collection._id}-title`}>
       <div className="flex items-start justify-between gap-6">
         <div className="flex min-w-0 items-start gap-3">
-          <span
-            className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-[#d6d6d6]!"
-            aria-hidden="true"
-          >
-            {clubInitials(collection)}
-          </span>
+          {href ? (
+            <Link
+              href={href}
+              className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-[#d6d6d6]! hover:bg-white"
+              aria-label={`${collection.title} collection`}
+            >
+              {clubInitials(collection)}
+            </Link>
+          ) : (
+            <span
+              className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-[#d6d6d6]!"
+              aria-hidden="true"
+            >
+              {clubInitials(collection)}
+            </span>
+          )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <h2
                 id={`${collection._id}-title`}
                 className="font-display text-[1.35rem] leading-none font-black tracking-[-0.03em] sm:text-[1.5rem]"
               >
-                {collection.title}
+                {href ? (
+                  <Link href={href} className="hover:underline">
+                    {collection.title}
+                  </Link>
+                ) : (
+                  collection.title
+                )}
               </h2>
               {curator ? <p className="text-sm text-muted">with {curator}</p> : null}
             </div>
@@ -133,7 +150,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
           return (
             <Link
               key={`${collection._id}-${entry.selectionNumber}-${book._id}`}
-              href={bookHref(book)}
+              href={bookHref(book, collection.slug)}
               className="group w-44 shrink-0 sm:w-42"
             >
               <BookCover

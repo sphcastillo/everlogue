@@ -132,6 +132,13 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
       isReprint,
       firstPublicationOfBook,
       ${editionCoverFields}
+    },
+    "clubs": *[_type == "curatedCollection" && references(^._id)] | order(lastSyncedAt desc){
+      title,
+      "slug": slug.current,
+      curator,
+      description,
+      "selectionNumber": books[book._ref == ^.^._id][0].selectionNumber
     }
   }
 `)

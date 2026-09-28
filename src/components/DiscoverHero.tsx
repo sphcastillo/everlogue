@@ -95,22 +95,7 @@ export default function DiscoverHero({
           <h2 className="font-display text-[clamp(2.1rem,5vw,3.6rem)] leading-[0.95] font-black tracking-[-0.08em]">
             Clubs worth following
           </h2>
-          <label className="relative min-w-56 flex-1 sm:max-w-80 sm:flex-none">
-            <span className="sr-only">Search clubs, books, readers</span>
-            <span className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 text-muted" aria-hidden="true">
-              <svg viewBox="0 0 16 16" className="size-3.5" fill="none">
-                <circle cx="6.5" cy="6.5" r="4.2" stroke="currentColor" strokeWidth="1.4" />
-                <path d="M10 10.2 13.2 13.4" stroke="currentColor" strokeWidth="1.4" />
-              </svg>
-            </span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search clubs, books, readers"
-              className="h-10 w-full border-0 border-b bg-transparent pr-2 pl-6 text-sm text-ink outline-none placeholder:text-muted border-b-[#d6d6d6]!"
-            />
-          </label>
+
         </div>
       </section>
 

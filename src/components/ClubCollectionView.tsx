@@ -127,15 +127,12 @@ export function ClubCollectionView({
               <span className="font-accent text-[1.65rem] leading-none text-muted italic sm:text-[1.85rem]">
                 {String(index + 1).padStart(2, '0')}
               </span>
-              <BookCover cover={item.cover} title={item.title} className="aspect-2/3 w-16 rounded-none sm:w-[5.5rem]" sizes="88px" />
+              <BookCover cover={item.cover} title={item.title} className="aspect-2/3 w-16 sm:w-22" sizes="88px" />
               <div className="min-w-0 lg:col-auto">
-                <p className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">
-                  A selection from {title}
-                </p>
                 <p className="mt-1.5 font-display text-[clamp(1.35rem,3vw,2.35rem)] leading-[0.95] font-black tracking-[-0.07em]">
                   {item.title}
                 </p>
-                <p className="mt-1.5 text-sm text-muted">{item.authors}</p>
+                <p className="mt-1.5 text-sm text-black/60 font-semibold">{item.authors}</p>
                 {item.description ? (
                   <p className="mt-2 max-w-xl text-sm leading-6 text-muted line-clamp-2">{firstSentence(item.description)}</p>
                 ) : null}

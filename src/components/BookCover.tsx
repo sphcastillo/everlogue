@@ -27,14 +27,14 @@ function CoverImage({urls, title, alt, priority, className, sizes}: {urls: strin
   const [index, setIndex] = useState(0)
   const src = urls[index]
   return (
-    <div className={`cover-frame relative overflow-hidden bg-(--accent-soft) ${className}`}>
+    <div className={`cover-frame relative overflow-hidden bg-(--accent-soft) ${className} rounded-none!`}>
       {src ? (
         <Image
           src={src}
           alt={index === 0 && alt ? alt : `Cover of ${title}`}
           fill
           sizes={sizes}
-          className="object-cover"
+          className="rounded-none object-cover"
           priority={priority}
           unoptimized={src.includes('books.google') || src.includes('covers.openlibrary.org')}
           onError={() => setIndex((current) => current + 1)}

@@ -30,7 +30,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
         totalCount={books.length}
         items={books.map((book) => ({
           key: book._id,
-          href: `/books/${book.slug || book._id}`,
+          href: `/books/${book.slug || book._id}?club=${encodeURIComponent(slug)}`,
           title: book.title,
           authors: book.authors?.filter(Boolean).join(', ') || 'Author unknown',
           description: book.description,
@@ -56,7 +56,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
         const book = entry.book!
         return {
           key: `${entry.selectionNumber}-${book._id}`,
-          href: `/books/${book.slug || book._id}`,
+          href: `/books/${book.slug || book._id}?club=${encodeURIComponent(slug)}`,
           title: book.title,
           authors: book.authors?.filter(Boolean).join(', ') || 'Author unknown',
           description: book.description,

@@ -25,8 +25,8 @@ export function StarRating({
   }
 
   return (
-    <div className="surface p-5">
-      <p className="text-sm text-[var(--muted)]">Your rating</p>
+    <div>
+      <p className="font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Your rating</p>
       <div role="radiogroup" aria-label="Half-star rating" className="mt-3 flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => {
           const halfValue = (star - 0.5) as (typeof HALF_STARS)[number]
@@ -60,20 +60,19 @@ export function StarRating({
           )
         })}
       </div>
-      <div className="mt-3 flex items-center justify-between text-sm">
-        <p className="text-[var(--muted)]">
+      <div className="mt-3 flex max-w-md items-center justify-between gap-4 text-sm">
+        <p className="text-muted">
           {optimistic === null ? 'Unrated — not the same as zero' : `${optimistic} stars`}
         </p>
         <button
           type="button"
-          className="text-[var(--accent)] disabled:opacity-40"
+          className="font-mono text-[11px] font-medium tracking-[0.14em] text-muted uppercase disabled:opacity-40 hover:text-ink"
           disabled={!signedIn || pending || optimistic === null}
           onClick={() => choose(null)}
         >
           Clear rating
         </button>
       </div>
-      {!signedIn ? <p className="mt-2 text-sm text-[var(--muted)]">Sign in to save a rating to your shelves.</p> : null}
     </div>
   )
 }

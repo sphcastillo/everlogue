@@ -178,7 +178,7 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
                             isbn10: book.volumeInfo?.industryIdentifiers?.find((id) => id.type === 'ISBN_10')?.identifier,
                           }}
                           title={title}
-                          className="h-16 w-11 shrink-0 rounded-md"
+                          className="h-16 w-11 shrink-0"
                         />
                         <div className="min-w-0">
                           <p className="truncate font-medium leading-snug">{title}</p>
