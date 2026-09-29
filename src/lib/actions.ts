@@ -93,7 +93,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
     book?: {
       title?: string | null
       goodreadsBookId?: string | null
-      firstPublicationYear?: number | null
+      publishedDate?: string | null
       authors?: string[] | null
       isbn10?: string | null
       isbn13?: string | null
@@ -108,7 +108,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
       "book": *[_id == $bookId][0]{
         title,
         goodreadsBookId,
-        firstPublicationYear,
+        publishedDate,
         "authors": authors,
         "isbn10": coalesce(isbn10, *[_type == "edition" && book._ref == ^._id && defined(isbn10)][0].isbn10),
         "isbn13": coalesce(isbn13, *[_type == "edition" && book._ref == ^._id && defined(isbn13)][0].isbn13)
@@ -124,6 +124,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
   const dateAdded = data?.addedAt ?? null
   const readCount = data?.progress?.readCount ?? null
   const importSource = data?.progress?.importSource ?? null
+  const publicationYear = Number(data?.book?.publishedDate?.slice(0, 4))
 
   return {
     rating,
@@ -143,7 +144,9 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
       dateAdded,
       dateRead,
       readCount,
-      publicationYear: data?.book?.firstPublicationYear ?? null,
+      publicationYear: Number.isInteger(publicationYear) && publicationYear >= 1000 && publicationYear <= 2100
+        ? publicationYear
+        : null,
       importSource,
     },
   }
@@ -164,7 +167,7 @@ export async function getMyBooks() {
             _id,
             title,
             "slug": coalesce(slug.current, _id),
-            firstPublicationYear,
+            publishedDate,
             "myRating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^._id][0].value,
             "percent": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^._id][0].percent,
             "authors": authors,

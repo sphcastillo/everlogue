@@ -6,7 +6,7 @@ export type BookCardData = {
   _id: string
   title: string
   slug?: string | null
-  firstPublicationYear?: number | null
+  publishedDate?: string | null
   authors?: string[] | null
   cover?: CoverSource | null
   description?: string | null
@@ -58,8 +58,8 @@ export function BookCard({
       <p className={`mt-0.5 text-muted ${compact ? 'truncate text-xs' : 'text-sm'}`}>
         {book.authors?.filter(Boolean).join(', ') || 'Author unknown'}
       </p>
-      {compact && book.firstPublicationYear ? (
-        <p className="mt-0.5 text-xs text-muted">{book.firstPublicationYear}</p>
+      {compact && book.publishedDate?.slice(0, 4) ? (
+        <p className="mt-0.5 text-xs text-muted">{book.publishedDate.slice(0, 4)}</p>
       ) : null}
       {typeof book.myRating === 'number' ? <p className="mt-1 text-xs text-sage" aria-label={`Your rating: ${book.myRating} out of 5 stars`}>Your rating: {book.myRating} ★</p> : null}
       {typeof book.ratingStats?.count === 'number' && book.ratingStats.count > 0 ? (

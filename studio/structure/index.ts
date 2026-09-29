@@ -18,7 +18,7 @@ const SPOTLIGHT_CLUBS = [
   { title: "Reese's Book Club", documentId: 'curatedCollection.reeses-book-club' },
 ]
 
-export const structure: StructureResolver = (S) =>
+export const structure: StructureResolver = (S, context) =>
   S.list()
     .title('Everlogue')
     .items([
@@ -34,7 +34,17 @@ export const structure: StructureResolver = (S) =>
           S.list()
             .title('Book Archive')
             .items([
-              S.documentTypeListItem('book').title('Books').icon(BookIcon),
+              S.listItem()
+                .id('books')
+                .title('Books')
+                .icon(BookIcon)
+                .child(async () => {
+                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const count = await client.fetch<number>(
+                    `count(*[_type == "book" && !(_id in path("drafts.**"))])`,
+                  )
+                  return S.documentTypeList('book').title(`Books · ${count}`)
+                }),
               S.documentTypeListItem('edition').title('Editions'),
               S.listItem().title('Editions needing covers').child(
                 S.documentTypeList('edition').title('Editions needing covers')
@@ -44,6 +54,37 @@ export const structure: StructureResolver = (S) =>
               S.documentTypeListItem('genre').title('Genres').icon(TagIcon),
               S.divider(),
               S.documentTypeListItem('catalogImportIdentity').title('Catalog import identity'),
+              S.listItem()
+                .id('engaged-but-incomplete')
+                .title('Engaged but incomplete')
+                .icon(BookIcon)
+                .child(async () => {
+                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const filter =
+                    '_type == "book" && defined(coverOverride.asset) && catalogReviewStatus != "reviewed"'
+                  const count = await client.fetch<number>(
+                    `count(*[${filter} && !(_id in path("drafts.**"))])`,
+                  )
+                  return S.documentTypeList('book')
+                    .title(`Engaged but incomplete · ${count}`)
+                    .filter(filter)
+                    .defaultOrdering([{field: '_updatedAt', direction: 'desc'}])
+                }),
+              S.listItem()
+                .id('marked-as-reviewed')
+                .title('Marked as reviewed')
+                .icon(BookIcon)
+                .child(async () => {
+                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const filter = '_type == "book" && catalogReviewStatus == "reviewed"'
+                  const count = await client.fetch<number>(
+                    `count(*[${filter} && !(_id in path("drafts.**"))])`,
+                  )
+                  return S.documentTypeList('book')
+                    .title(`Marked as reviewed · ${count}`)
+                    .filter(filter)
+                    .defaultOrdering([{field: '_updatedAt', direction: 'desc'}])
+                }),
             ]),
         ),
       S.listItem()

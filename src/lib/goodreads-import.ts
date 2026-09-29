@@ -47,7 +47,7 @@ async function resolveBook(client: SanityClient, book: GoodreadsBook) {
         authorReferences: [{...reference(authorId), _key: 'author'}],
         ...(book.isbn10 ? {isbn10: book.isbn10} : {}),
         ...(book.isbn13 ? {isbn13: book.isbn13} : {}),
-        ...(book.publicationYear ? {firstPublicationYear: book.publicationYear} : {}),
+        ...(book.publicationYear ? {publishedDate: String(book.publicationYear)} : {}),
       })
       .commit({visibility: 'sync'})
   } catch (error) {

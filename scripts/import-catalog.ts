@@ -166,7 +166,7 @@ async function main() {
         authorReferences: [{_type: 'reference', _ref: authorId, _key: authorId}],
         genres: [{_type: 'reference', _ref: genreIds[seed.genre], _key: seed.genre}],
         description,
-        firstPublicationYear: seed.year,
+        publishedDate: seed.year ? String(seed.year) : undefined,
         openLibraryWorkKey: workKey,
         provenance: {
           _type: 'sourceProvenance',

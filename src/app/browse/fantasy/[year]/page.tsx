@@ -18,7 +18,7 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
   const minimum = settings?.minimumRatingCount || 3
 
   const ranked = await fetchCatalog<BookCardData[]>(
-    `*[_type == "book" && firstPublicationYear == $year && "fantasy" in genres[]->slug.current && ratingStats.count >= $minimum] | order(ratingStats.average desc, title asc){ ${bookCardFields} }`,
+    `*[_type == "book" && string::startsWith(publishedDate, string($year)) && "fantasy" in genres[]->slug.current && ratingStats.count >= $minimum] | order(ratingStats.average desc, title asc){ ${bookCardFields} }`,
     {year, minimum},
   )
   const editorial = await fetchCatalog<{

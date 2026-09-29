@@ -41,14 +41,6 @@ export const book = defineType({
       validation: (rule) => rule.unique(),
       components: {input: BookClubsInput},
     }),
-    defineField({name: 'firstPublicationYear', type: 'number', validation: (rule) => rule.integer().min(1000).max(2100)}),
-    defineField({
-      name: 'firstPublicationDate', type: 'date',
-      validation: (rule) => rule.custom((date, {document}) => {
-        if (!date || !document?.firstPublicationYear) return true
-        return Number(date.slice(0, 4)) === document.firstPublicationYear || 'The date must match the first publication year.'
-      }),
-    }),
     defineField({name: 'ratingStats', type: 'ratingStats', readOnly: true}),
     defineField({name: 'editorialLocked', type: 'boolean', initialValue: false, description: 'Protect reviewed metadata from automatic updates.'}),
     defineField({

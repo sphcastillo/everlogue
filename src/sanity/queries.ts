@@ -23,7 +23,7 @@ export const bookCardFields = /* groq */ `
   _id,
   title,
   "slug": coalesce(slug.current, _id),
-  firstPublicationYear,
+  publishedDate,
   description,
   ratingStats,
   "authors": authors,
@@ -137,7 +137,6 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
   *[_type == "book" && (slug.current == $slug || _id == $slug || $slug in slugAliases || $slug in legacyWorkIds)][0]{
     ${bookCardFields},
     subtitle,
-    firstPublicationDate,
     openLibraryWorkKey,
     provenance,
     "editions": *[_type == "edition" && book._ref == ^._id] | order(onSaleDate desc){

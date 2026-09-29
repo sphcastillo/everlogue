@@ -50,7 +50,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
         style={{fontFamily: 'var(--font-inter), ui-sans-serif, system-ui'}}
       >
         <ClerkProvider>
-          <div className="mx-auto w-full max-w-7xl">
+          <div className="mx-auto w-full max-w-[1280px]">
             <Header auth={<AuthControl />} signedIn={Boolean(reader)} />
             {children}
           </div>
