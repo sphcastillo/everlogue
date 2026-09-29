@@ -10,6 +10,14 @@ export const curatedCollection = defineType({
   fields: [
     defineField({name: 'title', type: 'string', validation: (rule) => rule.required()}),
     defineField({name: 'slug', type: 'slug', options: {source: 'title'}, validation: (rule) => rule.required()}),
+    defineField({
+      name: 'image',
+      title: 'Club image',
+      type: 'image',
+      options: {hotspot: true},
+      description: 'Shown next to the club name on Discover and the club page. Initials are used when this is empty.',
+      fields: [defineField({name: 'alt', title: 'Alternative text', type: 'string'})],
+    }),
     defineField({name: 'description', type: 'text', rows: 3}),
     defineField({
       name: 'curator', type: 'object',
@@ -53,5 +61,5 @@ export const curatedCollection = defineType({
     defineField({name: 'totalSelections', type: 'number', readOnly: true, description: 'Total selections reported by the last import.'}),
     defineField({name: 'lastSyncedAt', type: 'datetime', readOnly: true}),
   ],
-  preview: {select: {title: 'title', subtitle: 'curator.name'}},
+  preview: {select: {title: 'title', subtitle: 'curator.name', media: 'image'}},
 })

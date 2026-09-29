@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import {BookCover, type CoverSource} from './BookCover'
+import {ClubMark} from './ClubMark'
 import {clubInitials, firstSentence, splitClubTitle} from '@/lib/club-title'
+import type {ClubImage} from '@/sanity/image'
 import {collectionTypeLabel} from '@/lib/collection-type'
 
 export type ClubShelfItem = {
@@ -16,6 +18,7 @@ export function ClubCollectionView({
   title,
   description,
   curatorName,
+  image,
   collectionType,
   totalCount,
   items,
@@ -23,6 +26,7 @@ export function ClubCollectionView({
   title: string
   description?: string | null
   curatorName?: string | null
+  image?: ClubImage
   collectionType?: string | null
   totalCount: number
   items: ClubShelfItem[]
@@ -45,22 +49,13 @@ export function ClubCollectionView({
         </nav>
       </div>
 
-      <section className="px-5 pt-8 pb-10 sm:px-8 lg:px-9 lg:pt-10 lg:pb-14">
-        <p className="flex h-7 items-center gap-3 font-mono text-[11px] font-medium tracking-[0.22em] text-muted uppercase">
-          <span className="inline-block w-8 border-t border-ink" aria-hidden="true" />
-          A reading list without borders / {typeLabel}
-        </p>
-
+      <section className="px-5 pt-4 pb-10 sm:px-8 lg:px-9 lg:pt-4 lg:pb-14">
         <div className="mt-8 grid items-stretch gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,28rem)] lg:gap-x-12 xl:gap-x-16">
           <div className="flex min-w-0 flex-col">
-            {curatorName ? (
-              <p className="flex items-center gap-3 text-sm text-muted">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-[#d6d6d6]!">
-                  {initials}
-                </span>
-                Curated by {curatorName}
-              </p>
-            ) : null}
+            <p className="flex items-center gap-3 text-sm text-muted">
+              <ClubMark image={image} initials={initials} title={title} />
+              {curatorName ? `Curated by ${curatorName}` : title}
+            </p>
 
             <h1 className="mt-6 font-display text-[clamp(3rem,8vw,6.6rem)] leading-[0.84] font-black tracking-[-0.12em]">
               <span className="block">{headline}</span>
@@ -87,9 +82,7 @@ export function ClubCollectionView({
             <span className="pointer-events-none absolute top-6 -right-6 size-36 rounded-full border border-ink/10" aria-hidden="true" />
             <div className="relative z-1 flex items-start justify-between gap-4">
               <p className="font-mono text-[0.62rem] font-medium tracking-[0.16em] uppercase">A note from the club</p>
-              <span className="grid size-9 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-ink/20!">
-                {initials}
-              </span>
+              <ClubMark image={image} initials={initials} title={title} className="size-9 border-ink/20!" />
             </div>
             <p className="relative z-1 max-w-sm font-accent text-[clamp(1.85rem,3vw,2.7rem)] leading-[1.08] italic">
               &ldquo;{quote}&rdquo;

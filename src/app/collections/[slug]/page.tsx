@@ -50,6 +50,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
       title={curated.title}
       description={curated.description}
       curatorName={curated.curator?.name}
+      image={curated.image}
       collectionType={curated.collectionType}
       totalCount={count}
       items={entries.map((entry) => {

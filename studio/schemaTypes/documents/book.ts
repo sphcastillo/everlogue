@@ -1,5 +1,6 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 import {BookIcon} from '@sanity/icons'
+import {BookClubsInput} from '../../components/BookClubsInput'
 
 // Shared catalog foundation for club selections, reader libraries, and editions.
 export const book = defineType({
@@ -21,6 +22,15 @@ export const book = defineType({
     defineField({name: 'slugAliases', type: 'array', of: [defineArrayMember({type: 'string'})], readOnly: true, fieldset: 'import'}),
     defineField({name: 'description', type: 'text', rows: 5}),
     defineField({name: 'genres', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'genre'}]})]}),
+    defineField({
+      name: 'clubs',
+      title: 'Book clubs',
+      type: 'array',
+      description: 'Club lists this title belongs on. Checking a club also adds it to that club’s selections; unchecking removes it.',
+      of: [defineArrayMember({type: 'reference', to: [{type: 'curatedCollection'}], options: {disableNew: true}})],
+      validation: (rule) => rule.unique(),
+      components: {input: BookClubsInput},
+    }),
     defineField({name: 'firstPublicationYear', type: 'number', validation: (rule) => rule.integer().min(1000).max(2100)}),
     defineField({
       name: 'firstPublicationDate', type: 'date',

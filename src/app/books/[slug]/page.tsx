@@ -42,13 +42,12 @@ export default async function BookPage({
 
   const reader = await getOptionalReader().catch(() => null)
   const state = await getReaderBookState(book._id)
-  const clubs = book.clubs || []
-  const club = clubs.find((item) => item.slug === clubSlug) || clubs[0]
+  const club = (book.clubs || []).find((item) => item.slug && item.slug === clubSlug) || null
   const selectionNumber = club?.selectionNumber ?? null
   const authors = book.authors?.filter(Boolean).join(', ') || 'Author unknown'
   const quote = firstSentence(book.description)
-  const backHref = club?.slug ? `/collections/${club.slug}` : '/discover'
-  const backLabel = club ? `Back to ${club.title}` : 'Back to book clubs'
+  const backHref = club?.slug ? `/collections/${club.slug}` : '/my-books'
+  const backLabel = club ? `Back to ${club.title}` : 'Back to my books'
   const clubTagline = firstSentence(club?.description)
 
   return (
@@ -162,7 +161,9 @@ export default async function BookPage({
           <span className="mt-0.5 grid size-8 shrink-0 place-items-center border text-xs border-[#d6d6d6]!" aria-hidden="true">
             ✳
           </span>
-          A good club pick is a beginning, not a verdict. Put it on a shelf and make the reading yours.
+          {club
+            ? 'A good club pick is a beginning, not a verdict. Put it on a shelf and make the reading yours.'
+            : 'This is your copy of the book. Put it on a shelf and make the reading yours.'}
         </p>
         {clubTagline ? (
           <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-muted uppercase">{clubTagline}</p>

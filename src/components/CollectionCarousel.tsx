@@ -3,7 +3,10 @@
 import Link from 'next/link'
 import {useRef} from 'react'
 import {catalogCover} from '@/lib/book-covers'
+import {clubInitials} from '@/lib/club-title'
+import type {ClubImage} from '@/sanity/image'
 import {BookCover, type CoverSource} from './BookCover'
+import {ClubMark} from './ClubMark'
 
 export type CarouselBook = {
   _id: string
@@ -27,6 +30,7 @@ export type CarouselCollection = {
   collectionType?: string | null
   description?: string | null
   curator?: {name?: string | null} | null
+  image?: ClubImage
   source?: {name?: string | null; url?: string | null} | null
   totalSelections?: number | null
   books: {
@@ -41,19 +45,6 @@ export type CarouselCollection = {
 function bookHref(book: CarouselBook, clubSlug?: string | null) {
   const path = `/books/${book.slug || book._id}`
   return clubSlug ? `${path}?club=${encodeURIComponent(clubSlug)}` : path
-}
-
-function clubInitials(collection: CarouselCollection) {
-  const name = collection.curator?.name?.trim()
-  if (name) {
-    const parts = name.split(/\s+/).filter(Boolean)
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-    }
-    return name.slice(0, 2).toUpperCase()
-  }
-  const letters = collection.title.replace(/[^A-Za-z]/g, '')
-  return letters.slice(0, 2).toUpperCase() || 'BC'
 }
 
 const control =
@@ -78,20 +69,19 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
       <div className="flex items-start justify-between gap-6">
         <div className="flex min-w-0 items-start gap-3">
           {href ? (
-            <Link
-              href={href}
-              className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-[#d6d6d6]! hover:bg-white"
-              aria-label={`${collection.title} collection`}
-            >
-              {clubInitials(collection)}
+            <Link href={href} className="mt-0.5 shrink-0" aria-label={`${collection.title} collection`}>
+              <ClubMark
+                image={collection.image}
+                initials={clubInitials(collection.curator?.name, collection.title)}
+                title={collection.title}
+              />
             </Link>
           ) : (
-            <span
-              className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full border text-[0.62rem] font-medium tracking-[0.08em] border-[#d6d6d6]!"
-              aria-hidden="true"
-            >
-              {clubInitials(collection)}
-            </span>
+            <ClubMark
+              image={collection.image}
+              initials={clubInitials(collection.curator?.name, collection.title)}
+              title={collection.title}
+            />
           )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">

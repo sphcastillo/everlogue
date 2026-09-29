@@ -20,3 +20,17 @@ export function coverUrls(cover?: CoverSource | null) {
 export function coverSrc(cover?: CoverSource) {
   return coverUrls(cover)[0] || null
 }
+
+export type ClubImage = {
+  asset?: {_id?: string; _ref?: string; url?: string | null} | null
+  alt?: string | null
+  hotspot?: unknown
+  crop?: unknown
+} | null
+
+export function clubImageUrl(image?: ClubImage) {
+  if (!image?.asset) return null
+  const asset = image.asset
+  if (asset._id || asset._ref) return urlFor(image as SanityImageSource).width(160).height(160).fit('crop').url()
+  return asset.url || null
+}

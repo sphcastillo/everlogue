@@ -147,6 +147,7 @@ export async function getMyBooks() {
             "slug": coalesce(slug.current, _id),
             firstPublicationYear,
             "myRating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^._id][0].value,
+            "percent": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^._id][0].percent,
             "authors": authors,
             "cover": coalesce(
               select(defined(coverOverride.asset) => @{${editionCoverFields}}),

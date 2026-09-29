@@ -69,16 +69,23 @@ export const CURATED_COLLECTIONS_QUERY = defineQuery(`
     "slug": slug.current,
     collectionType,
     description,
+    image{asset->{_id, url}, alt, hotspot, crop},
     curator,
     source,
     totalSelections,
-    "books": books | order(selectionNumber desc)[0...24]{
-      selectionNumber,
-      month,
-      year,
-      selectionDate,
-      "book": book->{ ${curatedBookFields} }
-    }
+    "books": (
+      books[]{
+        selectionNumber,
+        month,
+        year,
+        selectionDate,
+        "book": book->{ ${curatedBookFields} }
+      }
+      + *[_type == "book" && ^._id in coalesce(clubs[]._ref, []) && !(_id in coalesce(^.books[].book._ref, []))]{
+        "selectionNumber": 0,
+        "book": @{ ${curatedBookFields} }
+      }
+    ) | order(selectionNumber desc)[0...24]
   }
 `)
 
@@ -89,16 +96,23 @@ export const CURATED_COLLECTION_BY_SLUG_QUERY = defineQuery(`
     "slug": slug.current,
     collectionType,
     description,
+    image{asset->{_id, url}, alt, hotspot, crop},
     curator,
     source,
     totalSelections,
-    "books": books | order(selectionNumber desc){
-      selectionNumber,
-      month,
-      year,
-      selectionDate,
-      "book": book->{ ${curatedBookFields}, description }
-    }
+    "books": (
+      books[]{
+        selectionNumber,
+        month,
+        year,
+        selectionDate,
+        "book": book->{ ${curatedBookFields}, description }
+      }
+      + *[_type == "book" && ^._id in coalesce(clubs[]._ref, []) && !(_id in coalesce(^.books[].book._ref, []))]{
+        "selectionNumber": 0,
+        "book": @{ ${curatedBookFields}, description }
+      }
+    ) | order(selectionNumber desc)
   }
 `)
 
@@ -133,7 +147,7 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
       firstPublicationOfBook,
       ${editionCoverFields}
     },
-    "clubs": *[_type == "curatedCollection" && references(^._id)] | order(lastSyncedAt desc){
+    "clubs": *[_type == "curatedCollection" && (references(^._id) || _id in coalesce(^.clubs[]._ref, []))] | order(lastSyncedAt desc){
       title,
       "slug": slug.current,
       curator,
