@@ -4,8 +4,12 @@ import {privateClient, writeClient} from '@/sanity/client'
 import {bookCoverProjection, editionCoverFields} from '@/sanity/queries'
 import {getOptionalReader, requireReader} from './reader'
 import {saveBookRating, saveBookStatus} from './library-book'
+import {fetchGoogleVolume} from './google-books-api'
+import {GOOGLE_VOLUME_ID} from './google-books'
+import {resolveSearchBook} from './search-book'
 import {
   canTransition,
+  readingStatusSchema,
   spaceColorSchema,
   stableId,
   workflowStatusSchema,
@@ -22,6 +26,21 @@ export async function setReadingStatus(bookId: string, status: string | null) {
   const reader = await requireReader()
   await saveBookStatus(writeClient(), reader.readerId, bookId, status)
   revalidatePath('/my-books')
+  revalidatePath('/books/[slug]', 'page')
+  revalidatePath('/search/[id]', 'page')
+}
+
+export async function setSearchReadingStatus(volumeId: string, status: string | null) {
+  const reader = await requireReader()
+  if (typeof volumeId !== 'string' || !GOOGLE_VOLUME_ID.test(volumeId)) throw new Error('Invalid book ID.')
+  const parsed = status === null ? null : readingStatusSchema.parse(status)
+  const book = await fetchGoogleVolume(volumeId)
+  if (!book || book.id !== volumeId) throw new Error('Book not found.')
+  const client = writeClient()
+  const bookId = await resolveSearchBook(client, book, parsed !== null)
+  if (bookId) await saveBookStatus(client, reader.readerId, bookId, parsed)
+  revalidatePath('/my-books')
+  revalidatePath('/search/[id]', 'page')
   revalidatePath('/books/[slug]', 'page')
 }
 
@@ -286,38 +305,20 @@ export async function moderatePost(postId: string, moderationStatus: 'visible' |
 export async function transitionWorkflow(documentId: string, nextStatus: string, note?: string) {
   const parsed = workflowStatusSchema.parse(nextStatus)
   const doc = await privateClient.fetch<{
-    _type?: string
-    status?: string
     workflowStatus?: string
-  } | null>(`*[_id == $documentId][0]{_type, status, workflowStatus}`, {documentId}, {cache: 'no-store'})
+  } | null>(`*[_id == $documentId][0]{workflowStatus}`, {documentId}, {cache: 'no-store'})
   if (!doc) throw new Error('Document not found')
-  const current = doc.status || doc.workflowStatus || 'proposed'
+  const current = doc.workflowStatus || 'proposed'
   if (!canTransition(current, parsed)) {
     throw new Error(`Cannot move from ${current} to ${parsed}`)
   }
-  const field = doc._type === 'editorialReview' ? 'status' : 'workflowStatus'
-  const patch: Record<string, unknown> = {[field]: parsed}
+  const patch: Record<string, unknown> = {workflowStatus: parsed}
   if (parsed === 'approved' || parsed === 'rejected') {
     patch.reviewedAt = new Date().toISOString()
     patch.reviewedBy = 'server-action'
     if (note) patch.note = note
   }
   await writeClient().patch(documentId).set(patch).commit()
-  if (doc._type === 'celebritySelection' && field === 'workflowStatus') {
-    const reviews = await privateClient.fetch<{_id: string}[]>(
-      `*[_type == "editorialReview" && target._ref == $documentId]{_id}`,
-      {documentId},
-      {cache: 'no-store'},
-    )
-    await Promise.all(
-      reviews.map((review) =>
-        writeClient()
-          .patch(review._id)
-          .set({status: parsed, reviewedAt: patch.reviewedAt, reviewedBy: 'server-action'})
-          .commit(),
-      ),
-    )
-  }
   revalidatePath('/')
   revalidatePath('/picks')
   revalidatePath('/browse')

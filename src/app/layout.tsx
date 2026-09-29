@@ -5,6 +5,7 @@ import {AuthControl} from '@/components/AuthControl'
 import {getOptionalReader} from '@/lib/reader'
 import './globals.css'
 import Header from '@/components/Header'
+import {ReadingCompanion} from '@/components/ReadingCompanion'
 
 const display = DM_Sans({
   subsets: ['latin'],
@@ -49,9 +50,11 @@ export default async function RootLayout({children}: {children: React.ReactNode}
         style={{fontFamily: 'var(--font-inter), ui-sans-serif, system-ui'}}
       >
         <ClerkProvider>
-          <Header auth={<AuthControl />} signedIn={Boolean(reader)}  />
+          <div className="mx-auto w-full max-w-7xl">
+            <Header auth={<AuthControl />} signedIn={Boolean(reader)} />
             {children}
-
+          </div>
+          <ReadingCompanion />
         </ClerkProvider>
       </body>
     </html>

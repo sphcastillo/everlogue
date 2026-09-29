@@ -35,6 +35,22 @@ export function catalogCover(book: {
   }
 }
 
+export function hiResCoverUrl(url: string) {
+  try {
+    const parsed = new URL(url.replace(/^http:\/\//, 'https://'))
+    if (parsed.hostname.includes('books.google') || parsed.hostname.includes('googleusercontent')) {
+      parsed.searchParams.set('zoom', '3')
+      parsed.searchParams.delete('edge')
+    }
+    if (parsed.hostname === 'covers.openlibrary.org') {
+      parsed.searchParams.set('default', 'false')
+    }
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
 export function coverCandidates(cover?: CoverSource | null, manualUrl?: string | null) {
   const id = cover?.coverOpenLibraryId?.replace(/^\/?(books|works|authors)\//, '')
   return [...new Set([
@@ -43,10 +59,5 @@ export function coverCandidates(cover?: CoverSource | null, manualUrl?: string |
     cover?.coverUrl,
     id ? `https://covers.openlibrary.org/b/${/^\d+$/.test(id) ? 'id' : 'olid'}/${encodeURIComponent(id)}-L.jpg?default=false` : null,
     cover?.isbn13 ? openLibraryCover(cover.isbn13) : cover?.isbn10 ? openLibraryCover(cover.isbn10) : null,
-  ].filter((url): url is string => Boolean(url)).map((url) => {
-    if (!url.startsWith('https://covers.openlibrary.org/')) return url
-    const normalized = new URL(url)
-    normalized.searchParams.set('default', 'false')
-    return normalized.toString()
-  }))]
+  ].filter((url): url is string => Boolean(url)).map(hiResCoverUrl))]
 }

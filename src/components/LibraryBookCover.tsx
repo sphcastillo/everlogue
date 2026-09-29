@@ -20,7 +20,21 @@ function lookup(bookId: string) {
   return result
 }
 
-export function LibraryBookCover({bookId, cover, title, className}: {bookId: string; cover?: CoverSource | null; title: string; className: string}) {
+export function LibraryBookCover({
+  bookId,
+  cover,
+  title,
+  className,
+  imageWidth,
+  sizes,
+}: {
+  bookId: string
+  cover?: CoverSource | null
+  title: string
+  className: string
+  imageWidth?: number
+  sizes?: string
+}) {
   const root = useRef<HTMLDivElement>(null)
   const [resolved, setResolved] = useState<CoverSource | null>(null)
   const missing = !hasManualCover(cover) && !coverCandidates(cover).length
@@ -35,5 +49,9 @@ export function LibraryBookCover({bookId, cover, title, className}: {bookId: str
     observer.observe(root.current)
     return () => { cancelled = true; observer.disconnect() }
   }, [bookId, missing])
-  return <div ref={root}><BookCover cover={missing ? resolved || cover : cover} title={title} className={className} /></div>
+  return (
+    <div ref={root}>
+      <BookCover cover={missing ? resolved || cover : cover} title={title} className={className} imageWidth={imageWidth} sizes={sizes} />
+    </div>
+  )
 }

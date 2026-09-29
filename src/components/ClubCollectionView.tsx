@@ -118,7 +118,7 @@ export function ClubCollectionView({
               <span className="font-accent text-[1.65rem] leading-none text-muted italic sm:text-[1.85rem]">
                 {String(item.selectionNumber || items.length - index).padStart(2, '0')}
               </span>
-              <BookCover cover={item.cover} title={item.title} className="aspect-2/3 w-16 sm:w-22" sizes="88px" />
+              <BookCover cover={item.cover} title={item.title} className="aspect-2/3 w-16 sm:w-22" sizes="88px" imageWidth={176} />
               <div className="min-w-0 lg:col-auto">
                 <p className="mt-1.5 font-display text-[clamp(1.35rem,3vw,2.35rem)] leading-[0.95] font-black tracking-[-0.07em]">
                   {item.title}

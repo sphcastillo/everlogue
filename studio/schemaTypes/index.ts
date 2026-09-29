@@ -1,6 +1,5 @@
 import {author} from './documents/author'
 import {catalogImportIdentity} from './documents/catalogImportIdentity'
-import {bestsellerSource} from './documents/bestsellerSource'
 import {book} from './documents/book'
 import {celebrityClub} from './documents/celebrityClub'
 import {celebritySelection} from './documents/celebritySelection'
@@ -11,7 +10,6 @@ import {discussionPost} from './documents/discussionPost'
 import {discussionThread} from './documents/discussionThread'
 import {edition} from './documents/edition'
 import {editorialCollection} from './documents/editorialCollection'
-import {editorialReview} from './documents/editorialReview'
 import {genre} from './documents/genre'
 import {poll} from './documents/poll'
 import {rating} from './documents/rating'
@@ -35,10 +33,8 @@ export const schemaTypes = [
   author,
   genre,
   editorialCollection,
-  bestsellerSource,
   celebrityClub,
   celebritySelection,
-  editorialReview,
   siteSettings,
   readerProfile,
   rating,

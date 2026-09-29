@@ -4,6 +4,9 @@ import {ratingValueSchema, readingStatusSchema, stableId} from './validation'
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 
 async function requireBook(client: SanityClient, bookId: string) {
+  if (typeof bookId !== 'string' || !bookId.trim()) {
+    throw new Error('A catalog book ID is required. Reload the book and try again.')
+  }
   const exists = await client.fetch<boolean>(
     `count(*[_type == "book" && _id == $bookId]) == 1`, {bookId}, {cache: 'no-store'},
   )

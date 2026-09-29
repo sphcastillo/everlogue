@@ -1,7 +1,8 @@
 'use client'
 
-import {useOptimistic, useTransition} from 'react'
-import {saveStatusAction} from '@/lib/server-actions'
+import {useOptimistic, useState, useTransition} from 'react'
+import {saveShelfStatusAction} from '@/lib/server-actions'
+import type {ShelfBook} from '@/lib/validation'
 
 const OPTIONS = [
   {
@@ -35,46 +36,61 @@ const OPTIONS = [
   },
 ] as const
 
-export function ShelfButtons({
-  bookId,
-  status,
-  signedIn,
-}: {
-  bookId: string
+type ShelfButtonsProps = {
   status: string | null
   signedIn: boolean
-}) {
+} & ({bookId: string; googleBooksId?: never} | {bookId?: never; googleBooksId: string})
+
+export function ShelfButtons({
+  bookId,
+  googleBooksId,
+  status,
+  signedIn,
+}: ShelfButtonsProps) {
   const [pending, start] = useTransition()
   const [optimistic, setOptimistic] = useOptimistic(status)
+  const [error, setError] = useState<string | null>(null)
 
   function choose(next: string | null) {
     if (!signedIn) return
     start(async () => {
+      setError(null)
       setOptimistic(next)
-      await saveStatusAction(bookId, next)
+      try {
+        const book: ShelfBook = googleBooksId !== undefined
+          ? {source: 'googleBooks', id: googleBooksId}
+          : {source: 'catalog', id: bookId!}
+        await saveShelfStatusAction(book, next)
+      } catch {
+        setOptimistic(status)
+        setError('This book couldn’t be saved. Please try again.')
+      }
     })
   }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
-      {OPTIONS.map((option) => {
-        const selected = optimistic === option.value
-        return (
-          <button
-            key={option.value}
-            type="button"
-            disabled={!signedIn || pending}
-            aria-pressed={selected}
-            onClick={() => choose(selected ? null : option.value)}
-            className={`inline-flex min-h-14 items-center justify-center gap-2 border px-3 font-mono text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]! disabled:opacity-50 ${
-              selected ? 'bg-ink text-white' : 'bg-paper text-ink hover:bg-white'
-            }`}
-          >
-            {option.icon}
-            {option.label}
-          </button>
-        )
-      })}
+    <div>
+      <div className="grid gap-2 sm:grid-cols-3" aria-busy={pending}>
+        {OPTIONS.map((option) => {
+          const selected = optimistic === option.value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              disabled={!signedIn || pending}
+              aria-pressed={selected}
+              onClick={() => choose(selected ? null : option.value)}
+              className={`inline-flex min-h-14 items-center justify-center gap-2 border px-3 font-mono text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]! disabled:opacity-50 ${
+                selected ? 'bg-ink text-white' : 'bg-paper text-ink hover:bg-white'
+              }`}
+            >
+              {option.icon}
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+      {error ? <p role="alert" className="mt-3 text-sm text-muted">{error}</p> : null}
     </div>
   )
 }

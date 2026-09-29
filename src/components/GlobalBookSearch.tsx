@@ -179,6 +179,8 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
                           }}
                           title={title}
                           className="h-16 w-11 shrink-0"
+                          sizes="44px"
+                          imageWidth={132}
                         />
                         <div className="min-w-0">
                           <p className="truncate font-medium leading-snug">{title}</p>

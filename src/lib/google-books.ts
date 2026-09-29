@@ -73,7 +73,7 @@ export function secureImageUrl(url?: string) {
 
 export function coverSrc(book: GoogleBook) {
   const images = book.volumeInfo?.imageLinks
-  return secureImageUrl(
+  const url = secureImageUrl(
     images?.extraLarge ||
       images?.large ||
       images?.medium ||
@@ -81,6 +81,7 @@ export function coverSrc(book: GoogleBook) {
       images?.thumbnail ||
       images?.smallThumbnail,
   )
+  return url ? url.replace(/zoom=\d/, 'zoom=3').replace(/&edge=curl/, '') : url
 }
 
 export function bookTitle(book: GoogleBook) {

@@ -11,6 +11,16 @@ export const book = defineType({
   fieldsets: [{name: 'import', title: 'Import metadata', options: {collapsible: true, collapsed: true}}],
   fields: [
     defineField({name: 'title', type: 'string', validation: (rule) => rule.required()}),
+    defineField({
+      name: 'catalogReviewStatus', title: 'Catalog review', type: 'string',
+      description: 'Reader-added books are available on shelves immediately. Review the metadata, then mark Reviewed and publish to clear the review queue.',
+      options: {list: [{title: 'Needs review', value: 'needsReview'}, {title: 'Reviewed', value: 'reviewed'}], layout: 'radio'},
+    }),
+    defineField({
+      name: 'catalogSource', title: 'Added from', type: 'string', readOnly: true,
+      options: {list: [{title: 'Reader search', value: 'readerSearch'}]},
+      fieldset: 'import',
+    }),
     defineField({name: 'subtitle', type: 'string'}),
     defineField({name: 'authors', type: 'array', of: [defineArrayMember({type: 'string'})]}),
     defineField({

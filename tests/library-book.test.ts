@@ -2,8 +2,27 @@ import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import type {SanityClient} from '@sanity/client'
 import {saveBookRating, saveBookStatus} from '../src/lib/library-book'
+import {shelfBookSchema} from '../src/lib/validation'
 
 type Doc = {_id: string; _type: string; [key: string]: unknown}
+
+test('missing catalog IDs are rejected before sending a GROQ query', async () => {
+  let queried = false
+  const client = {fetch: async () => { queried = true; throw new Error('Unexpected query') }} as unknown as SanityClient
+  for (const id of [undefined, null, '', '   ']) {
+    await assert.rejects(saveBookStatus(client, 'reader', id as unknown as string, 'wantToRead'), /catalog book ID is required/)
+    await assert.rejects(saveBookRating(client, 'reader', id as unknown as string, 4), /catalog book ID is required/)
+  }
+  assert.equal(queried, false)
+})
+
+test('shelf requests identify the source and require its ID', () => {
+  assert.deepEqual(shelfBookSchema.parse({source: 'googleBooks', id: 'qAthDgAAQBAJ'}), {source: 'googleBooks', id: 'qAthDgAAQBAJ'})
+  assert.deepEqual(shelfBookSchema.parse({source: 'catalog', id: 'catalog-book'}), {source: 'catalog', id: 'catalog-book'})
+  for (const source of ['googleBooks', 'catalog']) {
+    for (const id of [undefined, null, '', '   ']) assert.equal(shelfBookSchema.safeParse({source, id}).success, false)
+  }
+})
 const ref = (value: unknown) => (value as {_ref?: string} | undefined)?._ref
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 

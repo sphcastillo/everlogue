@@ -1,26 +1,10 @@
+import Image from 'next/image'
 import Link from 'next/link'
-import {BookCover, type CoverSource} from './BookCover'
 import {HomeGreeting} from './HomeGreeting'
 
-export type HeroBook = {
-  title: string
-  href: string
-  authors?: string[] | null
-  cover?: CoverSource | null
-  collectionTitle?: string | null
-}
-
-export function HomeHero({
-  displayName,
-  featured,
-}: {
-  displayName?: string | null
-  featured?: HeroBook | null
-}) {
-  const authors = featured?.authors?.filter(Boolean).join(', ')
-
+export function HomeHero({displayName}: {displayName?: string | null}) {
   return (
-    <section className="grid items-stretch gap-10 px-5 py-2 pb-8 lg:grid-cols-2 lg:gap-x-12 lg:px-9 lg:pt-6 lg:pb-10 xl:gap-x-16">
+    <section className="grid items-stretch gap-10 px-5 py-2 pb-8 min-[875px]:grid-cols-2 min-[875px]:gap-x-12 min-[875px]:px-9 min-[875px]:pt-6 min-[875px]:pb-10 xl:gap-x-16">
       <div className="flex flex-col justify-between gap-10">
         <div>
           <HomeGreeting displayName={displayName} />
@@ -56,37 +40,16 @@ export function HomeHero({
           </Link>
         </div>
       </div>
-      {featured ? (
-        <Link
-          href={featured.href}
-          className="relative block h-full min-h-80 w-full self-stretch overflow-hidden bg-ink text-white lg:min-h-0"
-        >
-          <BookCover
-            cover={featured.cover}
-            title={featured.title}
-            priority
-            sizes="(max-width: 1024px) 92vw, 42vw"
-            className="absolute inset-0 h-full w-full rounded-none shadow-none"
-          />
-          <div className="absolute inset-0 bg-linear-to-b from-black/45 via-black/10 to-black/80" />
-          <div className="absolute inset-x-0 top-0 z-1 flex h-7 items-center justify-between gap-4 px-6 font-mono text-[0.68rem] font-medium tracking-[0.16em] uppercase">
-            <span className="flex items-center gap-2">
-              <span className="grid size-3.5 place-items-center bg-white text-[8px] text-ink">+</span>
-              The Everlogue match
-            </span>
-            <span className="text-white/80">{featured.collectionTitle || 'Current pick'}</span>
-          </div>
-          <div className="absolute inset-x-6 bottom-6 z-1 max-w-md">
-            <p className="font-mono text-[0.68rem] font-medium tracking-[0.16em] text-white/75 uppercase">
-              Picked for your shelf
-            </p>
-            <p className="mt-3 font-display text-[clamp(2.1rem,4vw,3.4rem)] leading-[1.02] font-bold tracking-[-0.04em]">
-              {featured.title}
-            </p>
-            {authors ? <p className="mt-2 font-accent text-[1.05rem] text-white/85 italic">{authors}</p> : null}
-          </div>
-        </Link>
-      ) : null}
+      <div className="relative hidden min-h-full overflow-hidden bg-[#1c2328] min-[875px]:block">
+        <Image
+          src="/images/everlogue-hero.jpg"
+          alt="Everlogue clothbound book with pressed flowers on a wooden table"
+          fill
+          priority
+          sizes="(min-width: 875px) 46vw, 0px"
+          className="object-cover"
+        />
+      </div>
     </section>
   )
 }

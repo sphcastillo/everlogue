@@ -166,6 +166,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
               <BookCover
                 cover={catalogCover(book)}
                 title={book.title}
+                imageWidth={480}
                 className="aspect-2/3 w-full rounded-none"
                 sizes="(max-width: 640px) 11rem, 12rem"
               />

@@ -1,11 +1,9 @@
-import type {StructureResolver} from 'sanity/structure'
+import type { StructureResolver } from 'sanity/structure'
 import {
   BookIcon,
-  CalendarIcon,
-  CheckmarkCircleIcon,
   CogIcon,
   DocumentIcon,
-  LinkIcon,
+  DocumentsIcon,
   StarIcon,
   TagIcon,
   UserIcon,
@@ -14,10 +12,10 @@ import {
 
 const SINGLETONS = ['siteSettings']
 const SPOTLIGHT_CLUBS = [
-  {title: 'GMA Book Club', documentId: 'curatedCollection.gma-book-club'},
-  {title: "Oprah's Book Club", documentId: 'curatedCollection.oprahs-book-club'},
-  {title: 'Read with Jenna', documentId: 'curatedCollection.read-with-jenna'},
-  {title: "Reese's Book Club", documentId: 'curatedCollection.reeses-book-club'},
+  { title: 'GMA Book Club', documentId: 'curatedCollection.gma-book-club' },
+  { title: "Oprah's Book Club", documentId: 'curatedCollection.oprahs-book-club' },
+  { title: 'Read with Jenna', documentId: 'curatedCollection.read-with-jenna' },
+  { title: "Reese's Book Club", documentId: 'curatedCollection.reeses-book-club' },
 ]
 
 export const structure: StructureResolver = (S) =>
@@ -30,11 +28,11 @@ export const structure: StructureResolver = (S) =>
         .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
       S.divider(),
       S.listItem()
-        .title('Catalog')
+        .title('Book Archive')
         .icon(BookIcon)
         .child(
           S.list()
-            .title('Catalog')
+            .title('Book Archive')
             .items([
               S.documentTypeListItem('book').title('Books').icon(BookIcon),
               S.documentTypeListItem('edition').title('Editions'),
@@ -44,15 +42,9 @@ export const structure: StructureResolver = (S) =>
               ),
               S.documentTypeListItem('author').title('Authors').icon(UserIcon),
               S.documentTypeListItem('genre').title('Genres').icon(TagIcon),
+              S.divider(),
+              S.documentTypeListItem('catalogImportIdentity').title('Catalog import identity'),
             ]),
-        ),
-      S.listItem()
-        .title('Releases')
-        .icon(CalendarIcon)
-        .child(
-          S.documentTypeList('edition')
-            .title('Editions with on-sale dates')
-            .filter('_type == "edition" && defined(onSaleDate)'),
         ),
       S.listItem()
         .title('Collections')
@@ -67,7 +59,7 @@ export const structure: StructureResolver = (S) =>
                 .child(
                   S.list()
                     .title('The Book Club Spotlight')
-                    .items(SPOTLIGHT_CLUBS.map(({title, documentId}) =>
+                    .items(SPOTLIGHT_CLUBS.map(({ title, documentId }) =>
                       S.listItem()
                         .id(documentId)
                         .title(title)
@@ -77,35 +69,6 @@ export const structure: StructureResolver = (S) =>
                 ),
             ]),
         ),
-      S.listItem()
-        .title('Bestseller directory')
-        .icon(LinkIcon)
-        .child(S.documentTypeList('bestsellerSource').title('Official sources')),
-      S.listItem()
-        .title('Review inbox')
-        .icon(CheckmarkCircleIcon)
-        .child(
-          S.list()
-            .title('Editorial reviews')
-            .items([
-              S.listItem()
-                .title('Needs review')
-                .child(
-                  S.documentList()
-                    .title('Needs review')
-                    .filter('_type == "editorialReview" && status == "needsReview"'),
-                ),
-              S.listItem()
-                .title('Proposed')
-                .child(
-                  S.documentList()
-                    .title('Proposed')
-                    .filter('_type == "editorialReview" && status == "proposed"'),
-                ),
-              S.documentTypeListItem('editorialReview').title('All review tasks'),
-            ]),
-        ),
-      S.divider(),
       S.listItem()
         .title('Community (private)')
         .icon(UsersIcon)
@@ -132,10 +95,8 @@ export const structure: StructureResolver = (S) =>
             'genre',
             'editorialCollection',
             'curatedCollection',
-            'bestsellerSource',
             'celebrityClub',
             'celebritySelection',
-            'editorialReview',
             'communityClub',
             'clubMembership',
             'poll',
@@ -150,7 +111,27 @@ export const structure: StructureResolver = (S) =>
             'discussionPost',
             'sourceProvenance',
             'ratingStats',
+            'catalogImportIdentity',
           ].includes(id)
         )
       }),
+      S.divider(),
+      S.listItem()
+        .title('Everlogue Catalog Requests')
+        .icon(DocumentsIcon)
+        .child(
+          S.list()
+            .title('Everlogue Catalog Requests')
+            .items([
+              S.listItem()
+                .title('Reader-added books')
+                .icon(BookIcon)
+                .child(
+                  S.documentTypeList('book')
+                    .title('Reader-added books — needs review')
+                    .filter('_type == "book" && catalogSource == "readerSearch" && catalogReviewStatus == "needsReview"')
+                    .defaultOrdering([{ field: '_createdAt', direction: 'desc' }]),
+                ),
+            ]),
+        ),
     ])

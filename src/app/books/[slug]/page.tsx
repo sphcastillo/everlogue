@@ -86,6 +86,7 @@ export default async function BookPage({
               cover={book.cover}
               title={book.title}
               priority
+              imageWidth={1200}
               className="aspect-2/3 w-full max-w-72 shadow-[0_24px_50px_rgba(17,17,17,0.18)]"
               sizes="(max-width: 1024px) 70vw, 22rem"
             />

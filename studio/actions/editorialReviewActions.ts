@@ -1,6 +1,6 @@
 import {type DocumentActionComponent, type DocumentActionsContext, useDocumentOperation} from 'sanity'
 
-const REVIEWABLE = new Set(['editorialReview', 'celebritySelection', 'editorialCollection'])
+const REVIEWABLE = new Set(['celebritySelection', 'editorialCollection'])
 
 const ALLOWED: Record<string, string[]> = {
   proposed: ['needsReview', 'rejected'],
@@ -11,7 +11,6 @@ const ALLOWED: Record<string, string[]> = {
 
 function currentStatus(props: {draft?: Record<string, unknown> | null; published?: Record<string, unknown> | null}) {
   const doc = (props.draft || props.published || {}) as Record<string, unknown>
-  if (typeof doc.status === 'string') return doc.status
   if (typeof doc.workflowStatus === 'string') return doc.workflowStatus
   return 'proposed'
 }
@@ -19,7 +18,7 @@ function currentStatus(props: {draft?: Record<string, unknown> | null; published
 const approveAction: DocumentActionComponent = (props) => {
   const {patch} = useDocumentOperation(props.id, props.type)
   const status = currentStatus(props)
-  const field = props.type === 'editorialReview' ? 'status' : 'workflowStatus'
+  const field = 'workflowStatus'
   if (!ALLOWED[status]?.includes('approved')) return null
   return {
     label: 'Approve',
@@ -40,7 +39,7 @@ const approveAction: DocumentActionComponent = (props) => {
 const needsReviewAction: DocumentActionComponent = (props) => {
   const {patch} = useDocumentOperation(props.id, props.type)
   const status = currentStatus(props)
-  const field = props.type === 'editorialReview' ? 'status' : 'workflowStatus'
+  const field = 'workflowStatus'
   if (!ALLOWED[status]?.includes('needsReview')) return null
   return {
     label: 'Send to review',
@@ -54,7 +53,7 @@ const needsReviewAction: DocumentActionComponent = (props) => {
 const rejectAction: DocumentActionComponent = (props) => {
   const {patch} = useDocumentOperation(props.id, props.type)
   const status = currentStatus(props)
-  const field = props.type === 'editorialReview' ? 'status' : 'workflowStatus'
+  const field = 'workflowStatus'
   if (!ALLOWED[status]?.includes('rejected')) return null
   return {
     label: 'Reject',

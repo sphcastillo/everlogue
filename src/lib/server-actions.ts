@@ -1,6 +1,17 @@
 'use server'
 
-import {castVote, createDiscussionPost, joinClub, setRating, setReadingStatus, setSpaceColor} from './actions'
+import {castVote, createDiscussionPost, joinClub, setRating, setReadingStatus, setSearchReadingStatus, setSpaceColor} from './actions'
+import {shelfBookSchema, type ShelfBook} from './validation'
+
+export async function saveShelfStatusAction(book: ShelfBook, status: string | null) {
+  const target = shelfBookSchema.parse(book)
+  if (target.source === 'googleBooks') await setSearchReadingStatus(target.id, status)
+  else await setReadingStatus(target.id, status)
+}
+
+export async function saveSearchStatusAction(volumeId: string, status: string | null) {
+  await setSearchReadingStatus(volumeId, status)
+}
 
 export async function saveRatingAction(bookId: string, value: number | null) {
   await setRating(bookId, value)

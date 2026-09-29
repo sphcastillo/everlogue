@@ -12,6 +12,13 @@ export const shelfKindSchema = z.enum(['wantToRead', 'currentlyReading', 'finish
 
 export const readingStatusSchema = z.enum(['wantToRead', 'currentlyReading', 'finished'])
 
+export const shelfBookSchema = z.discriminatedUnion('source', [
+  z.object({source: z.literal('catalog'), id: z.string().trim().min(1)}),
+  z.object({source: z.literal('googleBooks'), id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)}),
+])
+
+export type ShelfBook = z.infer<typeof shelfBookSchema>
+
 export const workflowStatusSchema = z.enum(['proposed', 'needsReview', 'approved', 'rejected'])
 
 export const spaceColorSchema = z.enum([

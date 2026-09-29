@@ -232,24 +232,6 @@ async function main() {
     books: bookIds.map((id) => ({_type: 'reference', _ref: id, _key: id})),
   })
 
-  const review = await client.create({
-    _type: 'editorialReview',
-    title: 'Approve Forever fantasy collection',
-    target: {_type: 'reference', _ref: collectionId},
-    status: 'proposed',
-    proposedBy: 'import-catalog',
-    note: 'Created by the Open Library import. Needs editorial approval before Discover.',
-  })
-
-  await client
-    .patch(review._id)
-    .set({
-      status: 'approved',
-      reviewedBy: 'import-catalog',
-      reviewedAt: retrievedAt,
-      note: 'Bootstrap approval so Discover has one working collection. Transition recorded.',
-    })
-    .commit()
   await client.patch(collectionId).set({workflowStatus: 'approved'}).commit()
 
   if (fantasyIds.length) {
@@ -264,32 +246,6 @@ async function main() {
       books: fantasyIds.slice(0, 6).map((id) => ({_type: 'reference', _ref: id, _key: id})),
     })
     void editorialFantasy
-  }
-
-  const sources = [
-    {
-      name: 'The New York Times Best Sellers',
-      officialUrl: 'https://www.nytimes.com/books/best-sellers/',
-      notes: 'Official NYT lists. Linking only; rankings are not republished.',
-    },
-    {
-      name: 'Los Angeles Times weekly bestsellers',
-      officialUrl:
-        'https://www.latimes.com/entertainment-arts/books/story/2026-09-16/the-weeks-bestselling-books-september-20',
-      notes:
-        'LAT publishes weekly story URLs rather than a single stable index. This URL was live on 20 Sep 2026.',
-    },
-    {
-      name: 'Publishers Weekly / Circana BookScan',
-      officialUrl: 'https://www.publishersweekly.com/pw/nielsen/index.html',
-      notes: 'Official Circana BookScan lists as published by Publishers Weekly. Linking only.',
-    },
-  ]
-  for (const source of sources) {
-    await upsert('bestsellerSource', 'officialUrl', source.officialUrl, {
-      ...source,
-      lastVerifiedAt: retrievedAt,
-    })
   }
 
   const clubs = [

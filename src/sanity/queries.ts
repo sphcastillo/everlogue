@@ -1,4 +1,5 @@
 import {defineQuery} from 'next-sanity'
+import {searchCatalogFilter} from '@/lib/search-catalog'
 
 export const editionCoverFields = /* groq */ `
   _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,
@@ -161,6 +162,19 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
   }
 `)
 
+export const BOOK_BY_GOOGLE_ID_QUERY = defineQuery(`
+  *[${searchCatalogFilter}][0]{
+    ${bookCardFields},
+    "clubs": *[_type == "curatedCollection" && (references(^._id) || _id in coalesce(^.clubs[]._ref, []))] | order(lastSyncedAt desc){
+      title,
+      "slug": slug.current,
+      curator,
+      description,
+      "selectionNumber": books[book._ref == ^.^._id][0].selectionNumber
+    }
+  }
+`)
+
 export const GENRES_QUERY = defineQuery(`
   *[_type == "genre"] | order(title asc){
     _id,
@@ -168,16 +182,6 @@ export const GENRES_QUERY = defineQuery(`
     "slug": slug.current,
     description,
     "parent": parent->{ title, "slug": slug.current }
-  }
-`)
-
-export const BESTSELLER_SOURCES_QUERY = defineQuery(`
-  *[_type == "bestsellerSource"] | order(name asc){
-    _id,
-    name,
-    officialUrl,
-    lastVerifiedAt,
-    notes
   }
 `)
 

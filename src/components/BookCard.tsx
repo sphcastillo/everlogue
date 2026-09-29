@@ -37,7 +37,23 @@ export function BookCard({
         : 'w-[148px] sm:w-[168px] shrink-0'
   return (
     <Link href={href} className={`group block ${width}`}>
-      {resolveMissingCover ? <LibraryBookCover bookId={book._id} cover={book.cover} title={book.title} className="aspect-[2/3] w-full" /> : <BookCover cover={book.cover} title={book.title} className="aspect-[2/3] w-full" />}
+      {resolveMissingCover ? (
+        <LibraryBookCover
+          bookId={book._id}
+          cover={book.cover}
+          title={book.title}
+          className="aspect-[2/3] w-full"
+          imageWidth={compact ? 224 : large ? 400 : 336}
+        />
+      ) : (
+        <BookCover
+          cover={book.cover}
+          title={book.title}
+          className="aspect-[2/3] w-full"
+          imageWidth={compact ? 224 : large ? 400 : 336}
+          sizes={compact ? '112px' : large ? '196px' : '168px'}
+        />
+      )}
       <p className={`font-medium leading-snug tracking-[-0.01em] ${compact ? 'mt-2 line-clamp-2 text-sm' : 'mt-3'}`}>{book.title}</p>
       <p className={`mt-0.5 text-muted ${compact ? 'truncate text-xs' : 'text-sm'}`}>
         {book.authors?.filter(Boolean).join(', ') || 'Author unknown'}

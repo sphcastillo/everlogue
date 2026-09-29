@@ -318,7 +318,14 @@ function LibraryBookCard({
   if (view === 'list') {
     return (
       <Link href={href} className="group flex items-center gap-4 py-3">
-        <LibraryBookCover bookId={book._id} cover={book.cover} title={book.title} className="aspect-2/3 w-12 shrink-0" />
+        <LibraryBookCover
+          bookId={book._id}
+          cover={book.cover}
+          title={book.title}
+          className="aspect-2/3 w-12 shrink-0"
+          imageWidth={160}
+          sizes="48px"
+        />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{book.title}</span>
           <span className="mt-0.5 block truncate text-sm text-muted">{authors}</span>
@@ -333,7 +340,14 @@ function LibraryBookCard({
 
   return (
     <Link href={href} className="group block">
-      <LibraryBookCover bookId={book._id} cover={book.cover} title={book.title} className="aspect-2/3 w-full" />
+      <LibraryBookCover
+        bookId={book._id}
+        cover={book.cover}
+        title={book.title}
+        className="aspect-2/3 w-full"
+        imageWidth={480}
+        sizes="(max-width: 768px) 45vw, 180px"
+      />
       <p className="mt-3 line-clamp-2 text-[0.95rem] leading-snug font-medium tracking-[-0.01em]">{book.title}</p>
       <p className="mt-0.5 truncate text-sm text-muted">{authors}</p>
       {showProgress && percent !== null ? (
