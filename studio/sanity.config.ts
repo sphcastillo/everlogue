@@ -7,7 +7,7 @@ import {editorialReviewActions} from './actions/editorialReviewActions'
 
 export default defineConfig({
   name: 'default',
-  title: 'Read Evermore',
+  title: 'Everlogue',
 
   projectId: '3h0o1unw',
   dataset: 'production',

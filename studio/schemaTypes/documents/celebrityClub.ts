@@ -28,7 +28,7 @@ export const celebrityClub = defineType({
       type: 'text',
       rows: 2,
       initialValue:
-        'Read Evermore is not affiliated with this book club. Selections are listed only when verified from an official source.',
+        'Everlogue is not affiliated with this book club. Selections are listed only when verified from an official source.',
     }),
   ],
 })

@@ -1,4 +1,4 @@
-# Read Evermore
+# Everlogue
 
 A home for everything you read. Next.js App Router + Clerk + a private Sanity dataset.
 

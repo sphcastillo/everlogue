@@ -61,10 +61,10 @@ export function SearchBookDetail({book}: {book: GoogleBook}) {
           <p className="mt-4 text-sm">
             Google Books rating {info.averageRating}
             {info.ratingsCount ? ` from ${info.ratingsCount.toLocaleString('en-US')} ratings` : ''}. This is not a
-            Read Evermore score.
+            Everlogue score.
           </p>
         ) : (
-          <p className="mt-4 text-sm text-[var(--muted)]">No Google Books rating on this record.</p>
+          <p className="mt-4 text-sm text-muted">No Google Books rating on this record.</p>
         )}
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <Fact label="Pages" value={info?.pageCount} />

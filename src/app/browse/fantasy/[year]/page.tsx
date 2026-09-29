@@ -39,8 +39,8 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
   return (
     <div>
       <PageHeader eyebrow="Fantasy by year" title={String(year)} lede={settings?.ratingMethod} />
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        Minimum rating count for the ranked list: {minimum}. Source: Read Evermore ratings only.
+      <p className="mt-2 text-sm text-muted">
+        Minimum rating count for the ranked list: {minimum}. Source: Everlogue ratings only.
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
         {years.map((item) => (
@@ -62,7 +62,7 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
       ) : (
         <div className="mt-10">
           <EmptyState
-            title="Not enough Read Evermore ratings yet"
+            title="Not enough Everlogue ratings yet"
             body={`No fantasy book first published in ${year} currently has at least ${minimum} in-app ratings. We do not invent community scores.`}
           />
         </div>
@@ -72,8 +72,8 @@ export default async function FantasyByYearPage({params}: {params: Promise<{year
           <p className="pill inline-block px-3 py-1 text-sm">
             {editorial.editorialLabel || 'Editorial collection — not a community ranking'}
           </p>
-          <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl">{editorial.title}</h2>
-          <p className="mt-2 text-[var(--muted)]">{editorial.description}</p>
+          <h2 className="mt-3 font-display text-3xl">{editorial.title}</h2>
+          <p className="mt-2 text-muted">{editorial.description}</p>
           <div className="mt-6 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4">
             {editorial.books.map((book) => (
               <BookCard key={book._id} book={book} fill />

@@ -1,4 +1,4 @@
-# Read Evermore — dated build log
+# Everlogue — dated build log
 
 Contest entry period: 18 Sep 2026 09:00 PDT – 4 Oct 2026 23:59 PDT.  
 This log is written as work happens. Nothing is backdated.
@@ -6,7 +6,7 @@ This log is written as work happens. Nothing is backdated.
 ## 20 Sep 2026 — Stage 1 inspection
 
 ### Prompt in this session
-Implement the attached Read Evermore plan: Next.js at the repository root with `src/` and `studio/` as siblings, Clerk for auth, all application data in a private Sanity dataset, and the full Path Two product.
+Implement the attached Everlogue plan: Next.js at the repository root with `src/` and `studio/` as siblings, Clerk for auth, all application data in a private Sanity dataset, and the full Path Two product.
 
 ### Repository at start
 The workspace was a default Sanity Studio scaffold (`sanity` / `@sanity/vision` 6.15, empty `schemaTypes`, project `3h0o1unw`, dataset `production`). No Next.js app, no catalog, no reader features.

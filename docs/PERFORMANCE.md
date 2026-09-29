@@ -1,6 +1,6 @@
 # Performance notes
 
-Do not claim Read Evermore is faster than Goodreads. These are actual measurements.
+Do not claim Everlogue is faster than Goodreads. These are actual measurements.
 
 ## Method
 

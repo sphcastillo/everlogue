@@ -216,9 +216,9 @@ async function main() {
     _type: 'siteSettings',
     tagline: 'A home for everything you read',
     catalogDisclaimer:
-      'Read Evermore keeps a small, verified catalog. New-release pages show books we have actually imported. This is not a complete record of every book published.',
+      'Everlogue keeps a small, verified catalog. New-release pages show books we have actually imported. This is not a complete record of every book published.',
     ratingMethod:
-      'Fantasy by Year ranks books whose first publication year matches the selected year. The score is the average of current Read Evermore half-star ratings (0.5–5). A book appears in the ranked list only when it has at least 3 ratings. We do not import or invent Goodreads or other community scores. If too few ratings exist, you may see an empty state or a separately labeled editorial collection.',
+      'Fantasy by Year ranks books whose first publication year matches the selected year. The score is the average of current Everlogue half-star ratings (0.5–5). A book appears in the ranked list only when it has at least 3 ratings. We do not import or invent Goodreads or other community scores. If too few ratings exist, you may see an empty state or a separately labeled editorial collection.',
     minimumRatingCount: 3,
     openLibraryAttribution: 'Book metadata and cover images from Open Library, used with attribution.',
   })
@@ -303,7 +303,7 @@ async function main() {
       ...club,
       slug: {_type: 'slug', current: club.slug},
       disclaimer:
-        'Read Evermore is not affiliated with this organization. Selections appear only when verified from an official source.',
+        'Everlogue is not affiliated with this organization. Selections appear only when verified from an official source.',
     })
     const existingSelection = await client.fetch<{_id: string} | null>(
       `*[_type == "celebritySelection" && club._ref == $clubId && year == 2026 && month == 9][0]{_id}`,

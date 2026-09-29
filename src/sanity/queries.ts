@@ -71,6 +71,7 @@ export const CURATED_COLLECTIONS_QUERY = defineQuery(`
     description,
     image{asset->{_id, url}, alt, hotspot, crop},
     curator,
+    instagramUrl,
     source,
     totalSelections,
     "books": (
@@ -99,6 +100,7 @@ export const CURATED_COLLECTION_BY_SLUG_QUERY = defineQuery(`
     description,
     image{asset->{_id, url}, alt, hotspot, crop},
     curator,
+    instagramUrl,
     source,
     totalSelections,
     "books": (

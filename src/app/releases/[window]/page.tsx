@@ -97,11 +97,11 @@ export default async function ReleasesPage({params}: {params: Promise<{window: s
         <div className="mt-10">
           <EmptyState
             title="No cataloged releases in this window"
-            body="Read Evermore only lists editions we have imported. Empty here means a coverage gap, not that nothing was published."
+            body="Everlogue only lists editions we have imported. Empty here means a coverage gap, not that nothing was published."
           />
         </div>
       )}
-      <p className="mt-8 text-sm text-[var(--muted)]">{settings?.catalogDisclaimer}</p>
+      <p className="mt-8 text-sm text-muted">{settings?.catalogDisclaimer}</p>
     </div>
   )
 }

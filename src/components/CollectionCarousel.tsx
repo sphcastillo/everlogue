@@ -32,6 +32,7 @@ export type CarouselCollection = {
   description?: string | null
   curator?: {name?: string | null} | null
   image?: ClubImage
+  instagramUrl?: string | null
   source?: {name?: string | null; url?: string | null} | null
   totalSelections?: number | null
   books: {
@@ -58,6 +59,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
   const count = collection.totalSelections || entries.length
   const href = collection.slug ? `/collections/${collection.slug}` : undefined
   const curator = collection.curator?.name
+  const instagramUrl = collection.instagramUrl
   const meta = [collection.description, count ? `${count} selections` : null].filter(Boolean).join(' · ')
 
   function scrollByPage(direction: -1 | 1) {
@@ -105,13 +107,22 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-1.5 rounded-sm border bg-paper px-3 text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]! hover:bg-white"
-          >
-            <span aria-hidden="true">+</span>
-            Follow
-          </button>
+          {instagramUrl ? (
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-sm border bg-paper px-3 text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]! hover:bg-white"
+            >
+              <span aria-hidden="true">+</span>
+              Follow
+            </a>
+          ) : (
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-sm border bg-paper px-3 text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]! opacity-40">
+              <span aria-hidden="true">+</span>
+              Follow
+            </span>
+          )}
           <button
             type="button"
             className={control}

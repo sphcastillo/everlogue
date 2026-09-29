@@ -1,4 +1,4 @@
-# Read Evermore — implementation checklist
+# Everlogue — implementation checklist
 
 Status: `implemented` | `verified` | `blocked` | `deferred`
 

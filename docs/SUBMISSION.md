@@ -6,7 +6,7 @@ This is a submission for the Sanity Challenge, Path Two: Vibe-Code Something Str
 
 ## What I Built
 
-Read Evermore is a reading companion: a small verified catalog, half-star ratings, private shelves, full genre pages, honest new-release coverage, official bestseller links, celebrity-club months that stay empty until verified, and one community club with a current read, next-read vote, and spoiler-aware discussion. Sanity is the content architecture for catalog, editorial workflow, and reader activity. The dataset is private. Clerk is the sign-in layer (keys still need to be added for judge login).
+Everlogue is a reading companion: a small verified catalog, half-star ratings, private shelves, full genre pages, honest new-release coverage, official bestseller links, celebrity-club months that stay empty until verified, and one community club with a current read, next-read vote, and spoiler-aware discussion. Sanity is the content architecture for catalog, editorial workflow, and reader activity. The dataset is private. Clerk is the sign-in layer (keys still need to be added for judge login).
 
 ## Demo
 

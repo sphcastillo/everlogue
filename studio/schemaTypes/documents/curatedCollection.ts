@@ -24,6 +24,22 @@ export const curatedCollection = defineType({
       fields: [defineField({name: 'name', type: 'string'})],
     }),
     defineField({
+      name: 'instagramUrl',
+      title: 'Instagram',
+      type: 'url',
+      description: 'Follow on the site opens this Instagram profile.',
+      validation: (rule) =>
+        rule.uri({scheme: ['http', 'https']}).custom((value) => {
+          if (!value) return true
+          try {
+            const host = new URL(value).hostname.replace(/^www\./, '')
+            return host === 'instagram.com' || 'Use an instagram.com URL.'
+          } catch {
+            return 'Use a full Instagram URL, such as https://www.instagram.com/username'
+          }
+        }),
+    }),
+    defineField({
       name: 'books', title: 'Book selections', type: 'array',
       of: [defineArrayMember({
         name: 'curatedCollectionEntry', title: 'Book selection', type: 'object', icon: BookIcon,

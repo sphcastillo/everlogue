@@ -20,6 +20,7 @@ export function ClubCollectionView({
   description,
   curatorName,
   image,
+  instagramUrl,
   collectionType,
   totalCount,
   items,
@@ -28,6 +29,7 @@ export function ClubCollectionView({
   description?: string | null
   curatorName?: string | null
   image?: ClubImage
+  instagramUrl?: string | null
   collectionType?: string | null
   totalCount: number
   items: ClubShelfItem[]
@@ -104,13 +106,17 @@ export function ClubCollectionView({
           <h2 className="font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.92] font-black tracking-[-0.08em]">
             On this shelf.
           </h2>
-          <button
-            type="button"
-            className="inline-flex h-10 items-center gap-1.5 border bg-paper px-3.5 text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]!"
-          >
-            <span aria-hidden="true">+</span>
-            Follow this club
-          </button>
+          {instagramUrl ? (
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-1.5 border bg-paper px-3.5 text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]!"
+            >
+              <span aria-hidden="true">+</span>
+              Follow this club
+            </a>
+          ) : null}
         </div>
       </section>
 

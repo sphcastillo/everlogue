@@ -2,13 +2,13 @@ import {defineField, defineType} from 'sanity'
 
 export const ratingStats = defineType({
   name: 'ratingStats',
-  title: 'Read Evermore rating stats',
+  title: 'Everlogue rating stats',
   type: 'object',
   fields: [
     defineField({
       name: 'average',
       type: 'number',
-      description: 'Mean of genuine Read Evermore half-star ratings. Not an imported community score.',
+      description: 'Mean of genuine Everlogue half-star ratings. Not an imported community score.',
       readOnly: true,
     }),
     defineField({

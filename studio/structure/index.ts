@@ -22,7 +22,7 @@ const SPOTLIGHT_CLUBS = [
 
 export const structure: StructureResolver = (S) =>
   S.list()
-    .title('Read Evermore')
+    .title('Everlogue')
     .items([
       S.listItem()
         .title('Site settings')
