@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import {useRef} from 'react'
 import {catalogCover} from '@/lib/book-covers'
+import {latestClubEntries} from '@/lib/club-books'
 import {clubInitials} from '@/lib/club-title'
 import type {ClubImage} from '@/sanity/image'
 import {BookCover, type CoverSource} from './BookCover'
@@ -35,6 +36,7 @@ export type CarouselCollection = {
   totalSelections?: number | null
   books: {
     selectionNumber?: number | null
+    isLatestAddition?: boolean | null
     month?: string | number | null
     year?: number | null
     selectionDate?: string | null
@@ -52,7 +54,7 @@ const control =
 
 export function CollectionCarousel({collection}: {collection: CarouselCollection}) {
   const scrollerRef = useRef<HTMLDivElement>(null)
-  const entries = collection.books.filter((entry) => entry.book)
+  const entries = latestClubEntries(collection.books).slice(0, 24)
   const count = collection.totalSelections || entries.length
   const href = collection.slug ? `/collections/${collection.slug}` : undefined
   const curator = collection.curator?.name

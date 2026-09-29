@@ -4,6 +4,7 @@ import {fetchCatalog} from '@/sanity/fetch'
 import {CURATED_COLLECTIONS_QUERY} from '@/sanity/queries'
 import type {CarouselCollection} from '@/components/CollectionCarousel'
 import {catalogCover} from '@/lib/book-covers'
+import {latestClubEntries} from '@/lib/club-books'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ export default async function HomePage() {
   ])
 
   const collection = curated?.find((item) => item.slug === 'reeses-book-club') ?? curated?.[0]
-  const book = collection?.books.find((entry) => entry.book)?.book
+  const book = latestClubEntries(collection?.books || [])[0]?.book
 
   return (
     <HomeHero

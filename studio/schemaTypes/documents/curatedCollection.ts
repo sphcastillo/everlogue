@@ -31,7 +31,7 @@ export const curatedCollection = defineType({
           defineField({name: 'book', type: 'reference', to: [{type: 'book'}], validation: (rule) => rule.required()}),
           defineField({
             name: 'selectionNumber', type: 'number',
-            description: 'The website displays the highest selection number first.',
+            description: 'Higher numbers are later picks. The site shows the latest pick first and the first book last.',
             validation: (rule) => rule.required().integer().min(1),
           }),
           defineField({name: 'month', type: 'string', description: 'Selection month, e.g. September.'}),
@@ -58,6 +58,13 @@ export const curatedCollection = defineType({
       fields: [defineField({name: 'name', type: 'string'}), defineField({name: 'url', type: 'url'})],
     }),
     defineField({name: 'collectionType', type: 'string', initialValue: 'celebrityBookClub', readOnly: true}),
+    defineField({
+      name: 'sortOrder',
+      title: 'Display order',
+      type: 'number',
+      description: 'Lower numbers appear first on Discover. Image and text updates do not change this.',
+      validation: (rule) => rule.integer().min(1),
+    }),
     defineField({name: 'totalSelections', type: 'number', readOnly: true, description: 'Total selections reported by the last import.'}),
     defineField({name: 'lastSyncedAt', type: 'datetime', readOnly: true}),
   ],

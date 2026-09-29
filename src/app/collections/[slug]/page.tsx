@@ -5,6 +5,7 @@ import {type BookCardData} from '@/components/BookCard'
 import {ClubCollectionView} from '@/components/ClubCollectionView'
 import type {CarouselCollection} from '@/components/CollectionCarousel'
 import {catalogCover} from '@/lib/book-covers'
+import {latestClubEntries} from '@/lib/club-books'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +43,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
 
   if (!curated) notFound()
 
-  const entries = curated.books.filter((entry) => entry.book)
+  const entries = latestClubEntries(curated.books)
   const count = curated.totalSelections || entries.length
 
   return (
@@ -57,6 +58,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
         const book = entry.book!
         return {
           key: `${entry.selectionNumber}-${book._id}`,
+          selectionNumber: entry.selectionNumber,
           href: `/books/${book.slug || book._id}?club=${encodeURIComponent(slug)}`,
           title: book.title,
           authors: book.authors?.filter(Boolean).join(', ') || 'Author unknown',

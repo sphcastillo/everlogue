@@ -63,7 +63,7 @@ export const curatedBookFields = /* groq */ `
 `
 
 export const CURATED_COLLECTIONS_QUERY = defineQuery(`
-  *[_type == "curatedCollection"] | order(lastSyncedAt desc){
+  *[_type == "curatedCollection"] | order(coalesce(sortOrder, 999) asc, title asc){
     _id,
     title,
     "slug": slug.current,
@@ -83,9 +83,10 @@ export const CURATED_COLLECTIONS_QUERY = defineQuery(`
       }
       + *[_type == "book" && ^._id in coalesce(clubs[]._ref, []) && !(_id in coalesce(^.books[].book._ref, []))]{
         "selectionNumber": 0,
+        "isLatestAddition": true,
         "book": @{ ${curatedBookFields} }
       }
-    ) | order(selectionNumber desc)[0...24]
+    )
   }
 `)
 
@@ -110,9 +111,10 @@ export const CURATED_COLLECTION_BY_SLUG_QUERY = defineQuery(`
       }
       + *[_type == "book" && ^._id in coalesce(clubs[]._ref, []) && !(_id in coalesce(^.books[].book._ref, []))]{
         "selectionNumber": 0,
+        "isLatestAddition": true,
         "book": @{ ${curatedBookFields}, description }
       }
-    ) | order(selectionNumber desc)
+    )
   }
 `)
 

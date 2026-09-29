@@ -33,7 +33,7 @@ export function BookClubsInput(props: ArrayOfObjectsInputProps) {
   useEffect(() => {
     let cancelled = false
     client
-      .fetch<ClubOption[]>(`*[_type == "curatedCollection"] | order(title asc){_id, title}`)
+      .fetch<ClubOption[]>(`*[_type == "curatedCollection"] | order(coalesce(sortOrder, 999) asc, title asc){_id, title}`)
       .then((docs) => {
         if (!cancelled) setClubs(docs || [])
       })

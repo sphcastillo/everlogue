@@ -10,6 +10,7 @@ export type ClubShelfItem = {
   href: string
   title: string
   authors: string
+  selectionNumber?: number | null
   description?: string | null
   cover?: CoverSource | null
 }
@@ -118,7 +119,7 @@ export function ClubCollectionView({
           <li key={item.key} className="border-t border-(--line)">
             <Link href={item.href} className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-4 py-7 sm:gap-6 lg:gap-8">
               <span className="font-accent text-[1.65rem] leading-none text-muted italic sm:text-[1.85rem]">
-                {String(index + 1).padStart(2, '0')}
+                {String(item.selectionNumber || items.length - index).padStart(2, '0')}
               </span>
               <BookCover cover={item.cover} title={item.title} className="aspect-2/3 w-16 sm:w-22" sizes="88px" />
               <div className="min-w-0 lg:col-auto">
