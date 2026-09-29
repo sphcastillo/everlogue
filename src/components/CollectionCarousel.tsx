@@ -55,12 +55,12 @@ const control =
 
 export function CollectionCarousel({collection}: {collection: CarouselCollection}) {
   const scrollerRef = useRef<HTMLDivElement>(null)
-  const entries = latestClubEntries(collection.books).slice(0, 24)
-  const count = collection.totalSelections || entries.length
+  const allEntries = latestClubEntries(collection.books)
+  const entries = allEntries.slice(0, 24)
+  const count = collection.totalSelections ?? allEntries.length
   const href = collection.slug ? `/collections/${collection.slug}` : undefined
   const curator = collection.curator?.name
   const instagramUrl = collection.instagramUrl
-  const meta = [collection.description, count ? `${count} selections` : null].filter(Boolean).join(' · ')
 
   function scrollByPage(direction: -1 | 1) {
     const node = scrollerRef.current
@@ -103,7 +103,14 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
               </h2>
               {curator ? <p className="text-sm text-muted">with {curator}</p> : null}
             </div>
-            {meta ? <p className="mt-1.5 truncate text-sm text-muted">{meta}</p> : null}
+            {count ? (
+              <p className="mt-1.5 text-sm font-bold text-black/70">
+                {count} {count === 1 ? 'selection' : 'selections'}
+              </p>
+            ) : null}
+            {collection.description ? (
+              <p className="mt-1 truncate text-sm text-muted">{collection.description}</p>
+            ) : null}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">

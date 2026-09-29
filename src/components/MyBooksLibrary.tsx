@@ -50,10 +50,21 @@ function booksOn(shelf?: LibraryShelf | null) {
   return (shelf?.entries || []).flatMap((entry) => (entry.book ? [entry.book] : []))
 }
 
+function normalize(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function matchesQuery(book: LibraryBook, query: string) {
-  if (!query) return true
-  const haystack = `${book.title} ${book.authors?.join(' ') || ''}`.toLowerCase()
-  return haystack.includes(query)
+  const tokens = normalize(query).split(' ').filter(Boolean)
+  if (!tokens.length) return true
+  const haystack = normalize(`${book.title} ${book.authors?.filter(Boolean).join(' ') || ''}`)
+  return tokens.every((token) => haystack.includes(token))
 }
 
 function formatRating(value: number) {
@@ -76,9 +87,21 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
     finished: booksOn(byKind.get('finished')).length,
     wantToRead: booksOn(byKind.get('wantToRead')).length,
   }
-  const needle = query.trim().toLowerCase()
+  const needle = query.trim()
+  const searching = Boolean(normalize(needle))
   const customShelves = shelves.filter((shelf) => shelf.kind === 'custom')
   const visibleSections = SECTIONS.filter((section) => filter === 'all' || filter === section.kind)
+  const filteredSections = visibleSections.map((section) => ({
+    ...section,
+    books: booksOn(byKind.get(section.kind)).filter((book) => matchesQuery(book, needle)),
+  }))
+  const filteredCustom = (filter === 'all' ? customShelves : []).map((shelf) => ({
+    shelf,
+    books: booksOn(shelf).filter((book) => matchesQuery(book, needle)),
+  }))
+  const matchCount =
+    filteredSections.reduce((sum, section) => sum + section.books.length, 0) +
+    filteredCustom.reduce((sum, section) => sum + section.books.length, 0)
 
   return (
     <div className="px-5 pb-20 sm:px-8 lg:px-9">
@@ -136,19 +159,23 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
           })}
         </nav>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="relative">
-            <span className="sr-only">Search your library</span>
-            <svg viewBox="0 0 16 16" className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted" fill="none" aria-hidden="true">
-              <circle cx="7" cy="7" r="4.2" stroke="currentColor" strokeWidth="1.4" />
-              <path d="M10.4 10.4 13 13" stroke="currentColor" strokeWidth="1.4" />
-            </svg>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search your library"
-              className="h-10 w-52 border bg-paper pr-3 pl-9 text-sm border-[#d6d6d6]! placeholder:text-muted"
-            />
-          </label>
+          <form role="search" className="relative" onSubmit={(event) => event.preventDefault()}>
+            <label className="block">
+              <span className="sr-only">Search your library</span>
+              <svg viewBox="0 0 16 16" className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.2" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M10.4 10.4 13 13" stroke="currentColor" strokeWidth="1.4" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search your library"
+                autoComplete="off"
+                className="h-10 w-64 border bg-paper pr-3 pl-9 text-sm border-[#d6d6d6]! placeholder:text-muted"
+              />
+            </label>
+          </form>
           <div className="flex">
             <button
               type="button"
@@ -187,36 +214,41 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
       </div>
 
       <div className="space-y-14 pt-10">
-        {visibleSections.map((section) => {
-          const books = booksOn(byKind.get(section.kind)).filter((book) => matchesQuery(book, needle))
+        {searching ? (
+          <p className="text-sm text-muted">
+            {matchCount
+              ? `${matchCount} ${matchCount === 1 ? 'book' : 'books'} on your shelves match “${needle}”.`
+              : `No books on your shelves match “${needle}”.`}
+          </p>
+        ) : null}
+        {filteredSections.map((section) => {
+          if (searching && !section.books.length) return null
           return (
             <ShelfSection
               key={section.kind}
               title={section.title}
-              count={books.length}
-              note={section.note}
-              books={books}
+              count={section.books.length}
+              note={searching ? undefined : section.note}
+              books={section.books}
               view={view}
               showProgress={section.kind === 'currentlyReading'}
               showRating={section.kind === 'finished'}
             />
           )
         })}
-        {filter === 'all'
-          ? customShelves.map((shelf) => {
-              const books = booksOn(shelf).filter((book) => matchesQuery(book, needle))
-              return (
-                <ShelfSection
-                  key={shelf._id}
-                  title={shelf.name}
-                  count={books.length}
-                  books={books}
-                  view={view}
-                  showRating
-                />
-              )
-            })
-          : null}
+        {filteredCustom.map(({shelf, books}) => {
+          if (searching && !books.length) return null
+          return (
+            <ShelfSection
+              key={shelf._id}
+              title={shelf.name}
+              count={books.length}
+              books={books}
+              view={view}
+              showRating
+            />
+          )
+        })}
       </div>
     </div>
   )

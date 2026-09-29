@@ -44,7 +44,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
   if (!curated) notFound()
 
   const entries = latestClubEntries(curated.books)
-  const count = curated.totalSelections || entries.length
+  const count = curated.totalSelections ?? entries.length
 
   return (
     <ClubCollectionView

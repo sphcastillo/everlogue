@@ -68,16 +68,7 @@ export function ClubCollectionView({
             {description ? (
               <p className="mt-8 max-w-md text-[1.02rem] leading-[1.65] text-muted">{description}</p>
             ) : null}
-
-            <div className="mt-auto pt-10">
-              <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-(--line) pt-4 font-mono text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-                <span>{totalCount} selections</span>
-                <span className="text-(--line)" aria-hidden="true">
-                  |
-                </span>
-                <span>{items.length} on this shelf</span>
-              </div>
-            </div>
+ 
           </div>
 
           <aside className="relative flex min-h-80 flex-col justify-between overflow-hidden bg-[#d7e4d8] px-8 py-8 text-ink xl:min-h-96">
@@ -134,7 +125,7 @@ export function ClubCollectionView({
                 </p>
                 <p className="mt-1.5 text-sm text-black/60 font-semibold">{item.authors}</p>
                 {item.description ? (
-                  <p className="mt-2 max-w-xl text-sm leading-6 text-muted line-clamp-2">{firstSentence(item.description)}</p>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-muted line-clamp-2">{item.description}</p>
                 ) : null}
               </div>
               <span className="grid size-9 shrink-0 place-items-center border border-[#d6d6d6]! sm:size-10" aria-hidden="true">

@@ -25,6 +25,15 @@ export function splitClubTitle(title: string) {
 export function firstSentence(text?: string | null) {
   if (!text) return null
   const compact = text.replace(/\s+/g, ' ').trim()
-  const match = compact.match(/^(.+?[.!?])(\s|$)/)
-  return (match?.[1] || compact).slice(0, 180)
+  for (let index = 0; index < compact.length; index += 1) {
+    const mark = compact[index]
+    if (mark !== '.' && mark !== '!' && mark !== '?') continue
+    const prev = compact[index - 1]
+    const beforePrev = compact[index - 2]
+    const next = compact[index + 1]
+    if (prev && /[A-Z]/.test(prev) && (!beforePrev || beforePrev === ' ' || beforePrev === '.')) continue
+    if (next && next !== ' ') continue
+    return compact.slice(0, index + 1)
+  }
+  return compact
 }
