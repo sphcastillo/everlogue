@@ -13,9 +13,9 @@ export type ReaderSession = {
 
 export const getOptionalReader = cache(async (): Promise<ReaderSession | null> => {
   if (!process.env.CLERK_SECRET_KEY) return null
+  const {userId} = await auth()
+  if (!userId) return null
   try {
-    const {userId} = await auth()
-    if (!userId) return null
     return await getOrCreateReader(userId)
   } catch (error) {
     console.error('Unable to load the Sanity reader profile:', error)

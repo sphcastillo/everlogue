@@ -44,7 +44,7 @@ export default function HomeCatalogGrowth() {
             <Image src="/images/everlogue-logo.png" alt="" width={180} height={176} className="size-4" />
             A shelf that keeps growing
           </p>
-          <h2 className="mt-6 max-w-xl font-display text-[clamp(2.4rem,7vw,4.35rem)] leading-[0.88] font-black tracking-[-0.1em]">
+          <h2 className="mt-6 max-w-xl font-display text-[clamp(2.4rem,12vw,4.35rem)] leading-[0.88] font-black -tracking-widest">
             Help Us Grow
             <span className="block">Our Catalog</span>
           </h2>

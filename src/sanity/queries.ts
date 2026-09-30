@@ -244,3 +244,38 @@ export const COMMUNITY_CLUB_BY_SLUG_QUERY = defineQuery(`
     "currentRead": currentRead->{ ${bookCardFields} }
   }
 `)
+
+export const SHELF_PICKS_QUERY = defineQuery(`{
+  "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{
+    "slug": slug.current,
+    "books": books[0...5]->{ ${bookCardFields} }
+  },
+  "strange": *[_type == "book" && count((genres[]->)[
+    lower(title) match "*strange*" ||
+    lower(slug.current) match "*strange*" ||
+    lower(title) match "*speculative*" ||
+    lower(title) match "*weird*"
+  ]) > 0] | order(_updatedAt desc)[0...5]{ ${bookCardFields} },
+  "feelings": *[_type == "book" && count((genres[]->)[
+    lower(title) match "*literary*" ||
+    lower(title) match "*romance*" ||
+    lower(title) match "*memoir*" ||
+    lower(title) match "*identity*" ||
+    lower(slug.current) match "*literary*"
+  ]) > 0] | order(_updatedAt desc)[0...5]{ ${bookCardFields} },
+  "short": *[_type == "book" && defined(pageCount) && pageCount > 0 && pageCount <= 280] | order(pageCount asc)[0...5]{ ${bookCardFields} },
+  "latest": *[_type == "book"] | order(_updatedAt desc)[0...20]{ ${bookCardFields} }
+}`)
+
+export const FOR_YOU_BOOKS_QUERY = defineQuery(`
+  *[_type == "book" && !(_id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref)] | order(coalesce(ratingStats.count, 0) desc, _updatedAt desc)[0...5]{
+    ${bookCardFields}
+  }
+`)
+
+export const PICK_SHELF_STATUSES_QUERY = defineQuery(`
+  *[_type == "shelfEntry" && shelf->owner._ref == $readerId && book._ref in $bookIds && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]{
+    "bookId": book._ref,
+    "status": shelf->kind
+  }
+`)

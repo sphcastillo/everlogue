@@ -39,6 +39,8 @@ const mono = DM_Mono({
   variable: '--font-dm-mono',
 })
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: {
     default: 'Everlogue',
