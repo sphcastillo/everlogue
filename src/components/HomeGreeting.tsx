@@ -9,11 +9,11 @@ export function HomeGreeting({displayName}: {displayName?: string | null}) {
 
   return (
     <div>
-      <p className="flex h-7 items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
+      <p className="flex h-7 items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-current/70 min-[875px]:text-muted">
         <span className="inline-block size-1.5 shrink-0 bg-current" aria-hidden="true" />
         {date}
       </p>
-      <p className="mt-10 font-accent text-[clamp(1.35rem,2vw,1.75rem)] leading-none font-normal text-ink italic lg:mt-12">
+      <p className="mt-10 font-accent text-[clamp(1.35rem,2vw,1.75rem)] leading-none font-normal italic min-[875px]:mt-4">
         {name ? `${period}, ${name}` : period}
       </p>
     </div>

@@ -10,7 +10,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <HomeHero displayName={reader?.displayName} />
+      <HomeHero displayName={reader?.displayName} signedIn={Boolean(reader)} />
       <HomePickUpForShelf />
       <HomeCatalogGrowth />
     </>
