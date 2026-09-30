@@ -82,6 +82,13 @@ test('reimport fills a missing rating without changing the existing shelf or dat
   assert.equal(docs.get('rating-reader-existing-book')?.value, 4)
 })
 
+test('a pre-existing catalog book is reused and is not queued for review', async () => {
+  const {client, docs} = database([{_id: 'existing-book', _type: 'book', title: book.title}])
+  await importGoodreadsBook(client, 'reader', book)
+  assert.equal(docs.get('existing-book')?.catalogReviewStatus, undefined)
+  assert.equal(docs.get('existing-book')?.catalogSource, undefined)
+})
+
 test('a pre-existing rating does not prevent importing shelf membership', async () => {
   const {client, docs} = database([
     {_id: 'existing-book', _type: 'book', title: book.title},
@@ -98,6 +105,9 @@ test('concurrent imports create one book and one library entry', async () => {
   assert.equal(results.filter((result) => result.status === 'imported').length, 1)
   assert.equal([...docs.values()].filter((doc) => doc._type === 'book').length, 1)
   assert.equal([...docs.values()].filter((doc) => doc._type === 'shelfEntry').length, 1)
+  const created = [...docs.values()].find((doc) => doc._type === 'book')!
+  assert.equal(created.catalogSource, 'goodreadsImport')
+  assert.equal(created.catalogReviewStatus, 'needsReview')
 })
 
 test('failed writes leave no partial reading progress and can be retried', async () => {

@@ -45,6 +45,8 @@ async function resolveBook(client: SanityClient, book: GoodreadsBook) {
         slug: {_type: 'slug', current: `${slugify(book.title).slice(0, 70)}-${importKey.slice(0, 12)}`},
         authors: [book.author],
         authorReferences: [{...reference(authorId), _key: 'author'}],
+        catalogReviewStatus: 'needsReview',
+        catalogSource: 'goodreadsImport',
         ...(book.isbn10 ? {isbn10: book.isbn10} : {}),
         ...(book.isbn13 ? {isbn13: book.isbn13} : {}),
         ...(book.publicationYear ? {publishedDate: String(book.publicationYear)} : {}),

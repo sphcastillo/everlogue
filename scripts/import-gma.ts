@@ -463,6 +463,8 @@ function makeBookDocument(book: GoogleBook) {
   return {
     _id: id,
     _type: BOOK_TYPE,
+    catalogReviewStatus: 'needsReview',
+    catalogSource: 'bookClubImport',
 
     title: info.title ?? 'Untitled',
     subtitle: info.subtitle ?? null,

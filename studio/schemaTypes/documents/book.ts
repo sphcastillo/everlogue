@@ -1,6 +1,7 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 import {BookIcon} from '@sanity/icons'
 import {BookClubsInput} from '../../components/BookClubsInput'
+import {BookPreview} from '../../components/BookPreview'
 
 // Shared catalog foundation for club selections, reader libraries, and editions.
 export const book = defineType({
@@ -13,12 +14,16 @@ export const book = defineType({
     defineField({name: 'title', type: 'string', validation: (rule) => rule.required()}),
     defineField({
       name: 'catalogReviewStatus', title: 'Catalog review', type: 'string',
-      description: 'Reader-added books are available on shelves immediately. Review the metadata, then mark Reviewed and publish to clear the review queue.',
+      description: 'Books added from search, a Goodreads import, or a book club import stay on the reader’s shelves immediately. Review metadata here, then mark Reviewed to clear Catalog Requests.',
       options: {list: [{title: 'Needs review', value: 'needsReview'}, {title: 'Reviewed', value: 'reviewed'}], layout: 'radio'},
     }),
     defineField({
       name: 'catalogSource', title: 'Added from', type: 'string', readOnly: true,
-      options: {list: [{title: 'Reader search', value: 'readerSearch'}]},
+      options: {list: [
+        {title: 'Reader search', value: 'readerSearch'},
+        {title: 'Goodreads import', value: 'goodreadsImport'},
+        {title: 'Book club import', value: 'bookClubImport'},
+      ]},
       fieldset: 'import',
     }),
     defineField({name: 'subtitle', type: 'string'}),
@@ -101,10 +106,18 @@ export const book = defineType({
       ],
     }),
   ],
+  components: {preview: BookPreview},
   preview: {
-    select: {title: 'title', author: 'authors.0', media: 'coverOverride'},
-    prepare({title, author, media}) {
-      return {title, subtitle: author, media}
+    select: {
+      title: 'title',
+      author: 'authors.0',
+      media: 'coverOverride',
+      catalogReviewStatus: 'catalogReviewStatus',
+      catalogSource: 'catalogSource',
+      bookId: '_id',
+      club0: 'clubs.0.title',
+      club1: 'clubs.1.title',
+      club2: 'clubs.2.title',
     },
   },
 })

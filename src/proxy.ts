@@ -1,12 +1,7 @@
-import {clerkMiddleware, createRouteMatcher} from '@clerk/nextjs/server'
+import {clerkMiddleware} from '@clerk/nextjs/server'
 
-const isProtectedRoute = createRouteMatcher(['/my-books(.*)', '/settings(.*)'])
-
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    await auth.protect()
-  }
-})
+// Resources enforce authentication themselves; the proxy supplies Clerk context.
+export default clerkMiddleware()
 
 export const config = {
   matcher: [

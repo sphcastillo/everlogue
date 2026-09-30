@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import {auth} from '@clerk/nextjs/server'
 import {ProfileAvatarForm} from '@/components/ProfileAvatarForm'
 import {getOptionalReader} from '@/lib/reader'
 
 export default async function SettingsPage() {
+  await auth.protect()
   const reader = await getOptionalReader().catch(() => null)
   const initials = reader?.displayName?.trim().charAt(0) || 'R'
 

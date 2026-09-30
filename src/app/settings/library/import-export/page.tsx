@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import {auth} from '@clerk/nextjs/server'
 import {GoodreadsImport} from '@/components/GoodreadsImport'
 
-export default function ImportExportPage() {
+export default async function ImportExportPage() {
+  await auth.protect()
   return (
     <div className="px-5 pb-20 sm:px-8 lg:px-9">
       <nav

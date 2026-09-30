@@ -9,6 +9,13 @@ import {
   UserIcon,
   UsersIcon,
 } from '@sanity/icons'
+import {BookClubImportsPane} from '../components/BookClubImportsPane'
+import {
+  FROM_BOOK_CLUB,
+  FROM_GOODREADS,
+  FROM_READER_SEARCH,
+  PENDING_CATALOG_REVIEW,
+} from '../lib/catalog-request-filters'
 
 const SINGLETONS = ['siteSettings']
 const SPOTLIGHT_CLUBS = [
@@ -164,15 +171,49 @@ export const structure: StructureResolver = (S, context) =>
           S.list()
             .title('Everlogue Catalog Requests')
             .items([
+              catalogRequestList(S, context, {
+                id: 'catalog-requests-all',
+                title: 'Needs review',
+                filter: `_type == "book" && ${PENDING_CATALOG_REVIEW} && (${FROM_READER_SEARCH} || ${FROM_GOODREADS} || ${FROM_BOOK_CLUB})`,
+              }),
+              catalogRequestList(S, context, {
+                id: 'catalog-requests-search',
+                title: 'Reader-added books',
+                filter: `_type == "book" && ${PENDING_CATALOG_REVIEW} && ${FROM_READER_SEARCH}`,
+              }),
+              catalogRequestList(S, context, {
+                id: 'catalog-requests-goodreads',
+                title: 'Goodreads imports',
+                filter: `_type == "book" && ${PENDING_CATALOG_REVIEW} && ${FROM_GOODREADS}`,
+              }),
               S.listItem()
-                .title('Reader-added books')
+                .id('catalog-requests-book-clubs')
+                .title('Bookclub imports')
                 .icon(BookIcon)
                 .child(
-                  S.documentTypeList('book')
-                    .title('Reader-added books — needs review')
-                    .filter('_type == "book" && catalogSource == "readerSearch" && catalogReviewStatus == "needsReview"')
-                    .defaultOrdering([{ field: '_createdAt', direction: 'desc' }]),
+                  S.component(BookClubImportsPane)
+                    .id('bookclub-imports-pane')
+                    .title('Bookclub imports'),
                 ),
             ]),
         ),
     ])
+
+function catalogRequestList(
+  S: Parameters<StructureResolver>[0],
+  context: Parameters<StructureResolver>[1],
+  {id, title, filter}: {id: string; title: string; filter: string},
+) {
+  return S.listItem()
+    .id(id)
+    .title(title)
+    .icon(BookIcon)
+    .child(async () => {
+      const client = context.getClient({apiVersion: '2026-02-01'})
+      const count = await client.fetch<number>(`count(*[${filter} && !(_id in path("drafts.**"))])`)
+      return S.documentTypeList('book')
+        .title(`${title} · ${count}`)
+        .filter(filter)
+        .defaultOrdering([{field: '_createdAt', direction: 'desc'}])
+    })
+}

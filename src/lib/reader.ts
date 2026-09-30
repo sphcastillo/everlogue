@@ -15,8 +15,8 @@ export type ReaderSession = {
 
 export const getOptionalReader = cache(async (): Promise<ReaderSession | null> => {
   if (!process.env.CLERK_SECRET_KEY) return null
-  const {userId} = await auth()
-  if (!userId) return null
+  const {isAuthenticated, userId} = await auth()
+  if (!isAuthenticated || !userId) return null
   try {
     return await getOrCreateReader(userId)
   } catch (error) {
@@ -38,7 +38,7 @@ async function getOrCreateReader(clerkUserId: string): Promise<ReaderSession> {
     PROFILE_QUERY, {clerkUserId}, {cache: 'no-store'},
   )
   if (existing?._id) {
-    await ensureSystemShelves(writeClient(), existing._id)
+    await ensureSystemShelves(writeClient(), existing._id, existing.systemShelves)
     return {
       readerId: existing._id,
       clerkUserId,

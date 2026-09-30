@@ -503,7 +503,7 @@ export type Book = {
   _rev: string;
   title: string;
   catalogReviewStatus?: "needsReview" | "reviewed";
-  catalogSource?: "readerSearch";
+  catalogSource?: "readerSearch" | "goodreadsImport" | "bookClubImport";
   subtitle?: string;
   authors?: Array<string>;
   authorReferences?: Array<
