@@ -211,13 +211,6 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
               </svg>
             </button>
           </div>
-          <Link
-            href="/discover"
-            className="inline-flex h-10 items-center gap-2 bg-ink px-4 font-mono text-[11px] font-medium tracking-[0.14em] text-white uppercase"
-          >
-            <span aria-hidden="true">+</span>
-            Add book
-          </Link>
         </div>
       </div>
 
