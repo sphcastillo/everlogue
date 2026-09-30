@@ -114,14 +114,14 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
             </svg>
             A record of your reading life
           </p>
-          <h1 className="mt-4 font-display text-[clamp(2.8rem,6vw,4.6rem)] leading-[0.88] font-black tracking-[-0.07em]">
+          <h1 className="mt-4 font-display text-[clamp(4.2rem,6vw,4.6rem)] leading-[0.88] font-black tracking-[-0.07em]">
             My books.
           </h1>
           <p className="mt-4 max-w-md text-[1.02rem] leading-7 text-muted">
             Everything you&apos;re reading, everything you&apos;ve finished, and everything still to come.
           </p>
         </div>
-        <dl className="flex gap-8 sm:gap-12">
+        <dl className="flex gap-8 sm:gap-12 max-[539px]:flex-col max-[539px]:gap-3">
           {(
             [
               {label: 'Currently reading', value: counts.currentlyReading},
@@ -129,17 +129,23 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
               {label: 'Want to read', value: counts.wantToRead},
             ] as const
           ).map((stat) => (
-            <div key={stat.label} className="text-right">
+            <div
+              key={stat.label}
+              className="text-right max-[539px]:flex max-[539px]:items-baseline max-[539px]:gap-2.5 max-[539px]:text-left"
+            >
               <dt className="sr-only">{stat.label}</dt>
               <dd className="font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(stat.value)}</dd>
-              <p className="mt-2 font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">{stat.label}</p>
+              <p className="mt-2 font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase max-[539px]:mt-0">{stat.label}</p>
             </div>
           ))}
         </dl>
       </header>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 border-y border-(--line) py-4">
-        <nav className="flex flex-wrap items-center gap-1" aria-label="Shelf filters">
+      <div className="flex flex-col gap-4 border-y border-(--line) py-4 min-[540px]:flex-row min-[540px]:flex-wrap min-[540px]:items-center min-[540px]:justify-between">
+        <nav
+          className="grid w-full grid-cols-2 gap-x-3 gap-y-4 pb-5 min-[540px]:flex min-[540px]:w-auto min-[540px]:flex-wrap min-[540px]:items-center min-[540px]:gap-1 min-[540px]:pb-0"
+          aria-label="Shelf filters"
+        >
           {FILTERS.map((item) => {
             const active = filter === item.id
             return (
@@ -148,18 +154,20 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
                 type="button"
                 aria-pressed={active}
                 onClick={() => setFilter(item.id)}
-                className={`relative px-3 py-2 font-mono text-[11px] font-medium tracking-[0.16em] uppercase ${
+                className={`relative px-0 pt-1 pb-1.5 text-left font-mono text-[11px] font-medium tracking-[0.16em] uppercase min-[540px]:px-3 min-[540px]:pt-2 min-[540px]:pb-1.5 ${
                   active ? 'text-ink' : 'text-muted hover:text-ink'
                 }`}
               >
                 {item.label}
-                {active ? <span className="absolute inset-x-3 -bottom-4 h-px bg-ink" /> : null}
+                {active ? (
+                  <span className="absolute inset-x-0 bottom-0 h-px bg-ink min-[540px]:inset-x-3" />
+                ) : null}
               </button>
             )
           })}
         </nav>
-        <div className="flex flex-wrap items-center gap-2">
-          <form role="search" className="relative" onSubmit={(event) => event.preventDefault()}>
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 min-[540px]:w-auto">
+          <form role="search" className="relative min-w-0 flex-1 min-[540px]:flex-none" onSubmit={(event) => event.preventDefault()}>
             <label className="block">
               <span className="sr-only">Search your library</span>
               <svg viewBox="0 0 16 16" className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted" fill="none" aria-hidden="true">
@@ -172,7 +180,7 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search your library"
                 autoComplete="off"
-                className="h-10 w-64 border bg-paper pr-3 pl-9 text-sm border-[#d6d6d6]! placeholder:text-muted"
+                className="h-10 w-full border bg-paper pr-3 pl-9 text-sm border-[#d6d6d6]! placeholder:text-muted min-[540px]:w-64"
               />
             </label>
           </form>
@@ -281,7 +289,7 @@ function ShelfSection({
         {note ? <p className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">{note}</p> : null}
       </div>
       {books.length ? (
-        <ul className={view === 'grid' ? 'mt-6 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6' : 'mt-6 divide-y divide-(--line)'}>
+        <ul className={view === 'grid' ? 'mt-6 grid grid-cols-3 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-6' : 'mt-6 divide-y divide-(--line)'}>
           {books.map((book) => (
             <li key={book._id}>
               <LibraryBookCard
@@ -345,8 +353,8 @@ function LibraryBookCard({
         cover={book.cover}
         title={book.title}
         className="aspect-2/3 w-full"
-        imageWidth={480}
-        sizes="(max-width: 768px) 45vw, 180px"
+        imageWidth={320}
+        sizes="(max-width: 639px) 30vw, (max-width: 768px) 22vw, 180px"
       />
       <p className="mt-3 line-clamp-2 text-[0.95rem] leading-snug font-medium tracking-[-0.01em]">{book.title}</p>
       <p className="mt-0.5 truncate text-sm text-muted">{authors}</p>

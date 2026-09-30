@@ -1,8 +1,10 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer className="px-5 pt-16 pb-8 min-[875px]:px-9 min-[875px]:pt-20 min-[875px]:pb-10">
+    <footer className="relative mt-6 border-t border-ink/18 px-5 pt-14 pb-8 shadow-[inset_0_20px_32px_-28px_color-mix(in_srgb,#3a4570_20%,transparent)] min-[875px]:mt-8 min-[875px]:px-9 min-[875px]:pt-16 min-[875px]:pb-10">
+      <span className="pointer-events-none absolute inset-x-0 top-1.25 h-px bg-(--line)" aria-hidden="true" />
       <div className="grid items-end gap-10 min-[875px]:grid-cols-2 min-[875px]:gap-x-12 xl:gap-x-16">
         <div>
           <p className="text-[0.62rem] font-medium tracking-[0.2em] text-muted uppercase">
@@ -35,9 +37,15 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      <div className="mt-16 flex flex-wrap items-center justify-between gap-3 border-t border-(--line) pt-5 text-[0.62rem] font-medium tracking-[0.16em] text-muted uppercase">
-        <p>Read widely. Think freely.</p>
-        <p>Everlogue — a reader&apos;s place</p>
+      <div className="mt-16 border-t border-(--line) pt-6 text-center">
+        <Link href="/" className="inline-flex items-center gap-2 text-ink" aria-label="Everlogue">
+          <Image src="/images/everlogue-logo.png" alt="" width={180} height={176} className="h-5 w-auto" />
+          <span className="font-wordmark text-[1.2rem] leading-none tracking-normal">Everlogue</span>
+        </Link>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[0.62rem] font-medium tracking-[0.16em] text-muted uppercase">
+          <p>Read widely. Think freely.</p>
+          <p>A reader&apos;s place</p>
+        </div>
       </div>
     </footer>
   )

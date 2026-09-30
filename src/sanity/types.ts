@@ -504,6 +504,12 @@ export type Book = {
   title: string;
   catalogReviewStatus?: "needsReview" | "reviewed";
   catalogSource?: "readerSearch" | "goodreadsImport" | "bookClubImport";
+  knowledgeSources?: Array<{
+    label?: string;
+    url: string;
+    _type: "knowledgeSource";
+    _key: string;
+  }>;
   subtitle?: string;
   authors?: Array<string>;
   authorReferences?: Array<

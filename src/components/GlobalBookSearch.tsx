@@ -119,7 +119,7 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
     <div
       ref={rootRef}
       className={
-        header ? 'relative w-full min-w-0 md:w-72' : catalog ? 'relative w-full min-w-0' : 'relative mx-auto max-w-2xl'
+        header ? 'relative w-full min-w-0' : catalog ? 'relative w-full min-w-0' : 'relative mx-auto max-w-2xl'
       }
     >
       <form
@@ -172,7 +172,7 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
           }
         />
         {header ? (
-          <kbd className="hidden shrink-0 font-sans text-sm font-normal text-muted md:inline">⌘K</kbd>
+          <kbd className="hidden shrink-0 font-sans text-sm font-normal text-muted lg:inline">⌘K</kbd>
         ) : (
           <button
             type="submit"

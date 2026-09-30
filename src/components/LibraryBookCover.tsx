@@ -50,7 +50,7 @@ export function LibraryBookCover({
     return () => { cancelled = true; observer.disconnect() }
   }, [bookId, missing])
   return (
-    <div ref={root}>
+    <div ref={root} className={className.includes('w-full') ? 'max-[639px]:mx-auto max-[639px]:w-[min(100%,7rem)]' : undefined}>
       <BookCover cover={missing ? resolved || cover : cover} title={title} className={className} imageWidth={imageWidth} sizes={sizes} />
     </div>
   )

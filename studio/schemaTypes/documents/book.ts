@@ -26,6 +26,32 @@ export const book = defineType({
       ]},
       fieldset: 'import',
     }),
+    defineField({
+      name: 'knowledgeSources',
+      title: 'Knowledge sources',
+      type: 'array',
+      description: 'Add source links here in Studio when you have them — publisher pages, club posts, Wikipedia, interviews, and similar.',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'knowledgeSource',
+          fields: [
+            defineField({name: 'label', type: 'string', description: 'Optional. Defaults to the URL if left blank.'}),
+            defineField({
+              name: 'url',
+              type: 'url',
+              validation: (rule) => rule.required().uri({scheme: ['http', 'https']}),
+            }),
+          ],
+          preview: {
+            select: {title: 'label', subtitle: 'url'},
+            prepare({title, subtitle}) {
+              return {title: title || subtitle || 'Source link', subtitle: title ? subtitle : undefined}
+            },
+          },
+        }),
+      ],
+    }),
     defineField({name: 'subtitle', type: 'string'}),
     defineField({name: 'authors', type: 'array', of: [defineArrayMember({type: 'string'})]}),
     defineField({

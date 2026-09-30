@@ -15,8 +15,8 @@ export default function Header({auth}: {auth: React.ReactNode; signedIn: boolean
 
   return (
     <header className="sticky top-0 z-30 border-b border-(--line) bg-paper">
-      <div className="relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 md:flex md:flex-wrap">
-        <Link href="/" className="relative z-10 flex shrink-0 items-center gap-2 justify-self-start" aria-label="Everlogue">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto] lg:gap-x-4">
+        <Link href="/" className="col-start-1 row-start-1 flex shrink-0 items-center gap-2" aria-label="Everlogue">
           <Image
             src="/images/everlogue-logo.png"
             alt=""
@@ -30,8 +30,8 @@ export default function Header({auth}: {auth: React.ReactNode; signedIn: boolean
           </span>
         </Link>
 
-        <nav className="relative z-10 flex min-w-0 items-center justify-center justify-self-center overflow-x-auto md:pointer-events-none md:absolute md:inset-0 md:flex-none">
-          <div className="flex items-center justify-center gap-0.5 md:pointer-events-auto sm:gap-1">
+        <nav className="col-start-2 row-start-1 min-w-0 overflow-x-auto">
+          <div className="flex items-center justify-center gap-0.5 sm:gap-1">
             {NAV.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
               return (
@@ -50,11 +50,11 @@ export default function Header({auth}: {auth: React.ReactNode; signedIn: boolean
           </div>
         </nav>
 
-        <div className="relative z-10 shrink-0 justify-self-end md:order-4">
-          {auth}
-        </div>
-        <div className="col-span-3 min-w-0 md:order-3 md:ml-auto md:w-auto">
+        <div className="col-span-3 row-start-2 min-w-0 lg:col-span-1 lg:col-start-3 lg:row-start-1">
           <GlobalBookSearch variant="header" />
+        </div>
+        <div className="col-start-3 row-start-1 shrink-0 justify-self-end lg:col-start-4">
+          {auth}
         </div>
       </div>
     </header>

@@ -31,10 +31,10 @@ export function BookCard({
   const width = fill
     ? 'w-full'
     : compact
-      ? 'w-[104px] sm:w-[112px] shrink-0'
+      ? 'w-[84px] sm:w-[112px] shrink-0'
       : large
-        ? 'w-[176px] sm:w-[196px] shrink-0'
-        : 'w-[148px] sm:w-[168px] shrink-0'
+        ? 'w-[132px] sm:w-[196px] shrink-0'
+        : 'w-[112px] sm:w-[168px] shrink-0'
   return (
     <Link href={href} className={`group block ${width}`}>
       {resolveMissingCover ? (
@@ -51,7 +51,7 @@ export function BookCard({
           title={book.title}
           className="aspect-[2/3] w-full"
           imageWidth={compact ? 224 : large ? 400 : 336}
-          sizes={compact ? '112px' : large ? '196px' : '168px'}
+          sizes={compact ? '(max-width: 639px) 84px, 112px' : large ? '(max-width: 639px) 132px, 196px' : '(max-width: 639px) 112px, 168px'}
         />
       )}
       <p className={`font-medium leading-snug tracking-[-0.01em] ${compact ? 'mt-2 line-clamp-2 text-sm' : 'mt-3'}`}>{book.title}</p>
