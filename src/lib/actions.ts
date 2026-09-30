@@ -378,3 +378,33 @@ export async function setSpaceColor(color: string) {
   await writeClient().patch(reader.readerId).set({spaceColor: parsed}).commit()
   revalidatePath('/', 'layout')
 }
+
+const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+const AVATAR_MAX_BYTES = 4 * 1024 * 1024
+
+export async function setProfileAvatar(file: File) {
+  const reader = await requireReader()
+  if (!AVATAR_TYPES.has(file.type)) throw new Error('Choose a JPEG, PNG, WebP, or GIF image.')
+  if (file.size > AVATAR_MAX_BYTES) throw new Error('Please choose an image smaller than 4 MB.')
+  const client = writeClient()
+  const asset = await client.assets.upload('image', Buffer.from(await file.arrayBuffer()), {
+    filename: file.name.replace(/[^\w.-]+/g, '-').slice(0, 80) || 'avatar.jpg',
+    contentType: file.type,
+  })
+  await client.patch(reader.readerId).set({
+    avatar: {
+      _type: 'image',
+      asset: {_type: 'reference', _ref: asset._id},
+      alt: reader.displayName,
+    },
+  }).commit()
+  revalidatePath('/', 'layout')
+  revalidatePath('/settings')
+}
+
+export async function clearProfileAvatar() {
+  const reader = await requireReader()
+  await writeClient().patch(reader.readerId).unset(['avatar']).commit()
+  revalidatePath('/', 'layout')
+  revalidatePath('/settings')
+}

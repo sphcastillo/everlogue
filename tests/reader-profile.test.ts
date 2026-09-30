@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import type {SanityClient} from '@sanity/client'
-import {syncReaderProfile} from '../src/lib/reader-profile'
+import {profileAvatarSrc, syncReaderProfile} from '../src/lib/reader-profile'
 
 type Document = Record<string, unknown> & {_id: string}
 const user = {id: 'user_test', firstName: 'Avery', username: null, imageUrl: 'https://example.com/avatar.png'}
@@ -56,6 +56,7 @@ test('updates reuse an existing profile and preserve reader preferences', async 
   const {client, docs} = database([{
     _id: 'existing-profile', _type: 'readerProfile', clerkUserId: user.id,
     displayName: 'Old name', bio: 'My bio', spaceColor: 'mint', profileVisibility: 'publicName',
+    avatar: 'keep-me',
   }])
   await syncReaderProfile(client, user)
   await syncReaderProfile(client, {...user, firstName: 'New name'})
@@ -63,6 +64,7 @@ test('updates reuse an existing profile and preserve reader preferences', async 
   assert.equal(docs.get('existing-profile')?.bio, 'My bio')
   assert.equal(docs.get('existing-profile')?.spaceColor, 'mint')
   assert.equal(docs.get('existing-profile')?.profileVisibility, 'publicName')
+  assert.equal(docs.get('existing-profile')?.avatar, 'keep-me')
   assert.equal([...docs.values()].filter((doc) => doc._type === 'readerProfile').length, 1)
 })
 
@@ -80,4 +82,14 @@ test('unnamed accounts use a neutral display name', async () => {
   const {client} = database()
   const profile = await syncReaderProfile(client, {...user, firstName: null})
   assert.equal(profile.displayName, 'Reader')
+})
+
+test('header avatars prefer an uploaded image over the Clerk URL', () => {
+  assert.equal(profileAvatarSrc({avatarUrl: 'https://example.com/avatar.png'}), 'https://example.com/avatar.png')
+  const src = profileAvatarSrc({
+    avatar: {asset: {_id: 'image-abc123-200x200-jpg'}},
+    avatarUrl: 'https://example.com/avatar.png',
+  })
+  assert.match(src || '', /cdn\.sanity\.io/)
+  assert.doesNotMatch(src || '', /example\.com/)
 })

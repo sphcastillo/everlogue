@@ -19,8 +19,19 @@ export const readerProfile = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: 'avatar',
+      title: 'Profile image',
+      type: 'image',
+      options: {hotspot: true},
+      description: 'Shown in the header. Avatar URL is used when this is empty.',
+      fields: [defineField({name: 'alt', title: 'Alternative text', type: 'string'})],
+    }),
+    defineField({
       name: 'avatarUrl',
+      title: 'Avatar URL',
       type: 'url',
+      readOnly: true,
+      description: 'Synced from Clerk. Used in the header when no profile image is uploaded.',
     }),
     defineField({
       name: 'bio',
@@ -61,6 +72,6 @@ export const readerProfile = defineType({
     }),
   ],
   preview: {
-    select: {title: 'displayName', subtitle: 'clerkUserId'},
+    select: {title: 'displayName', subtitle: 'clerkUserId', media: 'avatar'},
   },
 })

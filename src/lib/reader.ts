@@ -2,13 +2,15 @@ import 'server-only'
 import {auth, currentUser} from '@clerk/nextjs/server'
 import {privateClient, writeClient} from '@/sanity/client'
 import {cache} from 'react'
-import {ensureSystemShelves, PROFILE_QUERY, syncReaderProfile, type ReaderProfile} from './reader-profile'
+import {ensureSystemShelves, PROFILE_QUERY, profileAvatarSrc, syncReaderProfile, type ReaderProfile} from './reader-profile'
 
 export type ReaderSession = {
   readerId: string
   clerkUserId: string
   displayName: string
   spaceColor?: string | null
+  avatarSrc?: string | null
+  hasCustomAvatar?: boolean
 }
 
 export const getOptionalReader = cache(async (): Promise<ReaderSession | null> => {
@@ -42,13 +44,22 @@ async function getOrCreateReader(clerkUserId: string): Promise<ReaderSession> {
       clerkUserId,
       displayName: existing.displayName || 'Reader',
       spaceColor: existing.spaceColor,
+      avatarSrc: profileAvatarSrc(existing),
+      hasCustomAvatar: Boolean(existing.avatar?.asset?._id || existing.avatar?.asset?._ref),
     }
   }
 
   const user = await currentUser()
   if (!user || user.id !== clerkUserId) throw new Error('Unable to verify the signed-in reader.')
   const profile = await syncReaderProfile(writeClient(), user)
-  return {readerId: profile._id, clerkUserId, displayName: profile.displayName, spaceColor: profile.spaceColor}
+  return {
+    readerId: profile._id,
+    clerkUserId,
+    displayName: profile.displayName,
+    spaceColor: profile.spaceColor,
+    avatarSrc: profileAvatarSrc(profile),
+    hasCustomAvatar: Boolean(profile.avatar?.asset?._id || profile.avatar?.asset?._ref),
+  }
 }
 
 export function privateHeaders() {

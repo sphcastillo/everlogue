@@ -1,6 +1,6 @@
 'use server'
 
-import {castVote, createDiscussionPost, joinClub, setRating, setReadingStatus, setSearchReadingStatus, setSpaceColor} from './actions'
+import {castVote, clearProfileAvatar, createDiscussionPost, joinClub, setProfileAvatar, setRating, setReadingStatus, setSearchReadingStatus, setSpaceColor} from './actions'
 import {shelfBookSchema, type ShelfBook} from './validation'
 
 export async function saveShelfStatusAction(book: ShelfBook, status: string | null) {
@@ -35,4 +35,14 @@ export async function postDiscussionAction(threadId: string, body: string, hasSp
 
 export async function saveSpaceColorAction(color: string) {
   await setSpaceColor(color)
+}
+
+export async function saveProfileAvatarAction(formData: FormData) {
+  const file = formData.get('avatar')
+  if (!(file instanceof File) || file.size === 0) throw new Error('Choose an image to upload.')
+  await setProfileAvatar(file)
+}
+
+export async function clearProfileAvatarAction() {
+  await clearProfileAvatar()
 }

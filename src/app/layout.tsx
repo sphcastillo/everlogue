@@ -61,7 +61,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
       >
         <ClerkProvider>
           <div className="mx-auto w-full max-w-7xl">
-            <Header auth={<AuthControl />} signedIn={Boolean(reader)} />
+            <Header auth={<AuthControl avatarSrc={reader?.avatarSrc} />} signedIn={Boolean(reader)} />
             {children}
             <Footer />
           </div>

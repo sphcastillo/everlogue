@@ -1,11 +1,21 @@
 import type {SanityClient} from '@sanity/client'
+import {urlFor} from '@/sanity/image'
 import {slugify, stableId} from './validation'
+
+export type ReaderAvatar = {
+  asset?: {_id?: string; _ref?: string; url?: string | null} | null
+  alt?: string | null
+  hotspot?: unknown
+  crop?: unknown
+} | null
 
 export type ReaderProfile = {
   _id: string
   clerkUserId: string
   displayName: string
   spaceColor?: string | null
+  avatar?: ReaderAvatar
+  avatarUrl?: string | null
 }
 
 export type ClerkIdentity = {
@@ -15,7 +25,22 @@ export type ClerkIdentity = {
   imageUrl: string
 }
 
-export const PROFILE_QUERY = `*[_type == "readerProfile" && clerkUserId == $clerkUserId && !(_id in path("drafts.**"))] | order(_createdAt asc)[0]{_id, clerkUserId, displayName, spaceColor}`
+export const PROFILE_QUERY = `*[_type == "readerProfile" && clerkUserId == $clerkUserId && !(_id in path("drafts.**"))] | order(_createdAt asc)[0]{_id, clerkUserId, displayName, spaceColor, avatarUrl, avatar{asset->{_id, url}, alt, hotspot, crop}}`
+
+/** Uploaded Sanity image first, then the Clerk avatar URL. */
+export function profileAvatarSrc(profile?: Pick<ReaderProfile, 'avatar' | 'avatarUrl'> | null) {
+  const asset = profile?.avatar?.asset
+  const ref = asset?._ref || asset?._id
+  if (ref) {
+    return urlFor({
+      _type: 'image',
+      asset: {_ref: ref},
+      hotspot: profile?.avatar?.hotspot,
+      crop: profile?.avatar?.crop,
+    } as Parameters<typeof urlFor>[0]).width(96).height(96).fit('crop').auto('format').url()
+  }
+  return profile?.avatarUrl || null
+}
 
 // An internal uniqueness guard, not the profile ID. Sanity generates profile IDs.
 export const identityGuardId = (id: string) => `clerkIdentity.${id}`

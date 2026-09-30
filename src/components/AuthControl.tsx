@@ -1,7 +1,7 @@
 import {Show, SignInButton} from '@clerk/nextjs'
 import {AccountMenu} from './AccountMenu'
 
-export function AuthControl() {
+export function AuthControl({avatarSrc}: {avatarSrc?: string | null}) {
   return (
     <div className="flex items-center">
       <Show when="signed-out">
@@ -12,7 +12,7 @@ export function AuthControl() {
         </SignInButton>
       </Show>
       <Show when="signed-in">
-        <AccountMenu />
+        <AccountMenu avatarSrc={avatarSrc} />
       </Show>
     </div>
   )

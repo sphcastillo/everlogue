@@ -1,10 +1,11 @@
 'use client'
 
 import {useClerk, useUser} from '@clerk/nextjs'
+import Image from 'next/image'
 import Link from 'next/link'
 import {useEffect, useId, useRef, useState, type KeyboardEvent} from 'react'
 
-export function AccountMenu() {
+export function AccountMenu({avatarSrc}: {avatarSrc?: string | null}) {
   const {user} = useUser()
   const {openUserProfile, signOut} = useClerk()
   const [open, setOpen] = useState(false)
@@ -18,6 +19,7 @@ export function AccountMenu() {
   const name = user?.fullName || user?.username || 'Your account'
   const email = user?.primaryEmailAddress?.emailAddress
   const initials = [user?.firstName, user?.lastName].filter(Boolean).map((part) => part![0]).join('') || name[0]
+  const portrait = avatarSrc || user?.imageUrl
 
   useEffect(() => {
     if (!open) return
@@ -70,7 +72,7 @@ export function AccountMenu() {
       <button
         ref={trigger}
         type="button"
-        className="grid size-8 place-items-center rounded-full bg-ink text-[0.7rem] font-medium tracking-wide text-white uppercase"
+        className="relative grid size-8 place-items-center overflow-hidden rounded-full bg-ink text-[0.7rem] font-medium tracking-wide text-white uppercase"
         aria-label={`Account menu for ${name}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -84,7 +86,11 @@ export function AccountMenu() {
           }
         }}
       >
-        <span aria-hidden="true">{initials}</span>
+        {portrait ? (
+          <Image src={portrait} alt="" fill sizes="32px" className="object-cover" unoptimized={/^https?:/i.test(portrait)} />
+        ) : (
+          <span aria-hidden="true">{initials}</span>
+        )}
       </button>
       {open ? (
         <div className="account-dropdown">
