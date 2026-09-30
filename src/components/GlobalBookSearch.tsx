@@ -2,40 +2,79 @@
 
 import Link from 'next/link'
 import {useEffect, useId, useRef, useState} from 'react'
+import {createPortal} from 'react-dom'
 import {BookCover} from './BookCover'
 import {bookTitle, coverSrc, type GoogleBook, type GoogleSearchResponse} from '@/lib/google-books'
 
-export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | 'header'}) {
+export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | 'header' | 'catalog'}) {
   const generatedId = useId()
   const header = variant === 'header'
+  const catalog = variant === 'catalog'
   const inputId = header ? 'header-book-search' : generatedId
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [menuBox, setMenuBox] = useState<{top: number; left: number; width: number} | null>(null)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle')
   const [error, setError] = useState('')
   const [books, setBooks] = useState<GoogleBook[]>([])
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
+    function place() {
+      const box = rootRef.current?.getBoundingClientRect()
+      if (box) setMenuBox({top: box.bottom + 10, left: box.left, width: box.width})
+    }
     function onPointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    function onFocusIn(event: FocusEvent) {
+      if (rootRef.current?.contains(event.target as Node)) {
+        place()
+        setOpen(true)
+      }
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') setOpen(false)
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      if (header && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
         inputRef.current?.focus()
+        place()
+        setOpen(true)
       }
     }
     document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('focusin', onFocusIn)
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [inputId])
+  }, [inputId, header])
+
+  useEffect(() => {
+    if (!open) {
+      setMenuBox(null)
+      return
+    }
+    function update() {
+      const box = rootRef.current?.getBoundingClientRect()
+      if (!box) return
+      setMenuBox({top: box.bottom + 10, left: box.left, width: box.width})
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [open])
 
   async function searchBooks(value: string) {
     const q = value.trim()
@@ -67,28 +106,45 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
     }
   }
 
+  function openMenu() {
+    const box = rootRef.current?.getBoundingClientRect()
+    if (box) setMenuBox({top: box.bottom + 10, left: box.left, width: box.width})
+    setOpen(true)
+  }
+
+  const queryText = query.trim()
+  const showHint = status === 'idle' || (!queryText && status !== 'error' && status !== 'loading')
+
   return (
-    <div ref={rootRef} className={header ? 'relative w-full min-w-0 md:w-72' : 'relative mx-auto max-w-2xl'}>
+    <div
+      ref={rootRef}
+      className={
+        header ? 'relative w-full min-w-0 md:w-72' : catalog ? 'relative w-full min-w-0' : 'relative mx-auto max-w-2xl'
+      }
+    >
       <form
         role="search"
         className={
           header
             ? 'flex h-11 items-center gap-2.5 rounded-md border bg-paper px-4 border-[#d6d6d6]!'
-            : 'flex items-center gap-2'
+            : catalog
+              ? 'flex h-12 items-center border border-ink bg-white'
+              : 'flex items-center gap-2'
         }
         onSubmit={(event) => {
           event.preventDefault()
           void searchBooks(query)
         }}
         onClick={() => {
-          if (header) inputRef.current?.focus()
+          inputRef.current?.focus()
+          openMenu()
         }}
       >
         <label htmlFor={inputId} className="sr-only">
           Search books
         </label>
-        {header ? (
-          <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-muted" fill="none" aria-hidden="true">
+        {(header || catalog) ? (
+          <svg viewBox="0 0 16 16" className={`size-4 shrink-0 text-muted ${catalog ? 'ml-3' : ''}`} fill="none" aria-hidden="true">
             <circle cx="7" cy="7" r="4.2" stroke="currentColor" strokeWidth="1.4" />
             <path d="m10.2 10.2 3 3" stroke="currentColor" strokeWidth="1.4" />
           </svg>
@@ -100,17 +156,19 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => {
-            if (status !== 'idle') setOpen(true)
-          }}
+          onFocus={() => openMenu()}
           minLength={2}
           maxLength={200}
-          placeholder={header ? 'Books, people, ideas' : 'Search books by title, author, or ISBN'}
+          placeholder={
+            catalog ? 'A title, an author…' : header ? 'Books, people, ideas' : 'Search books by title, author, or ISBN'
+          }
           autoComplete="off"
           className={
             header
               ? 'min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-ink outline-none placeholder:text-muted'
-              : 'min-w-0 flex-1 rounded-xl border border-ink/10 bg-white/80 px-3.5 py-2.5 outline-none focus:border-accent'
+              : catalog
+                ? 'min-w-0 flex-1 border-0 bg-transparent px-2 text-sm text-ink outline-none placeholder:text-muted'
+                : 'min-w-0 flex-1 rounded-xl border border-ink/10 bg-white/80 px-3.5 py-2.5 outline-none focus:border-accent'
           }
         />
         {header ? (
@@ -118,21 +176,44 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
         ) : (
           <button
             type="submit"
-            className="shrink-0 rounded-full bg-ink px-4 py-2.5 text-sm text-paper disabled:opacity-60"
+            className={
+              catalog
+                ? 'inline-flex h-full shrink-0 items-center gap-2 bg-ink px-4 font-mono text-[0.68rem] font-medium tracking-[0.16em] text-white uppercase disabled:opacity-60'
+                : 'shrink-0 rounded-full bg-ink px-4 py-2.5 text-sm text-paper disabled:opacity-60'
+            }
             disabled={status === 'loading'}
           >
             {status === 'loading' ? 'Searching…' : 'Search'}
+            {catalog ? (
+              <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden="true">
+                <path d="M3 8h9" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M8 4l5 4-5 4" stroke="currentColor" strokeWidth="1.4" />
+              </svg>
+            ) : null}
           </button>
         )}
       </form>
-      {open ? (
-        <div
-          className="absolute inset-x-0 top-full z-40 mt-2.5 max-h-112 overflow-auto rounded-2xl bg-paper p-3 shadow-lg"
-          role="region"
-          aria-live="polite"
-          aria-label="Book search results"
-        >
-          {status === 'loading' ? <p className="px-3 py-4 text-sm text-muted">Searching for books…</p> : null}
+      {open && menuBox && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={panelRef}
+              className="max-h-112 overflow-auto rounded-md bg-paper p-3 shadow-lg"
+              style={{position: 'fixed', top: menuBox.top, left: menuBox.left, width: menuBox.width, zIndex: 80}}
+              role="region"
+              aria-live="polite"
+              aria-label={showHint ? 'Search hint' : 'Book search results'}
+            >
+          {showHint ? (
+            <div className="px-3 py-4">
+              <p className="font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">
+                Find your next book
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                Search by title or author, then choose a book to see its page.
+              </p>
+            </div>
+          ) : null}
+          {queryText && status === 'loading' ? <p className="px-3 py-4 text-sm text-muted">Searching for books…</p> : null}
           {status === 'error' ? (
             <div className="px-3 py-4">
               <p role="alert" className="text-sm">
@@ -147,10 +228,10 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
               </button>
             </div>
           ) : null}
-          {status === 'done' && !books.length ? (
+          {queryText && status === 'done' && !books.length ? (
             <p className="px-3 py-4 text-sm text-muted">No books found. Try a different title, author, or ISBN.</p>
           ) : null}
-          {status === 'done' && books.length ? (
+          {queryText && status === 'done' && books.length ? (
             <>
               <p className="px-3 pb-2 text-xs text-muted">
                 {total.toLocaleString('en-US')} {total === 1 ? 'book' : 'books'} matching “{query.trim()}”
@@ -195,8 +276,10 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
               </ul>
             </>
           ) : null}
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }

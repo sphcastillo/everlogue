@@ -34,7 +34,7 @@ export default function DiscoverHero({
       <section className="px-5 pt-6 pb-10 sm:px-8 lg:px-9 lg:pt-8 lg:pb-14">
         <p className="flex h-7 items-center gap-3 font-mono text-[11px] font-medium tracking-[0.22em] text-muted uppercase">
           <span className="inline-block w-8 border-t border-ink" aria-hidden="true" />
-          People with a point of view / Issue 04
+          The Best Place to Start
         </p>
 
         <div className="mt-8 grid items-stretch gap-10 lg:grid-cols-[minmax(0,1.1fr)_auto_minmax(22rem,30rem)] lg:gap-x-6 xl:gap-x-10">
@@ -90,7 +90,7 @@ export default function DiscoverHero({
       </section>
 
       <section id="reading-list" className="scroll-mt-24 border-t border-(--line) px-5 pt-10 pb-6 sm:px-8 lg:px-9">
-        <p className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted uppercase">The reading list</p>
+        <p className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted uppercase">The Book Club Spotlight</p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-6">
           <h2 className="font-display text-[clamp(2.1rem,5vw,3.6rem)] leading-[0.95] font-black tracking-[-0.08em]">
             Clubs worth following
