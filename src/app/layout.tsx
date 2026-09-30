@@ -1,6 +1,6 @@
 import type {Metadata} from 'next'
 import {ClerkProvider} from '@clerk/nextjs'
-import {DM_Mono, DM_Sans, Inter, Playfair_Display} from 'next/font/google'
+import {DM_Mono, DM_Sans, Instrument_Serif, Inter, Playfair_Display} from 'next/font/google'
 import {AuthControl} from '@/components/AuthControl'
 import {getOptionalReader} from '@/lib/reader'
 import './globals.css'
@@ -26,6 +26,13 @@ const accent = Playfair_Display({
   variable: '--font-playfair',
 })
 
+const wordmark = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: 'italic',
+  variable: '--font-instrument-serif',
+})
+
 const mono = DM_Mono({
   subsets: ['latin'],
   weight: ['500'],
@@ -46,11 +53,11 @@ export default async function RootLayout({children}: {children: React.ReactNode}
   return (
     <html lang="en">
       <body
-        className={`${display.variable} ${sans.variable} ${accent.variable} ${mono.variable} antialiased`}
+        className={`${display.variable} ${sans.variable} ${accent.variable} ${wordmark.variable} ${mono.variable} antialiased`}
         style={{fontFamily: 'var(--font-inter), ui-sans-serif, system-ui'}}
       >
         <ClerkProvider>
-          <div className="mx-auto w-full max-w-[1280px]">
+          <div className="mx-auto w-full max-w-7xl">
             <Header auth={<AuthControl />} signedIn={Boolean(reader)} />
             {children}
           </div>

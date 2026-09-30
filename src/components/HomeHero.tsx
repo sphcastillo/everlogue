@@ -4,11 +4,21 @@ import {HomeGreeting} from './HomeGreeting'
 
 export function HomeHero({displayName}: {displayName?: string | null}) {
   return (
-    <section className="grid items-stretch gap-10 px-5 py-2 pb-8 min-[875px]:grid-cols-2 min-[875px]:gap-x-12 min-[875px]:px-9 min-[875px]:pt-6 min-[875px]:pb-10 xl:gap-x-16">
+    <section className="grid items-stretch gap-4 px-5 py-2 pb-8 min-[875px]:grid-cols-2 min-[875px]:gap-x-12 min-[875px]:px-9 min-[875px]:pt-6 min-[875px]:pb-10 xl:gap-x-16">
+      <div className="relative aspect-1024/387 overflow-hidden bg-[#1c2328] min-[875px]:hidden">
+        <Image
+          src="/images/everlogue-hero-banner.jpg"
+          alt="Everlogue clothbound book with pressed flowers on a wooden table"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
       <div className="flex flex-col justify-between gap-10">
         <div>
           <HomeGreeting displayName={displayName} />
-          <h1 className="mt-4 font-display text-[clamp(2.7rem,8vw,6.55rem)] leading-[0.91] font-black tracking-[-0.13em]">
+          <h1 className="mt-4 font-display text-[clamp(2.75rem,14.5vw,6.55rem)] leading-[0.91] font-black tracking-[-0.13em]">
             <span className="block">Find the book</span>
             <span className="block">you can&apos;t stop</span>
             <span className="block w-fit border-b-[0.045em] border-ink pb-[0.02em] border-b-ink!">thinking about.</span>

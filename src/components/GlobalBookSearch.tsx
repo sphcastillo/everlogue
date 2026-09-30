@@ -68,12 +68,12 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
   }
 
   return (
-    <div ref={rootRef} className={header ? 'relative w-72 min-w-0' : 'relative mx-auto max-w-2xl'}>
+    <div ref={rootRef} className={header ? 'relative w-full min-w-0 md:w-72' : 'relative mx-auto max-w-2xl'}>
       <form
         role="search"
         className={
           header
-            ? 'flex h-11 items-center gap-2.5 rounded-md border bg-paper px-4 !border-[#d6d6d6]'
+            ? 'flex h-11 items-center gap-2.5 rounded-md border bg-paper px-4 border-[#d6d6d6]!'
             : 'flex items-center gap-2'
         }
         onSubmit={(event) => {
@@ -114,7 +114,7 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
           }
         />
         {header ? (
-          <kbd className="shrink-0 font-sans text-sm font-normal text-muted">⌘K</kbd>
+          <kbd className="hidden shrink-0 font-sans text-sm font-normal text-muted md:inline">⌘K</kbd>
         ) : (
           <button
             type="submit"
