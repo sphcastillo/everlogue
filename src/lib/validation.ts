@@ -8,6 +8,10 @@ export const ratingValueSchema = z
     message: 'Rating must be between 0.5 and 5 in half-star increments',
   })
 
+export const reviewBodySchema = z.string().trim().min(1).max(8000)
+
+export const reviewVisibilitySchema = z.enum(['private', 'public'])
+
 export const shelfKindSchema = z.enum(['wantToRead', 'currentlyReading', 'finished', 'custom'])
 
 export const readingStatusSchema = z.enum(['wantToRead', 'currentlyReading', 'finished'])

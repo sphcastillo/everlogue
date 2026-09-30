@@ -39,6 +39,7 @@ const OPTIONS = [
 type ShelfButtonsProps = {
   status: string | null
   signedIn: boolean
+  onStatusChange?: (status: string | null) => void
 } & ({bookId: string; googleBooksId?: never} | {bookId?: never; googleBooksId: string})
 
 export function ShelfButtons({
@@ -46,6 +47,7 @@ export function ShelfButtons({
   googleBooksId,
   status,
   signedIn,
+  onStatusChange,
 }: ShelfButtonsProps) {
   const [pending, start] = useTransition()
   const [optimistic, setOptimistic] = useOptimistic(status)
@@ -61,6 +63,7 @@ export function ShelfButtons({
           ? {source: 'googleBooks', id: googleBooksId}
           : {source: 'catalog', id: bookId!}
         await saveShelfStatusAction(book, next)
+        onStatusChange?.(next)
       } catch {
         setOptimistic(status)
         setError('This book couldn’t be saved. Please try again.')

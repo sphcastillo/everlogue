@@ -3,8 +3,7 @@ import {notFound} from 'next/navigation'
 import {fetchCatalog} from '@/sanity/fetch'
 import {BOOK_BY_SLUG_QUERY} from '@/sanity/queries'
 import {BookCover} from '@/components/BookCover'
-import {StarRating} from '@/components/StarRating'
-import {ShelfButtons} from '@/components/ShelfButtons'
+import {BookLibraryActions} from '@/components/BookLibraryActions'
 import {LibraryCsvLog} from '@/components/LibraryCsvLog'
 import {getOptionalReader} from '@/lib/reader'
 import {getReaderBookState} from '@/lib/actions'
@@ -145,10 +144,13 @@ export default async function BookPage({
               </p>
             </div>
             <div className="mt-5">
-              <ShelfButtons bookId={book._id} status={state.status} signedIn={Boolean(reader)} />
-            </div>
-            <div className="mt-8">
-              <StarRating bookId={book._id} value={state.rating} signedIn={Boolean(reader)} />
+              <BookLibraryActions
+                bookId={book._id}
+                signedIn={Boolean(reader)}
+                status={state.status}
+                rating={state.rating}
+                review={state.review}
+              />
             </div>
             {!reader ? (
               <p className="mt-3 text-sm text-muted">Sign in to keep this book on a shelf.</p>
@@ -166,15 +168,10 @@ export default async function BookPage({
             ? 'A good club pick is a beginning, not a verdict. Put it on a shelf and make the reading yours.'
             : 'This is your copy of the book. Put it on a shelf and make the reading yours.'}
         </p>
-        {clubTagline ? (
+        {/* {clubTagline ? (
           <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-muted uppercase">{clubTagline}</p>
-        ) : null}
+        ) : null} */}
       </div>
-
-      <p className="flex flex-wrap items-center justify-between gap-3 border-t border-(--line) px-5 py-4 font-mono text-[11px] font-medium tracking-[0.16em] text-muted uppercase sm:px-8 lg:px-9">
-        <span>Read widely. Think freely.</span>
-        <span>Everlogue — a reader&apos;s place</span>
-      </p>
 
       <LibraryCsvLog data={state.csv} />
     </article>

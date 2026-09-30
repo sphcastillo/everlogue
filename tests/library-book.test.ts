@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import type {SanityClient} from '@sanity/client'
-import {saveBookRating, saveBookStatus} from '../src/lib/library-book'
+import {saveBookRating, saveBookStatus, saveBookReview} from '../src/lib/library-book'
 import {shelfBookSchema} from '../src/lib/validation'
 
 type Doc = {_id: string; _type: string; [key: string]: unknown}
@@ -56,7 +56,11 @@ function database() {
         const ratings = relevant.filter((doc) => doc._type === 'rating')
         return query.endsWith('.value') ? ratings.map((doc) => doc.value) : ratings[0] || null
       }
-      if (query.startsWith('*[_type == "readingProgress"')) return relevant.find((doc) => doc._type === 'readingProgress') || null
+      if (query.startsWith('*[_type == "review"')) return relevant.find((doc) => doc._type === 'review') || null
+      if (query.startsWith('*[_type == "readingProgress"')) {
+        const progress = relevant.find((doc) => doc._type === 'readingProgress') || null
+        return query.endsWith('.status') ? progress?.status ?? null : progress
+      }
       if (query.startsWith('*[_type == "shelf"')) return all.filter((doc) => doc._type === 'shelf' && ref(doc.owner) === params.readerId)
       if (query.startsWith('*[_type == "shelfEntry"')) return all.filter((doc) => doc._type === 'shelfEntry' && ref(doc.book) === params.bookId && ref(docs.get(String(ref(doc.shelf)))?.owner) === params.readerId).map((doc) => ({...doc, shelfId: ref(doc.shelf)}))
       throw new Error('Unexpected query')
@@ -114,4 +118,24 @@ test('rejects invalid statuses before changing shelves', async () => {
   await assert.rejects(saveBookStatus(client, 'reader', 'book-new', 'invalid'))
   assert.ok(docs.has('old-entry'))
   assert.equal(docs.get('progress-reader-old')?.status, 'finished')
+})
+
+test('reviews can be written only after the book is Read', async () => {
+  const {docs, client} = database()
+  await saveBookStatus(client, 'reader', 'book-new', 'currentlyReading')
+  await assert.rejects(
+    saveBookReview(client, 'reader', 'book-new', {body: 'Loved it.', hasSpoilers: false, visibility: 'private'}),
+    /Mark this book as Read/,
+  )
+  await saveBookStatus(client, 'reader', 'book-new', 'finished')
+  await saveBookReview(client, 'reader', 'book-new', {body: 'Loved it.', hasSpoilers: true, visibility: 'public'})
+  const created = [...docs.values()].find((doc) => doc._type === 'review')
+  assert.equal(created?.body, 'Loved it.')
+  assert.equal(created?.hasSpoilers, true)
+  assert.equal(created?.visibility, 'public')
+  await saveBookReview(client, 'reader', 'book-new', {body: 'Still thinking.', hasSpoilers: false, visibility: 'private'})
+  assert.equal([...docs.values()].filter((doc) => doc._type === 'review').length, 1)
+  assert.equal([...docs.values()].find((doc) => doc._type === 'review')?.body, 'Still thinking.')
+  await saveBookReview(client, 'reader', 'book-new', null)
+  assert.equal([...docs.values()].filter((doc) => doc._type === 'review').length, 0)
 })

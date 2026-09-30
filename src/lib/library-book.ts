@@ -1,5 +1,5 @@
 import type {SanityClient} from '@sanity/client'
-import {ratingValueSchema, readingStatusSchema, stableId} from './validation'
+import {ratingValueSchema, readingStatusSchema, reviewBodySchema, reviewVisibilitySchema, stableId} from './validation'
 
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 
@@ -85,4 +85,45 @@ export async function saveBookStatus(client: SanityClient, readerId: string, boo
     tx.delete(progress._id)
   }
   if (tx.serialize().length) await tx.commit({visibility: 'sync'})
+}
+
+export async function saveBookReview(
+  client: SanityClient,
+  readerId: string,
+  bookId: string,
+  review: {body: string; hasSpoilers: boolean; visibility: 'private' | 'public'} | null,
+) {
+  await requireBook(client, bookId)
+  const existing = await client.fetch<{_id: string} | null>(
+    `*[_type == "review" && reader._ref == $readerId && book._ref == $bookId][0]{_id}`,
+    {readerId, bookId}, {cache: 'no-store'},
+  )
+  if (review === null) {
+    if (existing) await client.delete(existing._id, {visibility: 'sync'})
+    return
+  }
+  const status = await client.fetch<string | null>(
+    `*[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0].status`,
+    {readerId, bookId}, {cache: 'no-store'},
+  )
+  if (status !== 'finished') throw new Error('Mark this book as Read before leaving a review.')
+  const body = reviewBodySchema.parse(review.body)
+  const visibility = reviewVisibilitySchema.parse(review.visibility)
+  const fields = {
+    body,
+    hasSpoilers: Boolean(review.hasSpoilers),
+    visibility,
+    moderationStatus: 'visible',
+  }
+  if (existing) {
+    await client.patch(existing._id).set(fields).commit({visibility: 'sync'})
+    return
+  }
+  await client.createOrReplace({
+    _id: stableId(['review', readerId, bookId]),
+    _type: 'review',
+    reader: reference(readerId),
+    book: reference(bookId),
+    ...fields,
+  }, {visibility: 'sync'})
 }

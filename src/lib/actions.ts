@@ -3,7 +3,7 @@ import {revalidatePath} from 'next/cache'
 import {privateClient, writeClient} from '@/sanity/client'
 import {bookCoverProjection, editionCoverFields} from '@/sanity/queries'
 import {getOptionalReader, requireReader} from './reader'
-import {saveBookRating, saveBookStatus} from './library-book'
+import {saveBookRating, saveBookStatus, saveBookReview} from './library-book'
 import {fetchGoogleVolume} from './google-books-api'
 import {GOOGLE_VOLUME_ID} from './google-books'
 import {resolveSearchBook} from './search-book'
@@ -20,6 +20,16 @@ export async function setRating(bookId: string, value: number | null) {
   await saveBookRating(writeClient(), reader.readerId, bookId, value)
   revalidatePath('/books/[slug]', 'page')
   revalidatePath('/my-books')
+}
+
+export async function setBookReview(
+  bookId: string,
+  review: {body: string; hasSpoilers: boolean; visibility: 'private' | 'public'} | null,
+) {
+  const reader = await requireReader()
+  await saveBookReview(writeClient(), reader.readerId, bookId, review)
+  revalidatePath('/books/[slug]', 'page')
+  revalidatePath('/')
 }
 
 export async function setReadingStatus(bookId: string, status: string | null) {
@@ -51,6 +61,11 @@ export type ReaderBookState = {
   dateAdded: string | null
   readCount: number | null
   importSource: string | null
+  review: {
+    body: string
+    hasSpoilers: boolean
+    visibility: 'private' | 'public'
+  } | null
   csv: {
     goodreadsId: string | null
     title: string | null
@@ -74,6 +89,7 @@ const emptyReaderBookState: ReaderBookState = {
   dateAdded: null,
   readCount: null,
   importSource: null,
+  review: null,
   csv: null,
 }
 
@@ -83,6 +99,11 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
 
   const data = await privateClient.fetch<{
     rating?: number | null
+    review?: {
+      body?: string | null
+      hasSpoilers?: boolean | null
+      visibility?: string | null
+    } | null
     progress?: {
       status?: string | null
       finishedAt?: string | null
@@ -101,6 +122,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
   } | null>(
     `{
       "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == $bookId][0].value,
+      "review": *[_type == "review" && reader._ref == $readerId && book._ref == $bookId][0]{body, hasSpoilers, visibility},
       "progress": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0]{
         status, finishedAt, readCount, importSource
       },
@@ -124,6 +146,14 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
   const dateAdded = data?.addedAt ?? null
   const readCount = data?.progress?.readCount ?? null
   const importSource = data?.progress?.importSource ?? null
+  const visibility: 'private' | 'public' = data?.review?.visibility === 'public' ? 'public' : 'private'
+  const review = data?.review?.body?.trim()
+    ? {
+        body: data.review.body.trim(),
+        hasSpoilers: Boolean(data.review.hasSpoilers),
+        visibility,
+      }
+    : null
   const publicationYear = Number(data?.book?.publishedDate?.slice(0, 4))
 
   return {
@@ -133,6 +163,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
     dateAdded,
     readCount,
     importSource,
+    review,
     csv: {
       goodreadsId: data?.book?.goodreadsBookId ?? null,
       title: data?.book?.title ?? null,

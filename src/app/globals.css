@@ -455,8 +455,8 @@ a.surface:hover {
 
 .star-pair {
   position: relative;
-  width: 34px;
-  height: 34px;
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .star-pair .half {
@@ -465,7 +465,16 @@ a.surface:hover {
   width: 50%;
   height: 100%;
   z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  appearance: none;
   background: transparent;
+  cursor: pointer;
+}
+
+.star-pair .half:disabled {
+  cursor: default;
 }
 
 .star-pair .half.left {
@@ -478,25 +487,17 @@ a.surface:hover {
 
 .star-glyph {
   pointer-events: none;
-  display: grid;
-  place-items: center;
+  display: block;
+  width: 100%;
   height: 100%;
-  font-size: 26px;
-  line-height: 1;
-  color: color-mix(in srgb, var(--ink) 18%, white);
-  text-shadow: 0 1px 0 white;
 }
 
-.star-glyph.is-full {
-  color: var(--accent);
+.star-glyph-empty {
+  fill: color-mix(in srgb, var(--ink) 18%, white);
 }
 
-.star-glyph.is-half {
-  background: linear-gradient(90deg, var(--accent) 50%, color-mix(in srgb, var(--ink) 18%, white) 50%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+.star-glyph-fill {
+  fill: var(--accent);
 }
 
 .collection-feature {
