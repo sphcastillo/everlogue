@@ -1,3 +1,4 @@
+import GoodTasteTravels from '@/components/GoodTasteTravels'
 import HomeCatalogGrowth from '@/components/HomeCatalogGrowth'
 import {HomeHero} from '@/components/HomeHero'
 import HomePickUpForShelf from '@/components/HomePickUpForShelf'
@@ -12,6 +13,7 @@ export default async function HomePage() {
     <>
       <HomeHero displayName={reader?.displayName} signedIn={Boolean(reader)} />
       <HomePickUpForShelf />
+      <GoodTasteTravels />
       <HomeCatalogGrowth />
     </>
   )

@@ -1,7 +1,7 @@
 import {projectId, dataset} from './env'
 import createImageUrlBuilder from '@sanity/image-url'
 import type {SanityImageSource} from '@sanity/image-url/lib/types/types'
-import {coverCandidates, hasManualCover, type CoverSource} from '@/lib/book-covers'
+import {coverCandidates, displayCoverUrls, hasManualCover, type CoverSource} from '@/lib/book-covers'
 
 const builder = createImageUrlBuilder({projectId, dataset})
 
@@ -20,7 +20,7 @@ export function coverUrls(cover?: CoverSource | null, options?: {width?: number;
       : null
   const manual = [...new Set([built, asset?.url].filter((url): url is string => Boolean(url)))]
   if (hasManualCover(cover) && manual.length) return manual
-  return coverCandidates(cover, built || asset?.url)
+  return displayCoverUrls(coverCandidates(cover, built || asset?.url), cover)
 }
 
 export function coverSrc(cover?: CoverSource) {

@@ -31,7 +31,7 @@ export function HomePickUpForShelfPicks({
   if (!current) return null
 
   return (
-    <section className="px-5 py-16 min-[875px]:px-9 min-[875px]:pt-20 min-[875px]:pb-12">
+    <section className="border-t border-(--line) px-5 py-16 min-[875px]:px-9 min-[875px]:pt-20 min-[875px]:pb-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[0.62rem] font-medium tracking-[0.2em] text-muted uppercase">

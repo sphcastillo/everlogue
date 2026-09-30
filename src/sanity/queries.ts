@@ -279,3 +279,28 @@ export const PICK_SHELF_STATUSES_QUERY = defineQuery(`
     "status": shelf->kind
   }
 `)
+
+export const TASTE_TRAVELS_QUERY = defineQuery(`{
+  "clubCount": count(*[_type == "communityClub" && visibility == "public"]),
+  "reviews": *[_type == "review" && visibility == "public" && moderationStatus == "visible"] | order(_createdAt desc)[0...12]{
+    _id,
+    _createdAt,
+    body,
+    "name": reader->displayName,
+    "spaceColor": reader->spaceColor,
+    "bookTitle": book->title,
+    "bookSlug": coalesce(book->slug.current, book->_id)
+  },
+  "posts": *[_type == "discussionPost" && moderationStatus == "visible" && thread->club->visibility == "public"] | order(_createdAt desc)[0...12]{
+    _id,
+    _createdAt,
+    body,
+    isDemoActivity,
+    "name": author->displayName,
+    "spaceColor": author->spaceColor,
+    "clubName": thread->club->name,
+    "clubSlug": thread->club->slug.current,
+    "bookTitle": thread->club->currentRead->title,
+    "bookSlug": coalesce(thread->club->currentRead->slug.current, thread->club->currentRead->_id)
+  }
+}`)

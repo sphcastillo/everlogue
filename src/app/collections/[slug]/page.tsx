@@ -35,7 +35,7 @@ export default async function CollectionPage({params}: {params: Promise<{slug: s
           title: book.title,
           authors: book.authors?.filter(Boolean).join(', ') || 'Author unknown',
           description: book.description,
-          cover: book.cover,
+          cover: catalogCover({edition: book.cover, coverOverride: book.cover?.coverOverride, needsCover: book.cover?.needsCover}),
         }))}
       />
     )

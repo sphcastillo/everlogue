@@ -1,10 +1,47 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
-import {coverCandidates, openLibraryCover} from '../src/lib/book-covers'
+import {coverCandidates, displayCoverUrls, isBlankCoverUrl, isProviderPlaceholderImage, openLibraryCover, placeholderCoverSrc} from '../src/lib/book-covers'
 import {isbn13For, matchGoogleEdition, resolveEditionMetadata} from '../src/lib/edition-metadata'
 
 const input = {title: 'A Book', author: 'An Author', isbn13: '9780306406157'}
 const volume = {id: 'google-id', volumeInfo: {title: 'A Book', authors: ['An Author'], publisher: 'Publisher', industryIdentifiers: [{type: 'ISBN_13', identifier: input.isbn13}], imageLinks: {thumbnail: 'http://books.google.com/cover.jpg'}}}
+
+test('placeholder covers stay stable for a title and spread evenly', () => {
+  assert.equal(placeholderCoverSrc('Orbital'), placeholderCoverSrc('Orbital'))
+  const counts = new Map<string, number>()
+  for (let i = 0; i < 500; i++) {
+    const src = placeholderCoverSrc(`Book ${i}`)
+    counts.set(src, (counts.get(src) ?? 0) + 1)
+  }
+  assert.equal(counts.size, 5)
+  for (const count of counts.values()) {
+    assert.ok(count >= 70 && count <= 130, `uneven placeholder use: ${count}`)
+  }
+})
+
+test('drops blank provider covers and Open Library when a cover is known missing', () => {
+  assert.equal(isBlankCoverUrl('https://books.google.com/googlebooks/images/no_cover_thumb.gif'), true)
+  assert.equal(isProviderPlaceholderImage('https://covers.openlibrary.org/b/isbn/123-L.jpg?default=false', 180, 270), true)
+  assert.equal(isProviderPlaceholderImage('https://covers.openlibrary.org/b/id/999-L.jpg?default=false', 400, 600), false)
+  assert.equal(
+    isProviderPlaceholderImage(
+      'https://books.google.com/books/content?id=CvILPwAACAAJ&printsec=frontcover&img=1&zoom=3',
+      575,
+      750,
+    ),
+    true,
+  )
+  assert.equal(
+    isProviderPlaceholderImage(
+      'https://books.google.com/books/content?id=zyTCAlFPjgYC&printsec=frontcover&img=1&zoom=3',
+      575,
+      889,
+    ),
+    false,
+  )
+  const urls = coverCandidates({coverUrl: 'https://covers.openlibrary.org/b/isbn/9780306406157-L.jpg', isbn13: '9780306406157', needsCover: true})
+  assert.equal(displayCoverUrls(urls, {needsCover: true}).some((url) => url.includes('openlibrary')), false)
+})
 
 test('manual override precedes provider URLs and ISBN fallback; numeric cover IDs use the correct endpoint', () => {
   assert.deepEqual(coverCandidates({cover: {url: 'https://books.google.com/cover.jpg'}, coverOverride: {asset: {url: 'https://cdn.sanity.io/manual.jpg'}}, isbn13: input.isbn13}), ['https://cdn.sanity.io/manual.jpg', 'https://books.google.com/cover.jpg', openLibraryCover(input.isbn13)])

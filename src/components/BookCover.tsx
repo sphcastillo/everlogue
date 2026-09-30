@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import {useState} from 'react'
-import type {CoverSource} from '@/lib/book-covers'
+import {isProviderPlaceholderImage, placeholderCoverSrc, type CoverSource} from '@/lib/book-covers'
 import {coverUrls} from '@/sanity/image'
 import {SanityImage, sanityImageSrc} from './SanityImage'
 export type {CoverSource} from '@/lib/book-covers'
@@ -62,9 +62,19 @@ function RemoteCover({
   const [index, setIndex] = useState(0)
   const src = urls[index]
   if (!src) {
-    return <div className="flex h-full items-end p-3 text-sm text-muted">Cover not in our catalog yet</div>
+    return (
+      <Image
+        src={placeholderCoverSrc(title)}
+        alt={alt || `Placeholder cover for ${title}`}
+        fill
+        sizes={sizes}
+        quality={90}
+        className="rounded-none object-cover"
+        priority={priority}
+      />
+    )
   }
-  const remote = src.includes('books.google') || src.includes('covers.openlibrary.org')
+  const remote = /^https?:/i.test(src)
   return (
     <Image
       src={src}
@@ -76,6 +86,12 @@ function RemoteCover({
       priority={priority}
       unoptimized={remote}
       onError={() => setIndex((current) => current + 1)}
+      onLoad={(event) => {
+        const image = event.currentTarget
+        if (isProviderPlaceholderImage(src, image.naturalWidth, image.naturalHeight)) {
+          setIndex((current) => current + 1)
+        }
+      }}
     />
   )
 }
