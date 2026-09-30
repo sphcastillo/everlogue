@@ -154,14 +154,14 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
                 type="button"
                 aria-pressed={active}
                 onClick={() => setFilter(item.id)}
-                className={`relative px-0 pt-1 pb-1.5 text-left font-mono text-[11px] font-medium tracking-[0.16em] uppercase min-[540px]:px-3 min-[540px]:pt-2 min-[540px]:pb-1.5 ${
+                className={`w-fit px-0 pt-1 pb-1.5 text-left font-mono text-[11px] font-medium tracking-[0.16em] uppercase min-[540px]:px-3 min-[540px]:pt-2 min-[540px]:pb-1.5 ${
                   active ? 'text-ink' : 'text-muted hover:text-ink'
                 }`}
               >
-                {item.label}
-                {active ? (
-                  <span className="absolute inset-x-0 bottom-0 h-px bg-ink min-[540px]:inset-x-3" />
-                ) : null}
+                <span className="relative inline-block">
+                  {item.label}
+                  {active ? <span className="absolute inset-x-0 bottom-0 h-px bg-ink" /> : null}
+                </span>
               </button>
             )
           })}
