@@ -14,19 +14,26 @@ export function safeError(error: unknown) {
 }
 const fresh = {useCdn: false}
 export async function findBook(client: SanityClient, title: string, authors: string[], metadata?: Partial<Metadata>) {
-  const candidates = await client.fetch<{_id: string; title: string; authors?: string[]; isbn13?: string; isbn10?: string; googleBooksId?: string}[]>(
+  const identifierMatch = `(
+    ($isbn13 != "" && (isbn13 == $isbn13 || _id in *[_type == "edition" && isbn13 == $isbn13 && !(_id in path("drafts.**"))].book._ref)) ||
+    ($isbn10 != "" && (isbn10 == $isbn10 || _id in *[_type == "edition" && isbn10 == $isbn10 && !(_id in path("drafts.**"))].book._ref)) ||
+    ($googleId != "" && (googleBooksId == $googleId || _id in *[_type == "edition" && googleBooksId == $googleId && !(_id in path("drafts.**"))].book._ref))
+  )`
+  const candidates = await client.fetch<{_id: string; title: string; authors?: string[]; isbn13?: string; identifierMatch: boolean}[]>(
     `*[_type == "book" && !(_id in path("drafts.**")) && (
-      ($isbn13 != "" && (isbn13 == $isbn13 || _id in *[_type == "edition" && isbn13 == $isbn13 && !(_id in path("drafts.**"))].book._ref)) ||
-      ($googleId != "" && googleBooksId == $googleId) || lower(title) == lower($title)
-    )]{_id,title,authors,isbn13,isbn10,googleBooksId}`,
-    {title, isbn13: metadata?.isbn13 || '', googleId: metadata?.googleBooksId || ''}, fresh,
+      ${identifierMatch} || lower(title) == lower($title) || count(authors[lower(@) in $authors]) > 0
+    )]{_id,title,authors,isbn13,"identifierMatch": ${identifierMatch}}`,
+    {title, authors: authors.map((a) => a.toLowerCase()), isbn13: metadata?.isbn13 || '', isbn10: metadata?.isbn10 || '', googleId: metadata?.googleBooksId || ''}, fresh,
   )
+  const identified = candidates.filter((book) => book.identifierMatch)
+  if (identified.length === 1) return identified[0]
+  if (identified.length > 1) return undefined
   const exact = candidates.filter((book) => normalize(book.title) === normalize(title) && authors.some((author) => book.authors?.some((other) => normalize(author) === normalize(other))))
   return exact.length === 1 ? exact[0] : undefined
 }
 export async function enrich(client: SanityClient, doc: Discovery, fetcher: typeof fetch = fetch): Promise<Record<string, unknown>> {
   const existing = await findBook(client, doc.discoveredTitle, doc.discoveredAuthors, {isbn13: doc.isbn13})
-  if (existing) return {matchedBook: reference(existing._id), matchConfidence: doc.isbn13 === existing.isbn13 ? 1 : 0.98, matchExplanation: 'Unique catalog match with matching title and author; score is a rule-based rank, not a probability.'}
+  if (existing) return {matchedBook: reference(existing._id), matchConfidence: existing.identifierMatch ? 1 : 0.98, matchExplanation: 'Unique catalog match by identifier or normalized title and author; score is a rule-based rank, not a probability.'}
   const key = process.env.GOOGLE_BOOKS_API_KEY
   if (!key) throw new Error('Google Books enrichment is not configured; review the official source manually.')
   const query = `intitle:${doc.discoveredTitle} inauthor:${doc.discoveredAuthors[0]}`
@@ -83,8 +90,8 @@ export async function runWatch(client: SanityClient, club: Club, options: {now?:
   const run = await client.create({_type: 'bookClubWatchRun', bookClub: club, invocationId: options.invocationId || randomUUID(), startedAt: now.toISOString(), outcome: 'running', sourceUrl: CLUBS[club].sourceUrl}, {visibility: 'sync'})
   const ids: string[] = []
   const finish = async (outcome: string, reason: string) => {
-    await client.patch(run._id).set({outcome, reason, finishedAt: new Date().toISOString(), discoveries: ids.map((id) => ({...reference(id), _key: id}))}).commit({visibility: 'sync'})
-    return {outcome, reason, discoveryIds: ids}
+    await client.patch(run._id).set({outcome, reason, finishedAt: new Date().toISOString(), discoveries: [...new Set(ids)].map((id) => ({...reference(id), _key: id}))}).commit({visibility: 'sync'})
+    return {outcome, reason, discoveryIds: [...new Set(ids)]}
   }
   try {
     if (options.enabled === false) return await finish('skipped', 'Watch is disabled until rollout validation is complete.')
@@ -93,7 +100,7 @@ export async function runWatch(client: SanityClient, club: Club, options: {now?:
     const pending = await client.fetch<Discovery[]>(`*[_type == "bookClubDiscovery" && bookClub == $club && status == "discovered" && !(_id in path("drafts.**"))]`, {club}, fresh)
     for (const doc of pending) { ids.push(doc._id); await finishEnrichment(client, doc, options.enrich) }
     if (club !== 'oprah') {
-      const recorded = await client.fetch<boolean>(`count(*[_type == "bookClubDiscovery" && bookClub == $club && selectionMonth == $month && status in ["discovered","needs_review","approved","published"] && !(_id in path("drafts.**"))]) > 0 || count(*[_id == $collection].books[selectionDate match ($month + "*") || (year == $year && lower(month) == $monthName)]) > 0`,
+      const recorded = await client.fetch<boolean>(`count(*[_type == "bookClubDiscovery" && bookClub == $club && selectionMonth == $month && status in ["discovered","needs_review","approved","published"] && !(_id in path("drafts.**"))]) > 0 || count(*[_id == $collection][0].books[selectionDate match ($month + "*") || (year == $year && lower(month) == $monthName)]) > 0`,
         {club, month, collection: CLUBS[club].collectionId, year: Number(month.slice(0, 4)), monthName: new Intl.DateTimeFormat('en-US', {month: 'long', timeZone: 'UTC'}).format(new Date(`${month}-15T12:00:00Z`)).toLowerCase()}, fresh)
       const interrupted = await client.fetch<boolean>(
         '*[_type == "bookClubWatchRun" && bookClub == $club && _id != $runId && startedAt >= $since] | order(startedAt desc)[0].outcome in ["running", "failed"]',
@@ -106,7 +113,7 @@ export async function runWatch(client: SanityClient, club: Club, options: {now?:
     for (const pick of picks) {
       // Oprah may have an existing historical catalog entry but no Watch record.
       const existing = await findBook(client, pick.title, pick.authors, {isbn13: pick.isbn13})
-      if (existing && await client.fetch<boolean>('count(*[_id == $collection].books[book._ref == $book]) > 0', {collection: CLUBS[club].collectionId, book: existing._id}, fresh)) continue
+      if (existing && await client.fetch<boolean>('count(*[_id == $collection][0].books[book._ref == $book]) > 0', {collection: CLUBS[club].collectionId, book: existing._id}, fresh)) continue
       const doc = await persistDiscovery(client, club, pick, now)
       if (doc.status === 'rejected' || doc.status === 'published') continue
       ids.push(doc._id)

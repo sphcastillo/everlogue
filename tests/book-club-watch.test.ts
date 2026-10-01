@@ -3,19 +3,20 @@ import {test} from 'node:test'
 import {createClient, type SanityClient} from '@sanity/client'
 import {evaluate, parse} from 'groq-js'
 import {CLUBS, approvalFor, easternDate, inWindow, type Discovery, type Pick} from '../src/lib/book-club-watch/model'
-import {discoverPicks, parseGma, parseOprahAnnouncement, parseReesePage, fetchOfficialHtml} from '../src/lib/book-club-watch/sources'
-import {runWatch, persistDiscovery, safeError} from '../src/lib/book-club-watch/service'
+import {discoverPicks, parseGma, parseOprahAnnouncement, oprahAnnouncementUrl, parseReesePage, fetchOfficialHtml} from '../src/lib/book-club-watch/sources'
+import {runWatch, persistDiscovery, safeError, findBook} from '../src/lib/book-club-watch/service'
 import {publishDiscovery} from '../src/lib/book-club-watch/publish'
 import {readFileSync} from 'node:fs'
 
 type Doc = Record<string, unknown> & {_id: string; _rev: string; _type: string}
 function database(initial: Record<string, unknown>[] = []) {
   const docs = new Map<string, Doc>(), real = createClient({projectId: 'test123', dataset: 'test', apiVersion: '2026-09-01', useCdn: false})
-  let sequence = 0, failPublication = false
+  let sequence = 0, failPublication = false, failSecondDiscovery = false
   const save = (doc: Record<string, unknown>) => {const result = {...structuredClone(doc), _id: String(doc._id || `generated-${++sequence}`), _rev: `rev-${++sequence}`} as Doc; docs.set(result._id, result); return structuredClone(result)}
   initial.forEach(save)
   function commit(mutations: ReturnType<ReturnType<typeof real.transaction>['serialize']>) {
     if (failPublication && mutations.some((m) => 'patch' in m && 'id' in m.patch && String(m.patch.id).startsWith('curatedCollection.'))) throw new Error('Injected failure')
+    if (failSecondDiscovery && mutations.some((m) => 'create' in m && m.create.discoveredTitle === 'Second Book')) throw new Error('Injected discovery failure')
     for (const m of mutations) {
       if ('create' in m && m.create._id && docs.has(m.create._id)) throw Object.assign(new Error('Conflict'), {statusCode: 409})
       if ('patch' in m && 'id' in m.patch && m.patch.ifRevisionID && docs.get(String(m.patch.id))?._rev !== m.patch.ifRevisionID) throw Object.assign(new Error('Revision conflict'), {statusCode: 409})
@@ -36,7 +37,7 @@ function database(initial: Record<string, unknown>[] = []) {
     transaction() {const tx = real.transaction(); tx.commit = async () => commit(tx.serialize()) as never; return tx},
     patch(id: string) {const patch = real.patch(id); patch.commit = async () => {commit([{patch: patch.serialize()}]); return structuredClone(docs.get(id)) as never}; return patch},
   } as unknown as SanityClient
-  return {client, docs, save, failPublication: (value: boolean) => {failPublication = value}}
+  return {client, docs, save, failSecondDiscovery: (value: boolean) => {failSecondDiscovery = value}, failPublication: (value: boolean) => {failPublication = value}}
 }
 const date = new Date('2026-10-06T14:00:00Z')
 const pick: Pick = {title: 'A New Book', authors: ['An Author'], selectionMonth: '2026-10', sourceUrl: CLUBS.gma.sourceUrl, evidence: 'October 2026: A New Book by An Author'}
@@ -147,4 +148,80 @@ test('partial publication retry reuses the created book and preserves approval s
 test('invalid approval is blocked, and errors never expose arbitrary provider messages', () => {
   assert.throws(() => approvalFor({discoveredTitle: 'Book', discoveredAuthors: ['Author'], selectionMonth: '2026-10'} as Discovery), /Choose/)
   assert.doesNotMatch(safeError(new Error('token=secret')), /secret/)
+})
+
+test('existing current-month collection skips network and Oprah does not rediscover a catalog selection', async () => {
+  const db = database([{...collection, books: [{_key: 'oct', year: 2026, month: 'October', book: {_ref: 'existing'}}]}])
+  const result = await runWatch(db.client, 'gma', {...options, discover: async () => {throw new Error('Must not fetch')}})
+  assert.equal(result.outcome, 'already_recorded')
+  const oprah = database([
+    {...collection, _id: CLUBS.oprah.collectionId, books: [{_key: 'latest', book: {_ref: 'existing'}}]},
+    {_id: 'existing', _type: 'book', title: pick.title, authors: pick.authors},
+  ])
+  assert.equal((await runWatch(oprah.client, 'oprah', {...options, now: new Date('2026-10-05T13:00:00Z')})).outcome, 'no_change')
+  assert.equal(discoveries(oprah).length, 0)
+})
+
+test('interrupted multi-title discovery retries the source instead of skipping the lost second title', async () => {
+  const db = database([collection])
+  const batch = {...options, discover: async () => [pick, {...pick, title: 'Second Book'}]}
+  db.failSecondDiscovery(true)
+  assert.equal((await runWatch(db.client, 'gma', batch)).outcome, 'failed')
+  assert.equal(discoveries(db).length, 1)
+  db.failSecondDiscovery(false)
+  await runWatch(db.client, 'gma', batch)
+  assert.equal(discoveries(db).length, 2)
+  assert.ok(discoveries(db).every((doc) => doc.status === 'needs_review'))
+})
+
+test('new-book concurrent publishing creates a single shared book', async () => {
+  const db = database([collection])
+  const doc = await persistDiscovery(db.client, 'gma', pick, date)
+  approve(db, doc)
+  await Promise.all([publishDiscovery(db.client, doc._id), publishDiscovery(db.client, doc._id)])
+  assert.equal([...db.docs.values()].filter((d) => d._type === 'book').length, 1)
+  assert.equal((db.docs.get(collection._id)?.books as unknown[]).length, 2)
+})
+
+test('an approved status without an editor snapshot cannot publish', async () => {
+  const db = database([collection])
+  const doc = await persistDiscovery(db.client, 'gma', pick, date)
+  db.save({...doc, status: 'approved'})
+  await assert.rejects(publishDiscovery(db.client, doc._id), /explicit editorial approval/)
+  assert.equal([...db.docs.values()].filter((d) => d._type === 'book').length, 0)
+})
+
+test('Oprah links are selected from the latest product heading, not older recommendations', () => {
+  const html = '<h2>Little Wonder, by Sophie Chen Keller</h2><a href="/entertainment/books/a71499290/little-wonder-oprah-book-club-pick/">“Little Wonder” is Oprah’s 124th Book Club Pick</a><a href="/entertainment/a00000000/older-pick/">“Kin” is Oprah’s 121st Book Club Pick</a>'
+  assert.match(oprahAnnouncementUrl(html), /a71499290/)
+})
+
+test('multiple approved titles preserve both collection entries under concurrent publication', async () => {
+  const db = database([collection])
+  const first = await persistDiscovery(db.client, 'gma', pick, date)
+  const second = await persistDiscovery(db.client, 'gma', {...pick, title: 'Second Book'}, date)
+  approve(db, first); approve(db, second)
+  await Promise.all([publishDiscovery(db.client, first._id), publishDiscovery(db.client, second._id)])
+  const entries = db.docs.get(collection._id)?.books as {selectionNumber: number}[]
+  assert.equal(entries.length, 3)
+  assert.deepEqual(entries.map((e) => e.selectionNumber), [8, 9, 10])
+})
+
+test('approval strips non-metadata fields and rejects unsafe cover URLs', () => {
+  const doc = {discoveredTitle: 'Book', discoveredAuthors: ['Author'], selectionMonth: '2026-10', publicationMode: 'new',
+    proposedMetadata: {title: 'Other title', authors: ['Other author'], _id: 'injected', _type: 'injected', description: 'Reviewed text'}} as unknown as Discovery
+  const approval = approvalFor(doc)
+  assert.deepEqual(approval.metadata, {title: 'Book', authors: ['Author'], description: 'Reviewed text'})
+  assert.throws(() => approvalFor({...doc, proposedMetadata: {...doc.proposedMetadata!, coverUrl: 'javascript:alert(1)'}}))
+})
+
+test('identifier matches take precedence, including ISBNs stored on editions', async () => {
+  const db = database([
+    {_id: 'first', _type: 'book', title: pick.title, authors: pick.authors},
+    {_id: 'second', _type: 'book', title: pick.title, authors: pick.authors},
+    {_id: 'edition', _type: 'edition', book: {_ref: 'second'}, isbn13: '9780140328721', isbn10: '0140328726'},
+  ])
+  assert.equal(await findBook(db.client, pick.title, pick.authors), undefined)
+  assert.equal((await findBook(db.client, pick.title, pick.authors, {isbn13: '9780140328721'}))?._id, 'second')
+  assert.equal((await findBook(db.client, pick.title, pick.authors, {isbn10: '0140328726'}))?._id, 'second')
 })

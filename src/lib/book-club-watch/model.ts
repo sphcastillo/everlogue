@@ -1,3 +1,5 @@
+import {z} from 'zod'
+
 export const TIMEZONE = 'America/New_York'
 export const CLUBS = {
   reese: {name: "Reese's Book Club", collectionId: 'curatedCollection.reeses-book-club', sourceUrl: 'https://reesesbookclub.com/the-complete-list/', schedule: '0 9 1-8 * *'},
@@ -33,6 +35,13 @@ export function inWindow(club: Club, now: Date) {
   if (club === 'read-with-jenna') return day <= 8 && ['Mon', 'Tue'].includes(weekday)
   return (club === 'gma' ? ['Tue'] : ['Mon', 'Wed', 'Fri']).includes(weekday)
 }
+const metadataSchema = z.object({
+  title: z.string(), authors: z.array(z.string()), description: z.string().optional(),
+  coverUrl: z.string().url().refine((url) => url.startsWith('https://')).optional(),
+  isbn13: z.string().optional(), isbn10: z.string().optional(), googleBooksId: z.string().optional(),
+  publisher: z.string().optional(), publishedDate: z.string().optional(), language: z.string().optional(),
+  pageCount: z.number().int().positive().optional(),
+})
 export function approvalFor(doc: Discovery): Approval {
   const title = (doc.reviewedTitle || doc.discoveredTitle).trim()
   const authors = (doc.reviewedAuthors || doc.discoveredAuthors || []).map((s) => s.trim()).filter(Boolean)
@@ -40,9 +49,10 @@ export function approvalFor(doc: Discovery): Approval {
   if (doc.selectionDate && (!/^\d{4}-\d{2}(?:-\d{2})?$/.test(doc.selectionDate) || !doc.selectionDate.startsWith(doc.selectionMonth))) throw new Error('Selection date must match the selection month.')
   if (!doc.publicationMode) throw new Error('Choose an existing book or explicitly choose to create a new book.')
   if (doc.publicationMode === 'existing' && !doc.matchedBook?._ref) throw new Error('Choose the existing book to publish.')
+  const metadata = doc.proposedMetadata ? metadataSchema.parse({...doc.proposedMetadata, title, authors}) : undefined
   return {title, authors, selectionMonth: doc.selectionMonth, mode: doc.publicationMode,
     ...(doc.selectionDate ? {selectionDate: doc.selectionDate} : {}),
     ...(doc.matchedBook ? {matchedBook: doc.matchedBook} : {}),
-    ...(doc.proposedMetadata ? {metadata: doc.proposedMetadata} : {}),
+    ...(metadata ? {metadata} : {}),
   }
 }

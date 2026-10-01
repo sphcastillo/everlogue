@@ -25,14 +25,21 @@ function action(operation: Operation): DocumentActionComponent {
           if (draft && props.draft?._rev !== draft._rev) throw new Error('Wait for your edits to finish saving, then try again.')
           const edited = draft || live
           const now = new Date().toISOString()
-          const fields = operation === 'approve' ? {
-            approval: approvalFor(edited), status: 'approved', approvedAt: now, reviewedBy: user!.id,
-            selectionMonth: edited.selectionMonth,
-            ...(edited.reviewedTitle ? {reviewedTitle: edited.reviewedTitle} : {}),
-            ...(edited.reviewedAuthors ? {reviewedAuthors: edited.reviewedAuthors} : {}),
-            ...(edited.proposedMetadata ? {proposedMetadata: edited.proposedMetadata} : {}),
+          const approval = operation === 'approve' ? approvalFor(edited) : undefined
+          const fields = approval ? {
+            approval, status: 'approved', approvedAt: now, reviewedBy: user!.id,
+            reviewedTitle: approval.title, reviewedAuthors: approval.authors,
+            selectionMonth: approval.selectionMonth, publicationMode: approval.mode,
+            ...(approval.selectionDate ? {selectionDate: approval.selectionDate} : {}),
+            ...(approval.matchedBook ? {matchedBook: approval.matchedBook} : {}),
+            ...(approval.metadata ? {proposedMetadata: approval.metadata} : {}),
           } : operation === 'retry' ? {retryRequestedAt: now} : {status: operation === 'reject' ? 'rejected' : 'needs_review', reviewedBy: user!.id}
-          const tx = client.transaction().patch(live._id, (p) => p.ifRevisionId(live._rev).set(fields).unset(['processingError']))
+          const unset = ['processingError', ...(approval ? [
+            ...(!approval.selectionDate ? ['selectionDate'] : []),
+            ...(!approval.matchedBook ? ['matchedBook'] : []),
+            ...(!approval.metadata ? ['proposedMetadata'] : []),
+          ] : [])]
+          const tx = client.transaction().patch(live._id, (p) => p.ifRevisionId(live._rev).set(fields).unset(unset))
           if (draft) tx.patch(draft._id, (p) => p.ifRevisionId(draft._rev).set({status: draft.status})).delete(draft._id)
           await tx.commit({visibility: 'sync'})
           props.onComplete()

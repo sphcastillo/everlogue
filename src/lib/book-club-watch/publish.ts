@@ -42,7 +42,7 @@ export async function publishDiscovery(client: SanityClient, id: string) {
     try {
       if (!doc.approval || !doc.approvedAt || !doc.reviewedBy) throw new Error('Publication requires an explicit editorial approval snapshot.')
       // Validate the frozen snapshot again; mutable discovery fields are never published.
-      approvalFor({...doc, reviewedTitle: doc.approval.title, reviewedAuthors: doc.approval.authors, selectionMonth: doc.approval.selectionMonth, selectionDate: doc.approval.selectionDate, publicationMode: doc.approval.mode, matchedBook: doc.approval.matchedBook})
+      doc.approval = approvalFor({...doc, proposedMetadata: doc.approval.metadata, reviewedTitle: doc.approval.title, reviewedAuthors: doc.approval.authors, selectionMonth: doc.approval.selectionMonth, selectionDate: doc.approval.selectionDate, publicationMode: doc.approval.mode, matchedBook: doc.approval.matchedBook})
       const collectionId = CLUBS[doc.bookClub].collectionId
       const collection = await client.fetch<{_id: string; _rev: string; books?: {_key: string; book?: {_ref: string}; selectionNumber?: number}[]} | null>('*[_id == $id][0]{_id,_rev,books}', {id: collectionId}, fresh)
       if (!collection) throw new Error('Publication club collection is missing; create it before retrying.')

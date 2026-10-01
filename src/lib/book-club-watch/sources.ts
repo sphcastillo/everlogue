@@ -35,7 +35,16 @@ export function parseGma(html: string): Pick[] {
 }
 export function oprahAnnouncementUrl(html: string) {
   const $ = cheerio.load(html)
-  const link = $('a[href]').toArray().find((el) => /latest pick:/i.test($(el).text()))
+  const links = $('a[href]').toArray()
+  let link = links.find((el) => /latest pick:/i.test($(el).text()))
+  if (!link) {
+    const latestHeading = $('h2,h3').toArray().map((el) => clean($(el).text()).match(/^(.+?),?\s+by\s+(.+)$/i)).find(Boolean)
+    const title = latestHeading?.[1].replace(/,$/, '')
+    link = title ? links.find((el) => {
+      const text = clean($(el).text())
+      return /book club pick/i.test(text) && normalize(text).includes(normalize(title)) && /\/a\d+\//.test($(el).attr('href') || '')
+    }) : undefined
+  }
   if (!link) throw new Error('Oprah source: latest-pick announcement link not found.')
   return new URL($(link).attr('href')!, CLUBS.oprah.sourceUrl).href
 }

@@ -423,6 +423,12 @@ export type CuratedCollection = {
     name?: string;
   };
   instagramUrl?: string;
+  knowledgeSources?: Array<{
+    label?: string;
+    url: string;
+    _type: "knowledgeSource";
+    _key: string;
+  }>;
   books?: Array<{
     book: BookReference;
     selectionNumber: number;

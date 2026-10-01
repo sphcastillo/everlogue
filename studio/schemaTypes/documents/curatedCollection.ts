@@ -40,6 +40,37 @@ export const curatedCollection = defineType({
         }),
     }),
     defineField({
+      name: 'knowledgeSources',
+      title: 'Book Club Knowledge Sources',
+      type: 'array',
+      description:
+        'Add source links here in Studio when you have them — publisher pages, club posts, Wikipedia, interviews, and similar.',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'knowledgeSource',
+          fields: [
+            defineField({
+              name: 'label',
+              type: 'string',
+              description: 'Optional. Defaults to the URL if left blank.',
+            }),
+            defineField({
+              name: 'url',
+              type: 'url',
+              validation: (rule) => rule.required().uri({scheme: ['http', 'https']}),
+            }),
+          ],
+          preview: {
+            select: {title: 'label', subtitle: 'url'},
+            prepare({title, subtitle}) {
+              return {title: title || subtitle || 'Source link', subtitle: title ? subtitle : undefined}
+            },
+          },
+        }),
+      ],
+    }),
+    defineField({
       name: 'books', title: 'Book selections', type: 'array',
       of: [defineArrayMember({
         name: 'curatedCollectionEntry', title: 'Book selection', type: 'object', icon: BookIcon,

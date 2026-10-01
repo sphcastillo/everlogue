@@ -21,7 +21,6 @@ import {config} from 'dotenv'
 import {createClient} from '@sanity/client'
 import {createHash} from 'node:crypto'
 import {writeFile} from 'node:fs/promises'
-import * as cheerio from 'cheerio'
 import {monthName} from '../src/lib/club-selection-dates'
 
 // ---------------------------------------------------------
@@ -185,17 +184,6 @@ function shortHash(value: string) {
     .update(value)
     .digest('hex')
     .slice(0, 24)
-}
-
-function cleanText(value: string) {
-  return value.replace(/\s+/g, ' ').trim()
-}
-
-function splitAuthors(value: string) {
-  return value
-    .split(/\s+and\s+|\s*&\s+/i)
-    .map((author) => cleanText(author))
-    .filter(Boolean)
 }
 
 function monthYearFromSelectionDate(value?: string) {
