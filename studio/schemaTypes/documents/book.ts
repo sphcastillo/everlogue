@@ -1,7 +1,7 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 import {BookIcon} from '@sanity/icons'
-import {BookClubsInput} from '../../components/BookClubsInput'
 import {BookPreview} from '../../components/BookPreview'
+import {CatalogOriginInput} from '../../components/CatalogOriginInput'
 
 // Shared catalog foundation for club selections, reader libraries, and editions.
 export const book = defineType({
@@ -11,6 +11,8 @@ export const book = defineType({
   icon: BookIcon,
   fieldsets: [{name: 'import', title: 'Import metadata', options: {collapsible: true, collapsed: true}}],
   fields: [
+    defineField({name: 'watchIdentity', type: 'string', readOnly: true, hidden: true}),
+    defineField({name: 'watchDiscovery', type: 'reference', to: [{type: 'bookClubDiscovery'}], readOnly: true, fieldset: 'import'}),
     defineField({name: 'title', type: 'string', validation: (rule) => rule.required()}),
     defineField({
       name: 'catalogReviewStatus', title: 'Catalog review', type: 'string',
@@ -18,13 +20,19 @@ export const book = defineType({
       options: {list: [{title: 'Needs review', value: 'needsReview'}, {title: 'Reviewed', value: 'reviewed'}], layout: 'radio'},
     }),
     defineField({
-      name: 'catalogSource', title: 'Added from', type: 'string', readOnly: true,
-      options: {list: [
-        {title: 'Reader search', value: 'readerSearch'},
-        {title: 'Goodreads import', value: 'goodreadsImport'},
-        {title: 'Book club import', value: 'bookClubImport'},
-      ]},
-      fieldset: 'import',
+      name: 'catalogSource',
+      title: 'Catalog origin',
+      type: 'string',
+      readOnly: true,
+      description: 'How this book entered the catalog, and the club list it sits on when it came from a book club import or was added to a club.',
+      options: {
+        list: [
+          {title: 'Reader search', value: 'readerSearch'},
+          {title: 'Goodreads import', value: 'goodreadsImport'},
+          {title: 'Book club import', value: 'bookClubImport'},
+        ],
+      },
+      components: {input: CatalogOriginInput},
     }),
     defineField({
       name: 'knowledgeSources',
@@ -63,15 +71,6 @@ export const book = defineType({
     defineField({name: 'slugAliases', type: 'array', of: [defineArrayMember({type: 'string'})], readOnly: true, fieldset: 'import'}),
     defineField({name: 'description', type: 'text', rows: 5}),
     defineField({name: 'genres', type: 'array', of: [defineArrayMember({type: 'reference', to: [{type: 'genre'}]})]}),
-    defineField({
-      name: 'clubs',
-      title: 'Book clubs',
-      type: 'array',
-      description: 'Club lists this title belongs on. Checking a club also adds it to that club’s selections; unchecking removes it.',
-      of: [defineArrayMember({type: 'reference', to: [{type: 'curatedCollection'}], options: {disableNew: true}})],
-      validation: (rule) => rule.unique(),
-      components: {input: BookClubsInput},
-    }),
     defineField({name: 'ratingStats', type: 'ratingStats', readOnly: true}),
     defineField({name: 'editorialLocked', type: 'boolean', initialValue: false, description: 'Protect reviewed metadata from automatic updates.'}),
     defineField({
@@ -82,16 +81,7 @@ export const book = defineType({
       description: 'When set, this image is used everywhere in the app. Provider and edition covers are ignored.',
       fields: [defineField({name: 'alt', title: 'Alternative text', type: 'string'})],
     }),
-    defineField({
-      name: 'cover', title: 'Provider cover', type: 'object',
-      fields: [
-        defineField({name: 'url', type: 'url'}),
-        defineField({name: 'source', type: 'string'}),
-      ],
-    }),
-    defineField({name: 'edition', type: 'reference', to: [{type: 'edition'}]}),
-    defineField({name: 'needsCover', type: 'boolean'}),
-    defineField({name: 'isbn10', title: 'ISBN-10', type: 'string'}),
+
     defineField({name: 'isbn13', title: 'ISBN-13', type: 'string'}),
     defineField({name: 'publisher', type: 'string'}),
     defineField({name: 'publishedDate', type: 'string', description: 'Preserves year-only, year-month, or full-date precision.'}),
@@ -141,12 +131,10 @@ export const book = defineType({
       media: 'coverOverride',
       catalogReviewStatus: 'catalogReviewStatus',
       catalogSource: 'catalogSource',
+      importKey: 'importKey',
       bookId: '_id',
-      club0: 'clubs.0.title',
-      club1: 'clubs.1.title',
-      club2: 'clubs.2.title',
     },
-    prepare({title, author, authorRef, media, catalogReviewStatus, catalogSource, bookId, club0, club1, club2}) {
+    prepare({title, author, authorRef, media, catalogReviewStatus, catalogSource, importKey, bookId}) {
       const authorName = [author, authorRef].find((value) => typeof value === 'string' && value.trim())
       return {
         title,
@@ -155,10 +143,8 @@ export const book = defineType({
         media,
         catalogReviewStatus,
         catalogSource,
+        importKey,
         bookId,
-        club0,
-        club1,
-        club2,
       }
     },
   },

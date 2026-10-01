@@ -8,11 +8,17 @@
     "start": "next start",
     "lint": "eslint .",
     "studio": "pnpm --dir studio dev",
-    "import:catalog": "tsx scripts/import-catalog.ts"
+    "import:catalog": "tsx scripts/import-catalog.ts",
+    "watch:preview": "tsx scripts/book-club-watch.ts --dry-run",
+    "watch:test": "tsx --test tests/book-club-watch.test.ts",
+    "watch:check": "tsc --noEmit -p tsconfig.watch.json",
+    "watch:build": "node scripts/build-book-club-watch.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.4",
+    "@sanity/blueprints": "^0.28.0",
     "@sanity/client": "^7.12.0",
+    "@sanity/functions": "^1.8.1",
     "@sanity/image-url": "^1.2.0",
     "cheerio": "^1.2.0",
     "dotenv": "^18.0.3",
@@ -30,8 +36,10 @@
     "@types/node": "^24.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "esbuild": "^0.28.2",
     "eslint": "^9.36.0",
     "eslint-config-next": "^16.0.0",
+    "groq-js": "^2.0.0",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.20.5",
     "typescript": "^5.8.3"

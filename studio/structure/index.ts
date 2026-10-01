@@ -33,6 +33,21 @@ export const structure: StructureResolver = (S, context) =>
         .title('Site settings')
         .icon(CogIcon)
         .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
+      S.listItem().title('Book Club Watch').icon(BookIcon).child(
+        S.list().title('Book Club Watch').items([
+          ...[
+            {title: 'Review queue', filter: 'status in ["discovered", "needs_review"]'},
+            {title: 'Approved / publication failures', filter: 'status == "approved"'},
+            {title: 'Published history', filter: 'status == "published"'},
+            {title: 'Rejected discoveries', filter: 'status == "rejected"'},
+          ].map(({title, filter}) => S.listItem().title(title).child(
+            S.documentTypeList('bookClubDiscovery').title(title)
+              .filter('_type == "bookClubDiscovery" && ' + filter)
+              .defaultOrdering([{field: 'discoveredAt', direction: 'desc'}]),
+          )),
+          S.documentTypeListItem('bookClubWatchRun').title('Run history'),
+        ]),
+      ),
       S.divider(),
       S.listItem()
         .title('Book Archive')
@@ -58,7 +73,17 @@ export const structure: StructureResolver = (S, context) =>
                   .filter('_type == "edition" && needsCover == true && !defined(coverOverride.asset)'),
               ),
               S.documentTypeListItem('author').title('Authors').icon(UserIcon),
-              S.documentTypeListItem('genre').title('Genres').icon(TagIcon),
+              S.listItem()
+                .id('genres')
+                .title('Genres')
+                .icon(TagIcon)
+                .child(async () => {
+                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const count = await client.fetch<number>(
+                    `count(*[_type == "genre" && !(_id in path("drafts.**"))])`,
+                  )
+                  return S.documentTypeList('genre').title(`Genres · ${count}`)
+                }),
               S.divider(),
               S.documentTypeListItem('catalogImportIdentity').title('Catalog import identity'),
               S.listItem()
@@ -174,6 +199,8 @@ export const structure: StructureResolver = (S, context) =>
           !!id &&
           !SINGLETONS.includes(id) &&
           ![
+            'bookClubDiscovery',
+            'bookClubWatchRun',
             'book',
             'edition',
             'author',

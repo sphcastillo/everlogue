@@ -1,5 +1,5 @@
 import {defineQuery} from 'next-sanity'
-import {searchCatalogFilter} from '@/lib/search-catalog'
+import {searchCatalogFilter} from '../lib/search-catalog'
 
 export const editionCoverFields = /* groq */ `
   _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,
@@ -75,20 +75,13 @@ export const CURATED_COLLECTIONS_QUERY = defineQuery(`
     instagramUrl,
     source,
     totalSelections,
-    "books": (
-      books[]{
+    "books": books[]{
         selectionNumber,
         month,
         year,
         selectionDate,
         "book": book->{ ${curatedBookFields} }
       }
-      + *[_type == "book" && ^._id in coalesce(clubs[]._ref, []) && !(_id in coalesce(^.books[].book._ref, []))]{
-        "selectionNumber": 0,
-        "isLatestAddition": true,
-        "book": @{ ${curatedBookFields} }
-      }
-    )
   }
 `)
 
@@ -104,20 +97,13 @@ export const CURATED_COLLECTION_BY_SLUG_QUERY = defineQuery(`
     instagramUrl,
     source,
     totalSelections,
-    "books": (
-      books[]{
+    "books": books[]{
         selectionNumber,
         month,
         year,
         selectionDate,
         "book": book->{ ${curatedBookFields}, description }
       }
-      + *[_type == "book" && ^._id in coalesce(clubs[]._ref, []) && !(_id in coalesce(^.books[].book._ref, []))]{
-        "selectionNumber": 0,
-        "isLatestAddition": true,
-        "book": @{ ${curatedBookFields}, description }
-      }
-    )
   }
 `)
 
@@ -151,7 +137,7 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
       firstPublicationOfBook,
       ${editionCoverFields}
     },
-    "clubs": *[_type == "curatedCollection" && (references(^._id) || _id in coalesce(^.clubs[]._ref, []))] | order(lastSyncedAt desc){
+    "clubs": *[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0] | order(lastSyncedAt desc){
       title,
       "slug": slug.current,
       curator,
@@ -164,7 +150,7 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
 export const BOOK_BY_GOOGLE_ID_QUERY = defineQuery(`
   *[${searchCatalogFilter}][0]{
     ${bookCardFields},
-    "clubs": *[_type == "curatedCollection" && (references(^._id) || _id in coalesce(^.clubs[]._ref, []))] | order(lastSyncedAt desc){
+    "clubs": *[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0] | order(lastSyncedAt desc){
       title,
       "slug": slug.current,
       curator,

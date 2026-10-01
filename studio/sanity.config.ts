@@ -1,3 +1,4 @@
+import {bookClubWatchActions} from './actions/bookClubWatchActions'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
@@ -19,9 +20,10 @@ export default defineConfig({
 
   schema: {
     types: schemaTypes,
+    templates: (prev) => prev.filter((t) => !['bookClubDiscovery', 'bookClubWatchRun'].includes(t.schemaType)),
   },
 
   document: {
-    actions: (prev, context) => editorialReviewActions(prev, context),
+    actions: (prev, context) => bookClubWatchActions(editorialReviewActions(prev, context), context),
   },
 })

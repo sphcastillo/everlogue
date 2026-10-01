@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react'
 import {useClient, type PreviewProps} from 'sanity'
+import {CATALOG_SOURCE_LABELS, inferCatalogSource, publishedDocumentId} from '../lib/catalog-origin'
 
 type PreviewValues = PreviewProps & {
   bookId?: string
@@ -7,13 +8,7 @@ type PreviewValues = PreviewProps & {
   authorRef?: string
   catalogReviewStatus?: string
   catalogSource?: string
-  club0?: string
-  club1?: string
-  club2?: string
-}
-
-function publishedId(id?: string) {
-  return (id || '').replace(/^drafts\./, '')
+  importKey?: string
 }
 
 function uniqueNames(values: unknown[]) {
@@ -22,9 +17,8 @@ function uniqueNames(values: unknown[]) {
 
 export function BookPreview(props: PreviewProps) {
   const values = props as PreviewValues
-  const bookId = publishedId(values.bookId)
-  const selected = uniqueNames([values.club0, values.club1, values.club2])
-  const [clubs, setClubs] = useState<string[]>(selected)
+  const bookId = publishedDocumentId(values.bookId)
+  const [clubs, setClubs] = useState<string[]>([])
   const client = useClient({apiVersion: '2026-02-01'})
 
   useEffect(() => {
@@ -33,22 +27,21 @@ export function BookPreview(props: PreviewProps) {
     client
       .fetch<{clubs?: string[]; celebrity?: string[]}>(
         `{
-          "clubs": *[_type == "curatedCollection" && (references($bookId) || $bookId in books[].book._ref)].title,
-          "celebrity": *[_type == "celebritySelection" && (references($bookId) || $bookId in books[]._ref)].club->title
+          "clubs": *[_type == "curatedCollection" && count(books[book._ref == $bookId]) > 0].title,
+          "celebrity": *[_type == "celebritySelection" && count(books[_ref == $bookId]) > 0].club->title
         }`,
         {bookId},
       )
       .then((result) => {
-        const names = uniqueNames([...(result?.clubs || []), ...(result?.celebrity || []), ...selected])
-        if (!cancelled) setClubs(names)
+        if (!cancelled) setClubs(uniqueNames([...(result?.clubs || []), ...(result?.celebrity || [])]))
       })
       .catch(() => {
-        if (!cancelled) setClubs(selected)
+        if (!cancelled) setClubs([])
       })
     return () => {
       cancelled = true
     }
-  }, [bookId, client, values.club0, values.club1, values.club2])
+  }, [bookId, client])
 
   const review =
     values.catalogReviewStatus === 'reviewed'
@@ -56,19 +49,18 @@ export function BookPreview(props: PreviewProps) {
       : values.catalogReviewStatus === 'needsReview'
         ? 'Needs review'
         : ''
-  const source =
-    values.catalogSource === 'goodreadsImport'
-      ? 'Goodreads import'
-      : values.catalogSource === 'readerSearch'
-        ? 'Reader search'
-        : values.catalogSource === 'bookClubImport'
-          ? 'Book club import'
-          : ''
+  const source = inferCatalogSource({
+    catalogSource: values.catalogSource,
+    importKey: values.importKey,
+    documentId: bookId,
+    clubNames: clubs,
+  })
+  const sourceLabel = source ? CATALOG_SOURCE_LABELS[source] : ''
   const author =
     [values.author, values.authorRef, values.subtitle].find(
       (value) => typeof value === 'string' && value.trim() && !['Reviewed', 'Needs review'].includes(value),
     ) || ''
-  const subtitle = [author, review, source, clubs.join(', ')].filter(Boolean).join(' · ')
+  const subtitle = [author, review, sourceLabel, clubs.join(', ')].filter(Boolean).join(' · ')
 
   if (typeof props.renderDefault === 'function') {
     return props.renderDefault({...props, title: values.title, subtitle, media: values.media})

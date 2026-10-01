@@ -9,9 +9,8 @@ export const FROM_GOODREADS =
 export const FROM_BOOK_CLUB = `(
   catalogSource == "bookClubImport"
   || string::startsWith(_id, "book.google.")
-  || count(clubs) > 0
-  || count(*[_type == "curatedCollection" && references(^._id)]) > 0
-  || count(*[_type == "celebritySelection" && references(^._id)]) > 0
+  || count(*[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0]) > 0
+  || count(*[_type == "celebritySelection" && count(books[_ref == ^._id]) > 0]) > 0
 )`
 
 export const BOOKCLUB_IMPORTS_FILTER = `_type == "book" && ${PENDING_CATALOG_REVIEW} && ${FROM_BOOK_CLUB}`

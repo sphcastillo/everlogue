@@ -66,8 +66,8 @@ export function BookClubImportsPane() {
           authors,
           "author": authors[0],
           catalogReviewStatus,
-          "clubs": *[_type == "curatedCollection" && (references(^._id) || ^._id in books[].book._ref)].title,
-          "celebrityClubs": *[_type == "celebritySelection" && (references(^._id) || ^._id in books[]._ref)].club->title
+          "clubs": *[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0].title,
+          "celebrityClubs": *[_type == "celebritySelection" && count(books[_ref == ^._id]) > 0].club->title
         }`,
       )
       .then((docs) => {

@@ -1,8 +1,12 @@
+import {parseReeseSourcePage} from '../src/lib/book-club-watch/reese-source'
 /**
  * scripts/import-reese.ts
  *
  * Run:
  *   pnpm tsx scripts/import-reese.ts
+ *
+ * Appends only picks newer than the latest selection already on the collection.
+ * Existing Reese entries and cataloged books are not rewritten.
  *
  * Required env:
  *   NEXT_PUBLIC_SANITY_PROJECT_ID
@@ -280,31 +284,9 @@ async function scrapeReesePicks(): Promise<ReesePick[]> {
     console.log(`  → ${pageUrl}`)
 
     const html = await fetchHtml(pageUrl)
-    const $ = cheerio.load(html)
-
-    $('li.wp-block-post').each((_, element) => {
-      const card = $(element)
-      const titleLink = card.find('.wp-block-post-title a').first()
-      const title = cleanText(titleLink.text() || card.find('.wp-block-post-title').first().text())
-      const href = titleLink.attr('href')
-
-      if (!title || !href) {
-        return
-      }
-
-      const author = cleanText(card.find('.book-meta-author-row .value').first().text())
-      const selectionDate = cleanText(card.find('.wp-block-post-date time').first().text())
-
-      discovered.push({
-        title,
-        authors: author ? splitAuthors(author) : [],
-        selectionDate: selectionDate || undefined,
-        sourceUrl: new URL(href, REESE_SOURCE_URL).toString(),
-      })
-    })
-
-    const nextHref = $('a.wp-block-query-pagination-next').attr('href')
-    pageUrl = nextHref ? new URL(nextHref, pageUrl).toString() : null
+    const page = parseReeseSourcePage(html, pageUrl)
+    discovered.push(...page.picks)
+    pageUrl = page.next ? new URL(page.next, pageUrl).toString() : null
 
     await sleep(250)
   }
@@ -376,6 +358,13 @@ const VERIFIED_LOOKUPS = [
     isbn13: '9780063394759',
     source: 'https://library.ltikorea.or.kr/originalworks/413720',
   },
+  {
+    sourceTitle: 'Sophie, Standing There',
+    author: 'Meg Mason',
+    title: 'Sophie, Standing There',
+    isbn13: '9780063493131',
+    source: 'https://reesesbookclub.com/book/sophie-standing-there/',
+  },
 ]
 
 function verifiedLookup(pick: ReesePick) {
@@ -437,7 +426,20 @@ async function searchGoogleBooks(
   const data =
     (await response.json()) as GoogleBooksResponse
 
-  return data.items ?? []
+  const items = data.items ?? []
+  if (items.length || !lookup) return items
+
+  const fallback = new URLSearchParams({
+    q: `intitle:"${lookup.title}" inauthor:"${lookup.author}"`,
+    maxResults: '20',
+    printType: 'books',
+    projection: 'full',
+  })
+  if (GOOGLE_BOOKS_API_KEY) fallback.set('key', GOOGLE_BOOKS_API_KEY)
+  const retry = await fetch(`https://www.googleapis.com/books/v1/volumes?${fallback}`)
+  if (!retry.ok) return items
+  const retryData = (await retry.json()) as GoogleBooksResponse
+  return retryData.items ?? []
 }
 
 // ---------------------------------------------------------
@@ -737,6 +739,34 @@ function makeBookDocument(book: GoogleBook) {
   }
 }
 
+function makeOfficialPickDocument(
+  pick: ReesePick,
+  lookup: {title: string; isbn13: string; source: string},
+) {
+  return {
+    _id: `book.google.${shortHash(`isbn:${lookup.isbn13}`)}`,
+    _type: BOOK_TYPE,
+    catalogReviewStatus: 'needsReview' as const,
+    catalogSource: 'bookClubImport' as const,
+    title: lookup.title,
+    authors: pick.authors,
+    isbn13: lookup.isbn13,
+    needsCover: true,
+    dataSource: {
+      provider: 'officialSite',
+      providerId: lookup.isbn13,
+      importedAt: new Date().toISOString(),
+    },
+    provenance: {
+      provider: 'officialSite',
+      sourceId: lookup.isbn13,
+      sourceUrl: lookup.source,
+      retrievedAt: new Date().toISOString(),
+      attribution: "Reese's Book Club official list",
+    },
+  }
+}
+
 // ---------------------------------------------------------
 // Import one Reese pick
 // ---------------------------------------------------------
@@ -752,6 +782,34 @@ async function importPick(
 
   try {
     const books = await searchGoogleBooks(pick)
+    const lookup = verifiedLookup(pick)
+
+    if (!books.length && lookup) {
+      const existingByIsbn = await sanity.fetch<{_id: string} | null>(
+        `*[_type == $bookType && isbn13 == $isbn13][0]{_id}`,
+        {bookType: BOOK_TYPE, isbn13: lookup.isbn13},
+      )
+      if (existingByIsbn) {
+        console.log(`  ✓ Existing Everlogue book: ${existingByIsbn._id}`)
+        return {
+          selectionNumber: pick.selectionNumber,
+          title: pick.title,
+          requestedAuthors: pick.authors,
+          bookId: existingByIsbn._id,
+          status: 'existing',
+        }
+      }
+      const document = makeOfficialPickDocument(pick, lookup)
+      await sanity.createIfNotExists(document)
+      console.log(`  ✓ Created ${document._id} from the official Reese listing (Google had no match)`)
+      return {
+        selectionNumber: pick.selectionNumber,
+        title: pick.title,
+        requestedAuthors: pick.authors,
+        bookId: document._id,
+        status: 'created',
+      }
+    }
 
     if (!books.length) {
       console.log('  ✗ No Google Books results')
@@ -964,25 +1022,41 @@ async function main() {
     '✓ Wrote reese-source-picks.json',
   )
 
-  // -------------------------------------------------------
-  // Import books
-  // -------------------------------------------------------
+  const existing = await sanity.fetch<{
+    _id?: string
+    books?: {selectionNumber?: number; book?: {_ref?: string}}[]
+  } | null>(`*[_id == $id][0]{_id, books[]{selectionNumber, book}}`, {id: COLLECTION_ID})
+
+  const existingBooks = existing?.books || []
+  const latestExisting = existingBooks.reduce(
+    (latest, entry) => Math.max(latest, entry.selectionNumber || 0),
+    0,
+  )
+  const alreadyOnList = new Set(
+    existingBooks.map((entry) => entry.book?._ref).filter((id): id is string => Boolean(id)),
+  )
+  const newPicks = REESE_PICKS.filter((pick) => pick.selectionNumber > latestExisting)
+
+  console.log(
+    `\nExisting Reese selections: ${existingBooks.length}. Latest #${latestExisting || 0}. New to add: ${newPicks.length}.`,
+  )
+
+  if (!existing?._id) {
+    throw new Error(
+      "Reese's collection is missing. Create it in Studio first so this importer can only append new picks.",
+    )
+  }
+
+  if (!newPicks.length) {
+    console.log('Nothing newer than the current list. Collection left unchanged.')
+    return
+  }
 
   const results: ImportResult[] = []
 
-  /**
-   * Sequential on purpose:
-   *
-   * - easier on Google Books
-   * - readable logs
-   * - avoids hitting API limits aggressively
-   */
-  for (const pick of REESE_PICKS) {
-    const result =
-      await importPick(pick)
-
+  for (const pick of newPicks) {
+    const result = await importPick(pick)
     results.push(result)
-
     await sleep(700)
   }
 
@@ -1003,54 +1077,31 @@ async function main() {
     '\n=========================================',
   )
 
-  console.log('Book import complete')
+  console.log('New pick import complete')
 
   console.log(
-    `Resolved: ${successful.length}/${REESE_PICKS.length}`,
+    `Resolved: ${successful.length}/${newPicks.length}`,
   )
 
   console.log(
     `Needs review: ${needsReview.length}`,
   )
 
-  // -------------------------------------------------------
-  // Collection
-  // -------------------------------------------------------
-
-  const collectionEntries = results
-    .filter((result) => result.bookId)
-    .sort(
-      (a, b) =>
-        a.selectionNumber -
-        b.selectionNumber,
-    )
+  const additions = successful
+    .filter((result) => result.bookId && !alreadyOnList.has(result.bookId))
+    .sort((a, b) => a.selectionNumber - b.selectionNumber)
     .map((result) => {
-      const sourcePick =
-        REESE_PICKS.find(
-          (pick) =>
-            pick.selectionNumber ===
-            result.selectionNumber,
-        )
-
+      const sourcePick = newPicks.find((pick) => pick.selectionNumber === result.selectionNumber)
       return {
-        _key:
-          `reese-${String(
-            result.selectionNumber,
-          ).padStart(3, '0')}`,
-
-        _type:
-          'curatedCollectionEntry',
-
-        selectionNumber:
-          result.selectionNumber,
-
+        _key: `reese-${String(result.selectionNumber).padStart(3, '0')}`,
+        _type: 'curatedCollectionEntry',
+        selectionNumber: result.selectionNumber,
         ...(sourcePick?.selectionDate
           ? {
               selectionDate: sourcePick.selectionDate,
               ...monthYearFromSelectionDate(sourcePick.selectionDate),
             }
           : {}),
-
         book: {
           _type: 'reference',
           _ref: result.bookId!,
@@ -1058,54 +1109,23 @@ async function main() {
       }
     })
 
-  const collection = {
-    _id: COLLECTION_ID,
-    _type: COLLECTION_TYPE,
-
-    title: "Reese's Book Club",
-
-    slug: {
-      _type: 'slug',
-      current: 'reeses-book-club',
-    },
-
-    collectionType:
-      'celebrityBookClub',
-
-    curator: {
-      name: 'Reese Witherspoon',
-    },
-
-    description:
-      "Explore Reese Witherspoon's Reese's Book Club selections from the beginning of the club to the latest pick.",
-
-    source: {
-      name: "Reese's Book Club",
-      url: REESE_SOURCE_URL,
-    },
-
-    totalSelections:
-      REESE_PICKS.length,
-
-    books: collectionEntries,
-
-    lastSyncedAt:
-      new Date().toISOString(),
+  if (!additions.length) {
+    throw new Error(
+      `Could not resolve ${newPicks.map((pick) => pick.title).join(', ')}. Existing Reese selections were not changed.`,
+    )
   }
 
-  /**
-   * The external Reese list controls collection membership
-   * and order, so replacing the collection is intentional.
-   *
-   * Individual BOOK documents above are NOT replaced.
-   */
-  await sanity.createOrReplace(
-    collection,
-  )
+  await sanity
+    .patch(COLLECTION_ID)
+    .insert('after', 'books[-1]', additions)
+    .set({
+      totalSelections: existingBooks.length + additions.length,
+      lastSyncedAt: new Date().toISOString(),
+    })
+    .commit()
 
   console.log(
-    `\n✓ Reese's collection saved with ` +
-      `${collectionEntries.length}/${REESE_PICKS.length} resolved selections`,
+    `\n✓ Appended ${additions.length} new Reese selection${additions.length === 1 ? '' : 's'} without rewriting the existing list.`,
   )
 
   // -------------------------------------------------------

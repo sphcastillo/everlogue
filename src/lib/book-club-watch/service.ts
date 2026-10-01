@@ -1,0 +1,118 @@
+import {createHash, randomUUID} from 'node:crypto'
+import type {SanityClient} from '@sanity/client'
+import {CLUBS, easternDate, inWindow, normalize, reference, type Club, type Discovery, type Metadata, type Pick} from './model'
+import {discoverPicks} from './sources'
+import {coverSrc, plainText, type GoogleBook} from '../google-books'
+
+export const hash = (s: string) => createHash('sha256').update(s).digest('hex')
+export const identityFor = (club: Club, pick: Pick) => hash([club, pick.selectionMonth, normalize(pick.title), ...pick.authors.map(normalize).sort()].join('\n'))
+export const conflict = (e: unknown) => Boolean(e && typeof e === 'object' && 'statusCode' in e && e.statusCode === 409)
+// Deliberately do not store arbitrary provider/client error messages (may contain tokens).
+export function safeError(error: unknown) {
+  if (error instanceof Error && /^(Official source|Source |Reese source|Jenna source|Oprah source|Google Books|Publication |Watch )/.test(error.message)) return error.message.slice(0, 600)
+  return 'Watch operation failed. Inspect function logs or retry; no credentials are stored in this record.'
+}
+const fresh = {useCdn: false}
+export async function findBook(client: SanityClient, title: string, authors: string[], metadata?: Partial<Metadata>) {
+  const candidates = await client.fetch<{_id: string; title: string; authors?: string[]; isbn13?: string; isbn10?: string; googleBooksId?: string}[]>(
+    `*[_type == "book" && !(_id in path("drafts.**")) && (
+      ($isbn13 != "" && (isbn13 == $isbn13 || _id in *[_type == "edition" && isbn13 == $isbn13 && !(_id in path("drafts.**"))].book._ref)) ||
+      ($googleId != "" && googleBooksId == $googleId) || lower(title) == lower($title)
+    )]{_id,title,authors,isbn13,isbn10,googleBooksId}`,
+    {title, isbn13: metadata?.isbn13 || '', googleId: metadata?.googleBooksId || ''}, fresh,
+  )
+  const exact = candidates.filter((book) => normalize(book.title) === normalize(title) && authors.some((author) => book.authors?.some((other) => normalize(author) === normalize(other))))
+  return exact.length === 1 ? exact[0] : undefined
+}
+export async function enrich(client: SanityClient, doc: Discovery, fetcher: typeof fetch = fetch): Promise<Record<string, unknown>> {
+  const existing = await findBook(client, doc.discoveredTitle, doc.discoveredAuthors, {isbn13: doc.isbn13})
+  if (existing) return {matchedBook: reference(existing._id), matchConfidence: doc.isbn13 === existing.isbn13 ? 1 : 0.98, matchExplanation: 'Unique catalog match with matching title and author; score is a rule-based rank, not a probability.'}
+  const key = process.env.GOOGLE_BOOKS_API_KEY
+  if (!key) throw new Error('Google Books enrichment is not configured; review the official source manually.')
+  const query = `intitle:${doc.discoveredTitle} inauthor:${doc.discoveredAuthors[0]}`
+  const response = await fetcher(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`, {headers: {'x-goog-api-key': key}, signal: AbortSignal.timeout(15000)})
+  if (!response.ok) throw new Error(`Google Books enrichment returned HTTP ${response.status}.`)
+  const {items = []} = await response.json() as {items?: GoogleBook[]}
+  const scored = items.map((book) => {
+    const info = book.volumeInfo
+    const title = normalize(info?.title || '') === normalize(doc.discoveredTitle)
+    const author = doc.discoveredAuthors.some((a) => info?.authors?.some((b) => normalize(a) === normalize(b)))
+    return {book, score: title && author ? 0.98 : title ? 0.6 : 0.2}
+  }).sort((a, b) => b.score - a.score)
+  const candidate = scored[0]
+  if (!candidate) throw new Error('Google Books returned no metadata candidates.')
+  const info = candidate.book.volumeInfo!
+  const proposedMetadata = Object.fromEntries(Object.entries({
+    title: info.title || doc.discoveredTitle, authors: info.authors || [], googleBooksId: candidate.book.id,
+    description: plainText(info.description), coverUrl: coverSrc(candidate.book),
+    isbn13: info.industryIdentifiers?.find((id) => id.type === 'ISBN_13')?.identifier,
+    isbn10: info.industryIdentifiers?.find((id) => id.type === 'ISBN_10')?.identifier,
+    publisher: info.publisher, publishedDate: info.publishedDate, pageCount: info.pageCount, language: info.language,
+  }).filter(([, value]) => value !== undefined))
+  return {proposedMetadata, matchConfidence: candidate.score, matchExplanation: candidate.score >= 0.98 ? 'Provider title and author match; editor must confirm the edition.' : 'Weak provider suggestion. Verify all metadata before approving a new book.'}
+}
+export async function persistDiscovery(client: SanityClient, club: Club, pick: Pick, now: Date) {
+  const identity = identityFor(club, pick)
+  const find = () => client.fetch<Discovery | null>(`*[_type == "bookClubDiscovery" && identity == $identity && !(_id in path("drafts.**"))][0]`, {identity}, fresh)
+  let doc = await find()
+  if (doc) return doc
+  try {
+    await client.transaction()
+      .create({_id: `bookClubWatchIdentity.${identity}`, _type: 'catalogImportIdentity', importKey: identity})
+      .create({_type: 'bookClubDiscovery', identity, bookClub: club, status: 'discovered',
+        selectionMonth: pick.selectionMonth, ...(pick.selectionDate ? {selectionDate: pick.selectionDate} : {}),
+        discoveredTitle: pick.title, discoveredAuthor: pick.authors.join(', '), discoveredAuthors: pick.authors,
+        discoveredAt: now.toISOString(), sourceUrl: pick.sourceUrl, sourceName: CLUBS[club].name, sourceEvidence: pick.evidence,
+        ...(pick.isbn13 ? {isbn13: pick.isbn13} : {}),
+      }).commit({visibility: 'sync'})
+  } catch (error) { if (!conflict(error)) throw error }
+  doc = await find()
+  if (!doc) throw new Error('Watch discovery could not be resolved after creation.')
+  return doc
+}
+export async function finishEnrichment(client: SanityClient, doc: Discovery, enrichDoc = enrich) {
+  if (doc.status !== 'discovered') return
+  let fields: Record<string, unknown>
+  try { fields = await enrichDoc(client, doc) }
+  catch (error) { fields = {enrichmentError: safeError(error), matchExplanation: 'Enrichment unavailable; manual review required.'} }
+  try { await client.patch(doc._id).ifRevisionId(doc._rev).set({...fields, status: 'needs_review'}).commit({visibility: 'sync'}) }
+  catch (error) { if (!conflict(error)) throw error }
+}
+export async function runWatch(client: SanityClient, club: Club, options: {now?: Date; discover?: typeof discoverPicks; enrich?: typeof enrich; enabled?: boolean; invocationId?: string} = {}) {
+  const now = options.now || new Date(), month = easternDate(now).month
+  const run = await client.create({_type: 'bookClubWatchRun', bookClub: club, invocationId: options.invocationId || randomUUID(), startedAt: now.toISOString(), outcome: 'running', sourceUrl: CLUBS[club].sourceUrl}, {visibility: 'sync'})
+  const ids: string[] = []
+  const finish = async (outcome: string, reason: string) => {
+    await client.patch(run._id).set({outcome, reason, finishedAt: new Date().toISOString(), discoveries: ids.map((id) => ({...reference(id), _key: id}))}).commit({visibility: 'sync'})
+    return {outcome, reason, discoveryIds: ids}
+  }
+  try {
+    if (options.enabled === false) return await finish('skipped', 'Watch is disabled until rollout validation is complete.')
+    if (!inWindow(club, now)) return await finish('skipped', 'Outside the club’s Eastern calendar window.')
+    // Finish interrupted enrichment before taking the monthly early-exit path.
+    const pending = await client.fetch<Discovery[]>(`*[_type == "bookClubDiscovery" && bookClub == $club && status == "discovered" && !(_id in path("drafts.**"))]`, {club}, fresh)
+    for (const doc of pending) { ids.push(doc._id); await finishEnrichment(client, doc, options.enrich) }
+    if (club !== 'oprah') {
+      const recorded = await client.fetch<boolean>(`count(*[_type == "bookClubDiscovery" && bookClub == $club && selectionMonth == $month && status in ["discovered","needs_review","approved","published"] && !(_id in path("drafts.**"))]) > 0 || count(*[_id == $collection].books[selectionDate match ($month + "*") || (year == $year && lower(month) == $monthName)]) > 0`,
+        {club, month, collection: CLUBS[club].collectionId, year: Number(month.slice(0, 4)), monthName: new Intl.DateTimeFormat('en-US', {month: 'long', timeZone: 'UTC'}).format(new Date(`${month}-15T12:00:00Z`)).toLowerCase()}, fresh)
+      const interrupted = await client.fetch<boolean>(
+        '*[_type == "bookClubWatchRun" && bookClub == $club && _id != $runId && startedAt >= $since] | order(startedAt desc)[0].outcome in ["running", "failed"]',
+        {club, runId: run._id, since: `${month}-01T00:00:00Z`}, fresh,
+      )
+      if (recorded && !interrupted) return await finish('already_recorded', 'This month already has a selection or active discovery.')
+    }
+    const picks = await (options.discover || discoverPicks)(club, month)
+    const toEnrich: Discovery[] = []
+    for (const pick of picks) {
+      // Oprah may have an existing historical catalog entry but no Watch record.
+      const existing = await findBook(client, pick.title, pick.authors, {isbn13: pick.isbn13})
+      if (existing && await client.fetch<boolean>('count(*[_id == $collection].books[book._ref == $book]) > 0', {collection: CLUBS[club].collectionId, book: existing._id}, fresh)) continue
+      const doc = await persistDiscovery(client, club, pick, now)
+      if (doc.status === 'rejected' || doc.status === 'published') continue
+      ids.push(doc._id)
+      toEnrich.push(doc)
+    }
+    for (const doc of toEnrich) await finishEnrichment(client, doc, options.enrich)
+    return await finish(ids.length ? 'discovered' : 'no_change', ids.length ? 'Selections are available for editorial review.' : 'No new eligible selections found.')
+  } catch (error) { return await finish('failed', safeError(error)) }
+}

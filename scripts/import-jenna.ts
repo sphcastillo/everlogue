@@ -5,6 +5,9 @@
  *   pnpm tsx scripts/import-jenna.ts
  *   pnpm tsx scripts/import-jenna.ts --source-only  # preview without Sanity writes
  *
+ * Appends only picks newer than the latest selection already on the collection.
+ * Existing Jenna entries and cataloged books are not rewritten.
+ *
  * Required env:
  *   NEXT_PUBLIC_SANITY_PROJECT_ID
  *   NEXT_PUBLIC_SANITY_DATASET
@@ -205,6 +208,15 @@ function sleep(ms: number) {
   return new Promise((resolve) =>
     setTimeout(resolve, ms),
   )
+}
+
+function monthYearFromJennaDate(value?: string) {
+  const match = value?.match(
+    /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})$/i,
+  )
+  if (!match) return {}
+  const month = match[1][0].toUpperCase() + match[1].slice(1).toLowerCase()
+  return {month, year: Number(match[2])}
 }
 
 function shortHash(
@@ -1155,183 +1167,95 @@ async function main() {
 
   if (sourceOnly) return
 
-  // -------------------------------------------------------
-  // Step 2: Google Books + Sanity
-  // -------------------------------------------------------
+  const existing = await sanity.fetch<{
+    _id?: string
+    books?: {selectionNumber?: number; book?: {_ref?: string}}[]
+  } | null>(`*[_id == $id][0]{_id, books[]{selectionNumber, book}}`, {id: COLLECTION_ID})
 
-  const results:
-    ImportResult[] = []
+  const existingBooks = existing?.books || []
+  const latestExisting = existingBooks.reduce(
+    (latest, entry) => Math.max(latest, entry.selectionNumber || 0),
+    0,
+  )
+  const alreadyOnList = new Set(
+    existingBooks.map((entry) => entry.book?._ref).filter((id): id is string => Boolean(id)),
+  )
+  const newPicks = JENNA_PICKS.filter((pick) => pick.selectionNumber > latestExisting)
 
-  for (
-    const pick
-    of JENNA_PICKS
-  ) {
-    const result =
-      await importPick(
-        pick,
-      )
+  console.log(
+    `\nExisting Jenna selections: ${existingBooks.length}. Latest #${latestExisting || 0}. New to add: ${newPicks.length}.`,
+  )
 
-    results.push(
-      result,
+  if (!existing?._id) {
+    throw new Error(
+      'Read With Jenna collection is missing. Create it in Studio first so this importer can only append new picks.',
     )
+  }
 
-    // Easier on Google Books.
+  if (!newPicks.length) {
+    console.log('Nothing newer than the current list. Collection left unchanged.')
+    return
+  }
+
+  const results: ImportResult[] = []
+
+  for (const pick of newPicks) {
+    const result = await importPick(pick)
+    results.push(result)
     await sleep(150)
   }
 
-  const successful =
-    results.filter(
-      (result) =>
-        (
-          result.status ===
-            'created' ||
-          result.status ===
-            'existing'
-        ) &&
-        result.bookId,
+  const successful = results.filter(
+    (result) =>
+      (result.status === 'created' || result.status === 'existing') && result.bookId,
+  )
+
+  const needsReview = results.filter(
+    (result) => result.status === 'needs-review' || result.status === 'error',
+  )
+
+  console.log('\n=======================================')
+  console.log('New pick import complete')
+  console.log(`Resolved: ${successful.length}/${newPicks.length}`)
+  console.log(`Needs review: ${needsReview.length}`)
+
+  const additions = successful
+    .filter((result) => result.bookId && !alreadyOnList.has(result.bookId))
+    .sort((a, b) => a.selectionNumber - b.selectionNumber)
+    .map((result) => {
+      const sourcePick = newPicks.find((pick) => pick.selectionNumber === result.selectionNumber)
+      const selectionDate = result.selectionDate || sourcePick?.selectionDate
+      return {
+        _key: `jenna-${String(result.selectionNumber).padStart(3, '0')}`,
+        _type: 'curatedCollectionEntry',
+        selectionNumber: result.selectionNumber,
+        ...(selectionDate
+          ? {selectionDate, ...monthYearFromJennaDate(selectionDate)}
+          : {}),
+        book: {
+          _type: 'reference',
+          _ref: result.bookId!,
+        },
+      }
+    })
+
+  if (!additions.length) {
+    throw new Error(
+      `Could not resolve ${newPicks.map((pick) => pick.title).join(', ')}. Existing Jenna selections were not changed.`,
     )
-
-  const needsReview =
-    results.filter(
-      (result) =>
-        result.status ===
-          'needs-review' ||
-        result.status ===
-          'error',
-    )
-
-  console.log(
-    '\n=======================================',
-  )
-
-  console.log(
-    'Book import complete',
-  )
-
-  console.log(
-    `Resolved: ` +
-      `${successful.length}/` +
-      `${JENNA_PICKS.length}`,
-  )
-
-  console.log(
-    `Needs review: ` +
-      `${needsReview.length}`,
-  )
-
-  // -------------------------------------------------------
-  // Step 3: Read With Jenna collection
-  // -------------------------------------------------------
-
-  const collectionEntries =
-    results
-      .filter(
-        (result) =>
-          result.bookId,
-      )
-      .sort(
-        (a, b) =>
-          a.selectionNumber -
-          b.selectionNumber,
-      )
-      .map(
-        (result) => ({
-          _key:
-            `jenna-${String(
-              result.selectionNumber,
-            ).padStart(
-              3,
-              '0',
-            )}`,
-
-          _type:
-            'curatedCollectionEntry',
-
-          selectionNumber:
-            result.selectionNumber,
-
-          /**
-           * Keep this only if your
-           * curatedCollectionEntry schema has this field.
-           */
-          ...(result.selectionDate
-            ? {
-                selectionDate:
-                  result.selectionDate,
-              }
-            : {}),
-
-          book: {
-            _type:
-              'reference',
-
-            _ref:
-              result.bookId!,
-          },
-        }),
-      )
-
-  const collection = {
-    _id:
-      COLLECTION_ID,
-
-    _type:
-      COLLECTION_TYPE,
-
-    title:
-      'Read With Jenna',
-
-    slug: {
-      _type: 'slug',
-      current:
-        'read-with-jenna',
-    },
-
-    collectionType:
-      'celebrityBookClub',
-
-    curator: {
-      name:
-        'Jenna Bush Hager',
-    },
-
-    description:
-      "Explore Jenna Bush Hager's Read With Jenna selections from the beginning of the book club to the latest pick.",
-
-    source: {
-      name:
-        'Read With Jenna',
-
-      url:
-        JENNA_SOURCE_URL,
-    },
-
-    totalSelections:
-      JENNA_PICKS.length,
-
-    books:
-      collectionEntries,
-
-    lastSyncedAt:
-      new Date()
-        .toISOString(),
   }
 
-  /**
-   * The collection is externally controlled by the
-   * official TODAY list, so replacement is intentional.
-   *
-   * Individual books use createIfNotExists above.
-   */
   await sanity
-    .createOrReplace(
-      collection,
-    )
+    .patch(COLLECTION_ID)
+    .insert('after', 'books[-1]', additions)
+    .set({
+      totalSelections: existingBooks.length + additions.length,
+      lastSyncedAt: new Date().toISOString(),
+    })
+    .commit()
 
   console.log(
-    `\n✓ Read With Jenna collection saved with ` +
-      `${collectionEntries.length}/` +
-      `${JENNA_PICKS.length} resolved selections`,
+    `\n✓ Appended ${additions.length} new Jenna selection${additions.length === 1 ? '' : 's'} without rewriting the existing list.`,
   )
 
   // -------------------------------------------------------

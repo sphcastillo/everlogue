@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {"incremental": false},
+  "include": ["sanity.blueprint.ts", "functions/**/*.ts", "src/lib/book-club-watch/**/*.ts"],
+  "exclude": ["node_modules", "studio"]
+}
