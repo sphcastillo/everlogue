@@ -83,8 +83,10 @@ export function ShelfButtons({
               disabled={!signedIn || pending}
               aria-pressed={selected}
               onClick={() => choose(selected ? null : option.value)}
-              className={`inline-flex min-h-14 items-center justify-center gap-2 border px-3 font-mono text-[0.62rem] font-medium tracking-[0.14em] uppercase border-[#d6d6d6]! disabled:opacity-50 ${
-                selected ? 'bg-ink text-white' : 'bg-paper text-ink hover:bg-white'
+              className={`inline-flex min-h-14 items-center justify-center gap-2 border px-3 font-mono text-[0.62rem] font-medium tracking-[0.14em] uppercase disabled:opacity-50 ${
+                selected
+                  ? 'border-ink! bg-ink! text-white'
+                  : 'border-[#d6d6d6]! bg-paper text-ink hover:bg-white'
               }`}
             >
               {option.icon}
