@@ -15,12 +15,10 @@ export function ReadingCompanion() {
   const [pending, setPending] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [error, setError] = useState('')
-  const input = useRef<HTMLTextAreaElement>(null)
   const log = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
-    input.current?.focus()
     function onKey(event: KeyboardEvent) {
       if (event.key === 'Escape') setOpen(false)
     }
@@ -58,21 +56,23 @@ export function ReadingCompanion() {
   }
 
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
+    <div className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex flex-col items-stretch gap-2 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:items-end sm:gap-3">
       {open ? (
         <section
-          className="pointer-events-auto flex max-h-[min(36rem,calc(100vh-7rem))] w-[min(calc(100vw-2rem),26rem)] flex-col border bg-[#f6f1ea] shadow-[0_24px_50px_rgba(17,17,17,0.18)] border-[#e3d8cc]!"
+          className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh-5.5rem))] w-full flex-col overflow-hidden border bg-[#f6f1ea] shadow-[0_24px_50px_rgba(17,17,17,0.18)] border-[#e3d8cc]! sm:max-h-[min(36rem,calc(100dvh-7rem))] sm:w-[min(calc(100vw-3rem),26rem)]"
           aria-label="Everlogue reading companion"
         >
-          <header className="flex items-start justify-between gap-4 border-b px-5 pt-4 pb-4 border-[#eadfd3]!">
+          <header className="flex items-start justify-between gap-3 border-b px-4 pt-3.5 pb-3.5 border-[#eadfd3]! sm:gap-4 sm:px-5 sm:pt-4 sm:pb-4">
             <div className="min-w-0">
               <p className="font-mono text-[10px] font-medium tracking-[0.18em] text-(--palette-clay) uppercase">
                 Everlogue · Reading companion
               </p>
-              <h2 className="mt-2 font-display text-[1.65rem] leading-none font-black tracking-[-0.04em]">
+              <h2 className="mt-1.5 font-display text-[1.28rem] leading-none font-black tracking-[-0.04em] sm:mt-2 sm:text-[1.65rem]">
                 A thought between pages
               </h2>
-              <p className="mt-2 text-sm leading-6 text-muted">Ask about your books, your next read, or where to begin.</p>
+              <p className="mt-1.5 hidden text-sm leading-6 text-muted sm:mt-2 sm:block">
+                Ask about your books, your next read, or where to begin.
+              </p>
             </div>
             <button
               type="button"
@@ -86,7 +86,7 @@ export function ReadingCompanion() {
             </button>
           </header>
 
-          <div ref={log} className="min-h-48 flex-1 overflow-y-auto px-5 py-5">
+          <div ref={log} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:min-h-48 sm:px-5 sm:py-5">
             {messages.length ? (
               <ul className="space-y-4">
                 {messages.map((item, index) => (
@@ -103,21 +103,21 @@ export function ReadingCompanion() {
                 {pending ? <li className="text-sm text-muted">Thinking…</li> : null}
               </ul>
             ) : (
-              <div className="flex h-full min-h-44 flex-col justify-end">
-                <div className="border bg-paper px-5 py-5 border-[#eadfd3]!">
-                  <p className="font-accent text-[1.2rem] leading-snug text-ink italic">
+              <div className="flex h-full min-h-36 flex-col justify-end sm:min-h-44">
+                <div className="border bg-paper px-4 py-4 border-[#eadfd3]! sm:px-5 sm:py-5">
+                  <p className="font-accent text-[1.05rem] leading-snug text-ink italic sm:text-[1.2rem]">
                     “What would you like to find in a book?”
                   </p>
-                  <p className="mt-3 text-sm leading-6 text-muted">
+                  <p className="mt-2 text-sm leading-6 text-muted sm:mt-3">
                     I can help you find a title in your library, choose your next read, or keep your shelf in order.
                   </p>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
                   {STARTERS.map((item) => (
                     <button
                       key={item.label}
                       type="button"
-                      className="border bg-paper px-3 py-2 text-left text-sm border-[#d6d6d6]! hover:bg-white"
+                      className="border bg-paper px-3 py-2.5 text-left text-sm border-[#d6d6d6]! hover:bg-white sm:py-2"
                       onClick={() => void send(item.message)}
                     >
                       {item.label}
@@ -129,7 +129,7 @@ export function ReadingCompanion() {
           </div>
 
           <form
-            className="border-t px-5 pt-4 pb-3 border-[#eadfd3]!"
+            className="border-t px-4 pt-3 pb-3 border-[#eadfd3]! sm:px-5 sm:pt-4"
             onSubmit={(event) => {
               event.preventDefault()
               void send(draft)
@@ -138,12 +138,16 @@ export function ReadingCompanion() {
             <label className="relative block">
               <span className="sr-only">Ask your reading companion</span>
               <textarea
-                ref={input}
                 rows={1}
                 value={draft}
                 disabled={pending}
+                inputMode="text"
+                enterKeyHint="send"
+                autoComplete="off"
+                autoCorrect="on"
+                autoCapitalize="sentences"
                 placeholder="Ask your reading companion..."
-                className="min-h-12 w-full resize-none border bg-paper py-3 pr-14 pl-3 text-sm leading-6 border-(--palette-clay)! placeholder:text-muted"
+                className="min-h-12 w-full resize-none border bg-paper py-3 pr-14 pl-3 text-[16px] leading-6 border-(--palette-clay)! placeholder:text-muted sm:text-sm"
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !event.shiftKey) {
@@ -164,7 +168,7 @@ export function ReadingCompanion() {
               </button>
             </label>
             {error ? <p className="mt-2 text-sm text-(--palette-clay)">{error}</p> : null}
-            <p className="mt-2 text-[11px] text-muted">Enter to send · Shift + Enter for a new line</p>
+            <p className="mt-2 hidden text-[11px] text-muted sm:block">Enter to send · Shift + Enter for a new line</p>
           </form>
         </section>
       ) : null}
@@ -173,7 +177,7 @@ export function ReadingCompanion() {
         <button
           type="button"
           aria-expanded={true}
-          className="pointer-events-auto inline-flex h-11 items-center gap-2.5 bg-[#3f352c] px-4 font-mono text-[11px] font-medium tracking-[0.16em] text-[#f6f1ea] uppercase"
+          className="pointer-events-auto hidden h-11 items-center gap-2.5 self-end bg-[#3f352c] px-4 font-mono text-[11px] font-medium tracking-[0.16em] text-[#f6f1ea] uppercase sm:inline-flex"
           onClick={() => setOpen(false)}
         >
           <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden="true">
@@ -185,7 +189,7 @@ export function ReadingCompanion() {
         <button
           type="button"
           aria-expanded={false}
-          className="pointer-events-auto inline-flex h-11 items-center gap-2.5 bg-[#3f352c] px-4 font-mono text-[11px] font-medium tracking-[0.16em] text-[#f6f1ea] uppercase"
+          className="pointer-events-auto inline-flex h-11 items-center gap-2.5 self-end bg-[#3f352c] px-4 font-mono text-[11px] font-medium tracking-[0.16em] text-[#f6f1ea] uppercase"
           onClick={() => setOpen(true)}
         >
           <svg viewBox="0 0 16 16" className="size-4" fill="none" aria-hidden="true">
