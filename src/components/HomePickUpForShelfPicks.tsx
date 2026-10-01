@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useRef, useState, useTransition} from 'react'
-import {saveShelfStatusAction} from '@/lib/server-actions'
+import {useEffect, useRef, useState} from 'react'
 import type {BookCardData} from './BookCard'
 import {BookCover} from './BookCover'
 
@@ -19,11 +18,9 @@ export type ShelfPickTab = {
 export function HomePickUpForShelfPicks({
   signedIn,
   tabs,
-  shelfStatuses,
 }: {
   signedIn: boolean
   tabs: ShelfPickTab[]
-  shelfStatuses: Record<string, string>
 }) {
   const [active, setActive] = useState(tabs[0]?.id ?? '')
   const scrollerRef = useRef<HTMLUListElement>(null)
@@ -115,14 +112,9 @@ export function HomePickUpForShelfPicks({
           aria-label={`${current.label} books`}
           className="collection-rail mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:gap-5"
         >
-          {current.books.map((book, index) => (
+          {current.books.map((book) => (
             <li key={book._id} className="w-33 shrink-0 snap-start sm:w-37">
-              <PickCard
-                book={book}
-                index={index}
-                signedIn={signedIn}
-                shelfStatus={shelfStatuses[book._id] ?? null}
-              />
+              <PickCard book={book} />
             </li>
           ))}
         </ul>
@@ -137,17 +129,7 @@ export function HomePickUpForShelfPicks({
   )
 }
 
-function PickCard({
-  book,
-  index,
-  signedIn,
-  shelfStatus,
-}: {
-  book: ShelfPickBook
-  index: number
-  signedIn: boolean
-  shelfStatus: string | null
-}) {
+function PickCard({book}: {book: ShelfPickBook}) {
   const href = book.slug ? `/books/${book.slug}` : '#'
   const authors = book.authors?.filter(Boolean).join(', ') || 'Author unknown'
   const genre = book.genres?.find((item) => item.title)?.title
@@ -160,21 +142,15 @@ function PickCard({
 
   return (
     <article>
-      <p className="mb-1.5 text-[0.62rem] font-medium tracking-[0.14em] text-muted tabular-nums">
-        {String(index + 1).padStart(2, '0')}
-      </p>
-      <div className="relative">
-        <Link href={href} className="block">
-          <BookCover
-            cover={book.cover}
-            title={book.title}
-            className="aspect-2/3 w-full"
-            imageWidth={296}
-            sizes="148px"
-          />
-        </Link>
-        {signedIn ? <WantToReadMark bookId={book._id} status={shelfStatus} /> : null}
-      </div>
+      <Link href={href} className="block">
+        <BookCover
+          cover={book.cover}
+          title={book.title}
+          className="aspect-2/3 w-full"
+          imageWidth={296}
+          sizes="148px"
+        />
+      </Link>
       <div className="mt-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link href={href} className="block font-medium leading-snug tracking-[-0.01em] hover:underline">
@@ -188,35 +164,5 @@ function PickCard({
         {rating ? <p className="shrink-0 pt-0.5 text-sm text-muted tabular-nums">{rating}</p> : null}
       </div>
     </article>
-  )
-}
-
-function WantToReadMark({bookId, status}: {bookId: string; status: string | null}) {
-  const [pending, start] = useTransition()
-  const [current, setCurrent] = useState(status)
-  const saved = current === 'wantToRead'
-
-  return (
-    <button
-      type="button"
-      disabled={pending}
-      aria-label={saved ? 'Remove from want to read' : 'Save to want to read'}
-      onClick={() => {
-        const next = saved ? null : 'wantToRead'
-        start(async () => {
-          setCurrent(next)
-          try {
-            await saveShelfStatusAction({source: 'catalog', id: bookId}, next)
-          } catch {
-            setCurrent(status)
-          }
-        })
-      }}
-      className="absolute right-1.5 bottom-1.5 z-10 grid size-7 place-items-center border border-white/70 bg-white/90 text-ink hover:bg-white"
-    >
-      <svg viewBox="0 0 16 16" className="size-3.5" fill={saved ? 'currentColor' : 'none'} aria-hidden="true">
-        <path d="M4 2.5h8v11l-4-2.4-4 2.4v-11Z" stroke="currentColor" strokeWidth="1.3" />
-      </svg>
-    </button>
   )
 }
