@@ -124,17 +124,19 @@ test('reviews can be written only after the book is Read', async () => {
   const {docs, client} = database()
   await saveBookStatus(client, 'reader', 'book-new', 'currentlyReading')
   await assert.rejects(
-    saveBookReview(client, 'reader', 'book-new', {body: 'Loved it.', hasSpoilers: false, visibility: 'private'}),
+    saveBookReview(client, 'reader', 'book-new', {title: 'A keeper', body: 'Loved it.', hasSpoilers: false, visibility: 'private'}),
     /Mark this book as Read/,
   )
   await saveBookStatus(client, 'reader', 'book-new', 'finished')
-  await saveBookReview(client, 'reader', 'book-new', {body: 'Loved it.', hasSpoilers: true, visibility: 'public'})
+  await saveBookReview(client, 'reader', 'book-new', {title: 'A keeper', body: 'Loved it.', hasSpoilers: true, visibility: 'public'})
   const created = [...docs.values()].find((doc) => doc._type === 'review')
+  assert.equal(created?.title, 'A keeper')
   assert.equal(created?.body, 'Loved it.')
   assert.equal(created?.hasSpoilers, true)
   assert.equal(created?.visibility, 'public')
-  await saveBookReview(client, 'reader', 'book-new', {body: 'Still thinking.', hasSpoilers: false, visibility: 'private'})
+  await saveBookReview(client, 'reader', 'book-new', {title: 'Still thinking', body: 'Still thinking.', hasSpoilers: false, visibility: 'private'})
   assert.equal([...docs.values()].filter((doc) => doc._type === 'review').length, 1)
+  assert.equal([...docs.values()].find((doc) => doc._type === 'review')?.title, 'Still thinking')
   assert.equal([...docs.values()].find((doc) => doc._type === 'review')?.body, 'Still thinking.')
   await saveBookReview(client, 'reader', 'book-new', null)
   assert.equal([...docs.values()].filter((doc) => doc._type === 'review').length, 0)

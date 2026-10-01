@@ -2,12 +2,12 @@
 
 import {useState, useTransition} from 'react'
 import {saveReviewAction} from '@/lib/server-actions'
+import type {ReviewFields} from '@/lib/validation'
 
-export type BookReviewValue = {
-  body: string
-  hasSpoilers: boolean
-  visibility: 'private' | 'public'
-}
+export type BookReviewValue = ReviewFields
+
+const fieldClass =
+  'w-full border bg-paper px-3 py-3 text-sm leading-relaxed border-[#d6d6d6]! outline-none focus:border-ink'
 
 export function BookReviewForm({
   bookId,
@@ -17,12 +17,13 @@ export function BookReviewForm({
   review: BookReviewValue | null
 }) {
   const [pending, start] = useTransition()
+  const [title, setTitle] = useState(review?.title ?? '')
   const [body, setBody] = useState(review?.body ?? '')
   const [hasSpoilers, setHasSpoilers] = useState(Boolean(review?.hasSpoilers))
   const [visibility, setVisibility] = useState<'private' | 'public'>(review?.visibility ?? 'private')
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(Boolean(review?.body))
-  const hasReview = saved && body.trim().length > 0
+  const hasReview = saved && title.trim().length > 0 && body.trim().length > 0
 
   function persist(next: BookReviewValue | null) {
     setError(null)
@@ -31,6 +32,7 @@ export function BookReviewForm({
         await saveReviewAction(bookId, next)
         setSaved(Boolean(next))
         if (!next) {
+          setTitle('')
           setBody('')
           setHasSpoilers(false)
           setVisibility('private')
@@ -46,13 +48,22 @@ export function BookReviewForm({
       className="mt-8"
       onSubmit={(event) => {
         event.preventDefault()
-        persist({body, hasSpoilers, visibility})
+        persist({title, body, hasSpoilers, visibility})
       }}
     >
       <p className="font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Your review</p>
       <p className="mt-1 max-w-md text-sm text-muted">
         You finished it. Leave a note for yourself, or share it with other readers.
       </p>
+      <input
+        type="text"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        maxLength={120}
+        required
+        placeholder="Title"
+        className={`mt-4 ${fieldClass}`}
+      />
       <textarea
         value={body}
         onChange={(event) => setBody(event.target.value)}
@@ -60,7 +71,7 @@ export function BookReviewForm({
         maxLength={8000}
         required
         placeholder="What stayed with you?"
-        className="mt-4 w-full border bg-paper px-3 py-3 text-sm leading-relaxed border-[#d6d6d6]! outline-none focus:border-ink"
+        className={`mt-3 ${fieldClass}`}
       />
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <label className="flex items-center gap-2 text-sm">
@@ -89,7 +100,7 @@ export function BookReviewForm({
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          disabled={pending || !body.trim()}
+          disabled={pending || !title.trim() || !body.trim()}
           className="inline-flex h-10 items-center bg-ink px-4 font-mono text-[11px] font-medium tracking-[0.14em] text-white uppercase disabled:opacity-50"
         >
           {pending ? 'Saving…' : hasReview ? 'Update review' : 'Save review'}

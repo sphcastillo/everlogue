@@ -8,7 +8,16 @@ export const ratingValueSchema = z
     message: 'Rating must be between 0.5 and 5 in half-star increments',
   })
 
+export const reviewTitleSchema = z.string().trim().min(1).max(120)
+
 export const reviewBodySchema = z.string().trim().min(1).max(8000)
+
+export type ReviewFields = {
+  title: string
+  body: string
+  hasSpoilers: boolean
+  visibility: 'private' | 'public'
+}
 
 export const reviewVisibilitySchema = z.enum(['private', 'public'])
 

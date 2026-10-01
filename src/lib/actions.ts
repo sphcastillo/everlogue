@@ -13,6 +13,7 @@ import {
   spaceColorSchema,
   stableId,
   workflowStatusSchema,
+  type ReviewFields,
 } from './validation'
 
 export async function setRating(bookId: string, value: number | null) {
@@ -24,11 +25,12 @@ export async function setRating(bookId: string, value: number | null) {
 
 export async function setBookReview(
   bookId: string,
-  review: {body: string; hasSpoilers: boolean; visibility: 'private' | 'public'} | null,
+  review: ReviewFields | null,
 ) {
   const reader = await requireReader()
   await saveBookReview(writeClient(), reader.readerId, bookId, review)
   revalidatePath('/books/[slug]', 'page')
+  revalidatePath('/profile')
   revalidatePath('/')
 }
 
@@ -61,11 +63,7 @@ export type ReaderBookState = {
   dateAdded: string | null
   readCount: number | null
   importSource: string | null
-  review: {
-    body: string
-    hasSpoilers: boolean
-    visibility: 'private' | 'public'
-  } | null
+  review: ReviewFields | null
   csv: {
     goodreadsId: string | null
     title: string | null
@@ -100,6 +98,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
   const data = await privateClient.fetch<{
     rating?: number | null
     review?: {
+      title?: string | null
       body?: string | null
       hasSpoilers?: boolean | null
       visibility?: string | null
@@ -122,7 +121,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
   } | null>(
     `{
       "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == $bookId][0].value,
-      "review": *[_type == "review" && reader._ref == $readerId && book._ref == $bookId][0]{body, hasSpoilers, visibility},
+      "review": *[_type == "review" && reader._ref == $readerId && book._ref == $bookId][0]{title, body, hasSpoilers, visibility},
       "progress": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0]{
         status, finishedAt, readCount, importSource
       },
@@ -149,6 +148,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
   const visibility: 'private' | 'public' = data?.review?.visibility === 'public' ? 'public' : 'private'
   const review = data?.review?.body?.trim()
     ? {
+        title: data.review.title?.trim() ?? '',
         body: data.review.body.trim(),
         hasSpoilers: Boolean(data.review.hasSpoilers),
         visibility,
@@ -218,6 +218,90 @@ export async function getMyBooks() {
     {readerId: reader.readerId},
     {cache: 'no-store'},
   )
+}
+
+const profileBookCover = /* groq */ `coalesce(
+  select(defined(coverOverride.asset) => @{${editionCoverFields}}),
+  edition->{${editionCoverFields}},
+  ${bookCoverProjection}
+)`
+
+export type ProfileRating = {
+  value: number
+  book: {
+    _id: string
+    title: string
+    slug?: string | null
+    authors?: string[] | null
+    cover?: import('@/components/BookCover').CoverSource | null
+  } | null
+}
+
+export type ProfileReview = {
+  title: string
+  body: string
+  hasSpoilers: boolean
+  visibility: 'private' | 'public'
+  rating?: number | null
+  book: ProfileRating['book']
+}
+
+export async function getReaderProfileShowcase() {
+  const reader = await requireReader()
+  const data = await privateClient.fetch<{
+    ratings?: ProfileRating[] | null
+    reviews?: {
+      title?: string | null
+      body?: string | null
+      hasSpoilers?: boolean | null
+      visibility?: string | null
+      rating?: number | null
+      book?: ProfileRating['book']
+    }[] | null
+  }>(
+    `{
+      "ratings": *[_type == "rating" && reader._ref == $readerId && defined(book._ref)] | order(_updatedAt desc){
+        value,
+        "book": book->{
+          _id,
+          title,
+          "slug": coalesce(slug.current, _id),
+          authors,
+          "cover": ${profileBookCover}
+        }
+      },
+      "reviews": *[_type == "review" && reader._ref == $readerId && defined(book._ref) && moderationStatus != "hidden"] | order(_updatedAt desc){
+        title,
+        body,
+        hasSpoilers,
+        visibility,
+        "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^.book._ref][0].value,
+        "book": book->{
+          _id,
+          title,
+          "slug": coalesce(slug.current, _id),
+          authors,
+          "cover": ${profileBookCover}
+        }
+      }
+    }`,
+    {readerId: reader.readerId},
+    {cache: 'no-store'},
+  )
+  return {
+    ratings: (data.ratings ?? []).filter((row) => row.book?._id && typeof row.value === 'number'),
+    reviews: (data.reviews ?? []).flatMap((row) => {
+      if (!row.book?._id || !row.body?.trim()) return []
+      return [{
+        title: row.title?.trim() ?? '',
+        body: row.body.trim(),
+        hasSpoilers: Boolean(row.hasSpoilers),
+        visibility: row.visibility === 'public' ? 'public' as const : 'private' as const,
+        rating: typeof row.rating === 'number' ? row.rating : null,
+        book: row.book,
+      }]
+    }),
+  }
 }
 
 export async function joinClub(clubId: string) {

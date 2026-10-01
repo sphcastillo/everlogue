@@ -129,6 +129,43 @@ export const structure: StructureResolver = (S, context) =>
               S.documentTypeListItem('poll').title('Polls'),
               S.documentTypeListItem('discussionThread').title('Threads'),
               S.documentTypeListItem('readerProfile').title('Reader profiles'),
+              S.divider(),
+              S.listItem()
+                .id('reader-reviews')
+                .title('Reader reviews')
+                .icon(DocumentsIcon)
+                .child(
+                  S.list()
+                    .title('Reader reviews')
+                    .items([
+                      S.listItem()
+                        .id('reader-reviews-all')
+                        .title('All reviews')
+                        .child(
+                          S.documentTypeList('review')
+                            .title('All reviews')
+                            .defaultOrdering([{field: '_updatedAt', direction: 'desc'}]),
+                        ),
+                      S.listItem()
+                        .id('reader-reviews-public')
+                        .title('Public on the site')
+                        .child(
+                          S.documentTypeList('review')
+                            .title('Public on the site')
+                            .filter('_type == "review" && visibility == "public" && moderationStatus != "hidden"')
+                            .defaultOrdering([{field: '_updatedAt', direction: 'desc'}]),
+                        ),
+                      S.listItem()
+                        .id('reader-reviews-hidden')
+                        .title('Hidden')
+                        .child(
+                          S.documentTypeList('review')
+                            .title('Hidden')
+                            .filter('_type == "review" && moderationStatus == "hidden"')
+                            .defaultOrdering([{field: '_updatedAt', direction: 'desc'}]),
+                        ),
+                    ]),
+                ),
             ]),
         ),
       ...S.documentTypeListItems().filter((item) => {

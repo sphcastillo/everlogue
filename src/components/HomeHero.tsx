@@ -18,12 +18,12 @@ export function HomeHero({
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover object-[28%_center]"
         />
         <div className="absolute inset-0 bg-linear-to-b from-black/45 via-black/35 to-black/55" />
       </div>
-      <div className="relative z-10 flex flex-col justify-between gap-10 text-white min-[875px]:aspect-square min-[875px]:w-full min-[875px]:gap-5 min-[875px]:self-start min-[875px]:text-ink min-[875px]:@container">
-        <div>
+      <div className="relative z-10 flex flex-col justify-between gap-10 pb-8 text-white min-[875px]:aspect-square min-[875px]:w-full min-[875px]:gap-5 min-[875px]:self-start min-[875px]:pb-0 min-[875px]:text-ink min-[875px]:@container">
+        <div className='px-3 min-[875px]:px-0'>
           <HomeGreeting displayName={displayName} />
           <h1 className="mt-4 font-display text-[clamp(2.75rem,14.5vw,6.55rem)] leading-[0.91] font-black tracking-[-0.13em] min-[875px]:mt-3 min-[875px]:text-[clamp(5rem,12.5cqi,4.7rem)] lg:text-[clamp(6rem,12.5cqi,4.7rem)]">
             <span className="block">Find the book</span>

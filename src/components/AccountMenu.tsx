@@ -7,7 +7,7 @@ import {useEffect, useId, useRef, useState, type KeyboardEvent} from 'react'
 
 export function AccountMenu({avatarSrc}: {avatarSrc?: string | null}) {
   const {user} = useUser()
-  const {openUserProfile, signOut} = useClerk()
+  const {signOut} = useClerk()
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -99,7 +99,7 @@ export function AccountMenu({avatarSrc}: {avatarSrc?: string | null}) {
             {email ? <p className="mt-0.5 truncate text-xs text-muted">{email}</p> : null}
           </div>
           <div ref={menu} id={menuId} role="menu" aria-label="Account" onKeyDown={navigate} className="pt-1">
-            <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => { close(); openUserProfile({__experimental_startPath: '/'}) }}>Profile</button>
+            <Link href="/profile" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={close}>Profile</Link>
             <Link href="/settings" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={close}>Settings</Link>
             <div role="separator" className="my-1 border-t" />
             <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" aria-disabled={pending} onClick={handleSignOut}>

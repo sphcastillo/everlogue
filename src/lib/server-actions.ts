@@ -1,7 +1,7 @@
 'use server'
 
 import {castVote, clearProfileAvatar, createDiscussionPost, joinClub, setBookReview, setProfileAvatar, setRating, setReadingStatus, setSearchReadingStatus, setSpaceColor} from './actions'
-import {shelfBookSchema, type ShelfBook} from './validation'
+import {shelfBookSchema, type ReviewFields, type ShelfBook} from './validation'
 
 export async function saveShelfStatusAction(book: ShelfBook, status: string | null) {
   const target = shelfBookSchema.parse(book)
@@ -19,7 +19,7 @@ export async function saveRatingAction(bookId: string, value: number | null) {
 
 export async function saveReviewAction(
   bookId: string,
-  review: {body: string; hasSpoilers: boolean; visibility: 'private' | 'public'} | null,
+  review: ReviewFields | null,
 ) {
   await setBookReview(bookId, review)
 }

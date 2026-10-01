@@ -285,6 +285,7 @@ export const TASTE_TRAVELS_QUERY = defineQuery(`{
   "reviews": *[_type == "review" && visibility == "public" && moderationStatus == "visible"] | order(_createdAt desc)[0...12]{
     _id,
     _createdAt,
+    title,
     body,
     "name": reader->displayName,
     "spaceColor": reader->spaceColor,

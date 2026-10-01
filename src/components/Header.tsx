@@ -10,29 +10,30 @@ const NAV = [
     { href: '/my-books', label: 'My Books' },
 ]
 
-export default function Header({auth}: {auth: React.ReactNode; signedIn: boolean}) {
+export default function Header({auth, signedIn}: {auth: React.ReactNode; signedIn: boolean}) {
   const pathname = usePathname()
+  const nav = NAV.filter((item) => item.href !== '/my-books' || signedIn)
 
   return (
     <header className="sticky top-0 z-30 border-b border-(--line) bg-paper">
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto] lg:gap-x-4">
-        <Link href="/" className="col-start-1 row-start-1 flex shrink-0 items-center gap-2" aria-label="Everlogue">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto] lg:gap-x-4">
+        <Link href="/" className="col-start-1 row-start-1 flex min-w-0 items-center gap-2" aria-label="Everlogue">
           <Image
             src="/images/everlogue-logo.png"
             alt=""
             width={180}
             height={176}
-            className="h-8 w-auto sm:h-9"
+            className="h-8 w-auto shrink-0 sm:h-9"
             priority
           />
-          <span className="hidden font-wordmark text-[1.35rem] leading-none tracking-normal min-[540px]:inline min-[540px]:text-[1.48rem]">
+          <span className="truncate font-wordmark text-[1.35rem] leading-none tracking-normal sm:text-[1.48rem]">
             Everlogue
           </span>
         </Link>
 
-        <nav className="col-start-2 row-start-1 min-w-0 overflow-x-auto">
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1">
-            {NAV.map((item) => {
+        <nav className="col-span-2 row-start-2 min-w-0 overflow-x-auto lg:col-span-1 lg:col-start-2 lg:row-start-1">
+          <div className="flex items-center justify-center gap-0.5 sm:gap-1 lg:justify-center">
+            {nav.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
               return (
                 <Link
@@ -50,10 +51,10 @@ export default function Header({auth}: {auth: React.ReactNode; signedIn: boolean
           </div>
         </nav>
 
-        <div className="col-span-3 row-start-2 min-w-0 lg:col-span-1 lg:col-start-3 lg:row-start-1">
+        <div className="col-span-2 row-start-3 min-w-0 lg:col-span-1 lg:col-start-3 lg:row-start-1">
           <GlobalBookSearch variant="header" />
         </div>
-        <div className="col-start-3 row-start-1 shrink-0 justify-self-end lg:col-start-4">
+        <div className="col-start-2 row-start-1 shrink-0 justify-self-end lg:col-start-4">
           {auth}
         </div>
       </div>

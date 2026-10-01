@@ -1,5 +1,5 @@
 import type {SanityClient} from '@sanity/client'
-import {ratingValueSchema, readingStatusSchema, reviewBodySchema, reviewVisibilitySchema, stableId} from './validation'
+import {ratingValueSchema, readingStatusSchema, reviewBodySchema, reviewTitleSchema, reviewVisibilitySchema, stableId, type ReviewFields} from './validation'
 
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 
@@ -91,7 +91,7 @@ export async function saveBookReview(
   client: SanityClient,
   readerId: string,
   bookId: string,
-  review: {body: string; hasSpoilers: boolean; visibility: 'private' | 'public'} | null,
+  review: ReviewFields | null,
 ) {
   await requireBook(client, bookId)
   const existing = await client.fetch<{_id: string} | null>(
@@ -107,9 +107,11 @@ export async function saveBookReview(
     {readerId, bookId}, {cache: 'no-store'},
   )
   if (status !== 'finished') throw new Error('Mark this book as Read before leaving a review.')
+  const title = reviewTitleSchema.parse(review.title)
   const body = reviewBodySchema.parse(review.body)
   const visibility = reviewVisibilitySchema.parse(review.visibility)
   const fields = {
+    title,
     body,
     hasSpoilers: Boolean(review.hasSpoilers),
     visibility,
