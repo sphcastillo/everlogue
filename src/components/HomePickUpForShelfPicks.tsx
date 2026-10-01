@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useState, useTransition} from 'react'
+import {useEffect, useRef, useState, useTransition} from 'react'
 import {saveShelfStatusAction} from '@/lib/server-actions'
 import type {BookCardData} from './BookCard'
 import {BookCover} from './BookCover'
@@ -26,7 +26,18 @@ export function HomePickUpForShelfPicks({
   shelfStatuses: Record<string, string>
 }) {
   const [active, setActive] = useState(tabs[0]?.id ?? '')
+  const scrollerRef = useRef<HTMLUListElement>(null)
   const current = tabs.find((tab) => tab.id === active) ?? tabs[0]
+
+  useEffect(() => {
+    scrollerRef.current?.scrollTo({left: 0})
+  }, [current?.id])
+
+  function scrollByPage(direction: -1 | 1) {
+    const node = scrollerRef.current
+    if (!node) return
+    node.scrollBy({left: direction * Math.min(node.clientWidth * 0.85, 640), behavior: 'smooth'})
+  }
 
   if (!current) return null
 
@@ -55,30 +66,57 @@ export function HomePickUpForShelfPicks({
         ) : null}
       </div>
 
-      <div className="mt-7 flex flex-wrap gap-2" role="tablist" aria-label="Shelf picks">
-        {tabs.map((tab) => {
-          const selected = tab.id === current.id
-          return (
+      <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Shelf picks">
+          {tabs.map((tab) => {
+            const selected = tab.id === current.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setActive(tab.id)}
+                className={`min-h-9 rounded-xs border px-3.5 text-[0.68rem] font-medium tracking-[0.14em] uppercase ${
+                  selected ? 'border-ink bg-ink text-white' : 'border-(--line) bg-paper text-ink hover:border-ink'
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+        {current.books.length > 1 ? (
+          <div className="flex shrink-0 items-center gap-2">
             <button
-              key={tab.id}
               type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => setActive(tab.id)}
-              className={`min-h-9 rounded-xs border px-3.5 text-[0.68rem] font-medium tracking-[0.14em] uppercase ${
-                selected ? 'border-ink bg-ink text-white' : 'border-(--line) bg-paper text-ink hover:border-ink'
-              }`}
+              className="grid size-9 place-items-center rounded-sm border bg-paper text-lg leading-none border-[#d6d6d6]! hover:bg-white"
+              aria-label={`Previous books in ${current.label}`}
+              onClick={() => scrollByPage(-1)}
             >
-              {tab.label}
+              ‹
             </button>
-          )
-        })}
+            <button
+              type="button"
+              className="grid size-9 place-items-center rounded-sm border bg-paper text-lg leading-none border-[#d6d6d6]! hover:bg-white"
+              aria-label={`Next books in ${current.label}`}
+              onClick={() => scrollByPage(1)}
+            >
+              ›
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {current.books.length ? (
-        <ul className="mt-8 flex gap-4 overflow-x-auto pb-2 sm:gap-5">
+        <ul
+          ref={scrollerRef}
+          tabIndex={0}
+          aria-label={`${current.label} books`}
+          className="collection-rail mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:gap-5"
+        >
           {current.books.map((book, index) => (
-            <li key={book._id} className="w-33 shrink-0 sm:w-37">
+            <li key={book._id} className="w-33 shrink-0 snap-start sm:w-37">
               <PickCard
                 book={book}
                 index={index}

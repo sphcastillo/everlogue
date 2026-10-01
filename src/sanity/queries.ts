@@ -248,27 +248,27 @@ export const COMMUNITY_CLUB_BY_SLUG_QUERY = defineQuery(`
 export const SHELF_PICKS_QUERY = defineQuery(`{
   "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{
     "slug": slug.current,
-    "books": books[0...5]->{ ${bookCardFields} }
+    "books": books[defined(@->coverOverride.asset)][0...24]->{ ${bookCardFields} }
   },
-  "strange": *[_type == "book" && count((genres[]->)[
+  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->)[
     lower(title) match "*strange*" ||
     lower(slug.current) match "*strange*" ||
     lower(title) match "*speculative*" ||
     lower(title) match "*weird*"
-  ]) > 0] | order(_updatedAt desc)[0...5]{ ${bookCardFields} },
-  "feelings": *[_type == "book" && count((genres[]->)[
+  ]) > 0] | order(_updatedAt desc)[0...24]{ ${bookCardFields} },
+  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->)[
     lower(title) match "*literary*" ||
     lower(title) match "*romance*" ||
     lower(title) match "*memoir*" ||
     lower(title) match "*identity*" ||
     lower(slug.current) match "*literary*"
-  ]) > 0] | order(_updatedAt desc)[0...5]{ ${bookCardFields} },
-  "short": *[_type == "book" && defined(pageCount) && pageCount > 0 && pageCount <= 280] | order(pageCount asc)[0...5]{ ${bookCardFields} },
-  "latest": *[_type == "book"] | order(_updatedAt desc)[0...20]{ ${bookCardFields} }
+  ]) > 0] | order(_updatedAt desc)[0...24]{ ${bookCardFields} },
+  "short": *[_type == "book" && defined(coverOverride.asset) && defined(pageCount) && pageCount > 0 && pageCount <= 280] | order(pageCount asc)[0...24]{ ${bookCardFields} },
+  "latest": *[_type == "book" && defined(coverOverride.asset)] | order(_updatedAt desc)[0...40]{ ${bookCardFields} }
 }`)
 
 export const FOR_YOU_BOOKS_QUERY = defineQuery(`
-  *[_type == "book" && !(_id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref)] | order(coalesce(ratingStats.count, 0) desc, _updatedAt desc)[0...5]{
+  *[_type == "book" && defined(coverOverride.asset) && !(_id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref)] | order(coalesce(ratingStats.count, 0) desc, _updatedAt desc)[0...24]{
     ${bookCardFields}
   }
 `)

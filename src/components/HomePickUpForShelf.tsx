@@ -6,6 +6,7 @@ import {
   PICK_SHELF_STATUSES_QUERY,
   SHELF_PICKS_QUERY,
 } from '@/sanity/queries'
+import {hasManualCover} from '@/lib/book-covers'
 import {HomePickUpForShelfPicks, type ShelfPickBook, type ShelfPickTab} from './HomePickUpForShelfPicks'
 
 const PUBLIC_TABS = [
@@ -25,13 +26,12 @@ export default async function HomePickUpForShelf() {
   }>(SHELF_PICKS_QUERY)
 
   const latest = validBooks(picks.latest)
-  const used = new Set<string>()
   const publicTabs: ShelfPickTab[] = PUBLIC_TABS.map((tab) => {
     const fromCollection = validBooks(
       picks.collections?.find((collection) => collection.slug === tab.slug)?.books,
     )
     const fromFilter = validBooks(picks[tab.source])
-    const books = uniqueTake(fromCollection.length ? fromCollection : fromFilter, latest, used)
+    const books = uniqueTake(fromCollection.length ? fromCollection : fromFilter, latest)
     return {id: tab.id, label: tab.label, books}
   })
 
@@ -68,16 +68,19 @@ export default async function HomePickUpForShelf() {
 }
 
 function validBooks(books?: ShelfPickBook[] | null) {
-  return (books ?? []).filter((book): book is ShelfPickBook => Boolean(book?._id && book.title))
+  return (books ?? []).filter((book): book is ShelfPickBook =>
+    Boolean(book?._id && book.title && hasManualCover(book.cover)),
+  )
 }
 
-function uniqueTake(preferred: ShelfPickBook[], fallback: ShelfPickBook[], used: Set<string>) {
+function uniqueTake(preferred: ShelfPickBook[], fallback: ShelfPickBook[]) {
   const next: ShelfPickBook[] = []
+  const seen = new Set<string>()
   for (const book of [...preferred, ...fallback]) {
-    if (used.has(book._id) || next.some((item) => item._id === book._id)) continue
+    if (seen.has(book._id)) continue
     next.push(book)
-    used.add(book._id)
-    if (next.length === 5) break
+    seen.add(book._id)
+    if (next.length === 10) break
   }
   return next
 }

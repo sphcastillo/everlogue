@@ -37,12 +37,12 @@ export default async function GoodTasteTravels() {
   }>(TASTE_TRAVELS_QUERY)
 
   const items = mergeFeed(data.reviews ?? [], data.posts ?? []).slice(0, 3)
-  const clubCount = data.clubCount ?? 0
+
 
   return (
     <section className="border-y border-(--line) px-5 py-12 min-[875px]:px-9 min-[875px]:py-16">
-      <div className="grid items-start gap-10 min-[875px]:grid-cols-2 min-[875px]:gap-x-12 xl:gap-x-16">
-        <div>
+      <div className="grid items-start gap-10 min-[540px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[540px]:items-stretch min-[540px]:gap-x-6 min-[875px]:grid-cols-2 min-[875px]:items-start min-[875px]:gap-x-12 xl:gap-x-16">
+        <div className="order-2 min-w-0 min-[540px]:order-1">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[0.62rem] font-medium tracking-[0.2em] text-muted uppercase">
@@ -123,21 +123,21 @@ export default async function GoodTasteTravels() {
         </div>
 
         <div
-          className="relative flex aspect-square flex-col justify-between overflow-hidden bg-ink p-7 text-white min-[875px]:p-8"
+          className="relative order-1 flex aspect-square min-w-0 flex-col justify-between overflow-hidden bg-ink p-7 text-white min-[540px]:order-2 min-[540px]:aspect-auto min-[540px]:h-full min-[540px]:p-2 min-[875px]:aspect-square min-[875px]:h-auto min-[875px]:p-8"
         >
           <div className="pointer-events-none absolute -top-16 -right-10 size-56 rounded-full border border-white/15" />
           <div className="pointer-events-none absolute top-8 right-8 size-36 rounded-full border border-white/15" />
           <div className="relative flex items-start justify-between gap-4 text-[0.62rem] font-medium tracking-[0.18em] uppercase">
-            <p>Worth gathering for</p>
-            <p className="text-white/55">Spotlight</p>
+            <p className="hidden lg:block">Worth gathering for</p>
+            <p className="text-white/55 hidden min-[875px]:block">Spotlight</p>
           </div>
           <div className="relative">
-            <p className="font-display text-[clamp(2rem,5.4vw,3.35rem)] leading-[0.92] font-black tracking-tighter">
+            <p className="font-display text-[clamp(2rem,5.4vw,3.35rem)] leading-[0.92] font-black tracking-tighter min-[540px]:text-[clamp(1.1rem,3.2vw,1.4rem)] min-[875px]:text-[clamp(2rem,5.4vw,3.35rem)]">
               Read it.
               <span className="block">Share your take.</span>
-              <span className="block">Read it again.</span>
+              <span className="block">Keep it going.</span>
             </p>
-            <p className="mt-5 max-w-xs text-[0.95rem] leading-relaxed text-white/70">
+            <p className="hidden lg:block mt-5 max-w-xs text-[0.95rem] leading-relaxed text-white/70">
               Find a book club that makes the last page feel like the beginning.
             </p>
           </div>
