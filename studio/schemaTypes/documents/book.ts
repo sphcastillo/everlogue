@@ -137,6 +137,7 @@ export const book = defineType({
     select: {
       title: 'title',
       author: 'authors.0',
+      authorRef: 'authorReferences.0.name',
       media: 'coverOverride',
       catalogReviewStatus: 'catalogReviewStatus',
       catalogSource: 'catalogSource',
@@ -144,6 +145,21 @@ export const book = defineType({
       club0: 'clubs.0.title',
       club1: 'clubs.1.title',
       club2: 'clubs.2.title',
+    },
+    prepare({title, author, authorRef, media, catalogReviewStatus, catalogSource, bookId, club0, club1, club2}) {
+      const authorName = [author, authorRef].find((value) => typeof value === 'string' && value.trim())
+      return {
+        title,
+        subtitle: authorName,
+        author: authorName,
+        media,
+        catalogReviewStatus,
+        catalogSource,
+        bookId,
+        club0,
+        club1,
+        club2,
+      }
     },
   },
 })

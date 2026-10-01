@@ -4,6 +4,7 @@ import {useClient, type PreviewProps} from 'sanity'
 type PreviewValues = PreviewProps & {
   bookId?: string
   author?: string
+  authorRef?: string
   catalogReviewStatus?: string
   catalogSource?: string
   club0?: string
@@ -63,7 +64,11 @@ export function BookPreview(props: PreviewProps) {
         : values.catalogSource === 'bookClubImport'
           ? 'Book club import'
           : ''
-  const subtitle = [values.author, review, source, clubs.join(', ')].filter(Boolean).join(' · ')
+  const author =
+    [values.author, values.authorRef, values.subtitle].find(
+      (value) => typeof value === 'string' && value.trim() && !['Reviewed', 'Needs review'].includes(value),
+    ) || ''
+  const subtitle = [author, review, source, clubs.join(', ')].filter(Boolean).join(' · ')
 
   if (typeof props.renderDefault === 'function') {
     return props.renderDefault({...props, title: values.title, subtitle, media: values.media})
