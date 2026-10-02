@@ -41,13 +41,35 @@ export function ReadingCompanion() {
       const response = await fetch('/api/companion', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({message}),
+        body: JSON.stringify({message, history: messages.filter(item => item.text).slice(-12)}),
       })
-      const data = (await response.json().catch(() => null)) as {reply?: string; error?: string} | null
-      if (!response.ok || !data?.reply) {
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => null) as {error?: string} | null
         throw new Error(data?.error || 'The companion could not answer.')
       }
-      setMessages((current) => [...current, {role: 'assistant', text: data.reply!}])
+      setMessages(current => [...current, {role: 'assistant', text: ''}])
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = '', complete = false
+      try {
+        while (true) {
+          const {value, done} = await reader.read()
+          buffer += decoder.decode(value, {stream: !done})
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+          for (const line of lines) {
+            if (!line.trim()) continue
+            const event = JSON.parse(line) as {type: string; text?: string; error?: string}
+            if (event.type === 'error') throw new Error(event.error || 'The companion could not finish its answer.')
+            if (event.type === 'done') complete = true
+            if (event.type === 'text' && event.text) {
+              setMessages(current => current.map((item, index) => index === current.length - 1 ? {...item, text: item.text + event.text} : item))
+            }
+          }
+          if (done) break
+        }
+        if (!complete) throw new Error('The answer was interrupted. Please try again.')
+      } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'The companion could not answer.')
     } finally {
@@ -92,7 +114,7 @@ export function ReadingCompanion() {
                 {messages.map((item, index) => (
                   <li key={`${item.role}-${index}`} className={item.role === 'user' ? 'text-right' : ''}>
                     <p
-                      className={`inline-block max-w-[95%] px-3 py-2 text-left text-sm leading-6 ${
+                      className={`inline-block max-w-[95%] whitespace-pre-wrap break-words px-3 py-2 text-left text-sm leading-6 ${
                         item.role === 'user' ? 'bg-ink text-white' : 'border bg-paper border-[#eadfd3]!'
                       }`}
                     >
@@ -109,7 +131,7 @@ export function ReadingCompanion() {
                     “What would you like to find in a book?”
                   </p>
                   <p className="mt-2 text-sm leading-6 text-muted sm:mt-3">
-                    I can help you find a title in your library, choose your next read, or keep your shelf in order.
+                    I can help you find a title in your library, choose your next read, or explore the stories behind the books.
                   </p>
                 </div>
                 <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">

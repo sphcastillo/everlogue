@@ -15,11 +15,14 @@
     "watch:build": "node scripts/build-book-club-watch.mjs"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "2.0.66",
+    "@ai-sdk/openai": "4.0.83",
     "@clerk/nextjs": "^7.9.4",
     "@sanity/blueprints": "^0.28.0",
     "@sanity/client": "^7.12.0",
     "@sanity/functions": "^1.8.1",
     "@sanity/image-url": "^1.2.0",
+    "ai": "7.0.127",
     "cheerio": "^1.2.0",
     "dotenv": "^18.0.3",
     "next": "^16.0.0",

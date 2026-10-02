@@ -1,25 +1,31 @@
 import {NextResponse} from 'next/server'
 import {getMyBooks} from '@/lib/actions'
 import {getOptionalReader} from '@/lib/reader'
-import {companionReply, type CompanionShelf} from '@/lib/reading-companion'
+import {type CompanionShelf} from '@/lib/reading-companion'
+import {companionConfigured, companionRequest, companionResponse} from '@/lib/companion-agent'
+
+export const runtime = 'nodejs'
+export const maxDuration = 120
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as {message?: string} | null
-  const message = body?.message?.trim() ?? ''
-  if (!message || message.length > 2000) {
-    return NextResponse.json({error: 'Ask something short about your reading.'}, {status: 400})
-  }
+  const input = companionRequest.safeParse(await request.json().catch(() => null))
+  if (!input.success) return NextResponse.json({error: 'Ask something short about your reading.'}, {status: 400})
+  if (!companionConfigured()) return NextResponse.json({error: 'The reading companion is not configured yet.'}, {status: 503})
 
-  let shelves: CompanionShelf[] = []
-  const reader = await getOptionalReader().catch(() => null)
-  if (reader) {
-    try {
+  let shelfContext = 'Not signed in; personal reading history is unavailable.'
+  try {
+    const reader = await getOptionalReader()
+    if (reader) {
       const library = await getMyBooks()
-      shelves = (library as {shelves?: CompanionShelf[]})?.shelves || []
-    } catch {
-      shelves = []
+      const shelves = (library as {shelves?: CompanionShelf[]})?.shelves || []
+      shelfContext = JSON.stringify(shelves.map(shelf => ({
+        kind: shelf.kind, name: shelf.name,
+        books: (shelf.entries || []).slice(0, 30).flatMap(entry => entry.book?.title ? [{title: entry.book.title, authors: entry.book.authors}] : []),
+        truncated: (shelf.entries?.length || 0) > 30,
+      })))
     }
-  }
+  } catch { shelfContext = 'Personal library could not be loaded. Do not assume it is empty.' }
 
-  return NextResponse.json({reply: companionReply(message, shelves)})
+  try { return await companionResponse(input.data, request.signal, shelfContext) }
+  catch { return NextResponse.json({error: 'The reading companion could not connect. Please try again.'}, {status: 502}) }
 }
