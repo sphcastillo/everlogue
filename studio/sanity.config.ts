@@ -11,7 +11,7 @@ export default defineConfig({
   title: 'Everlogue',
 
   projectId: '3h0o1unw',
-  dataset: 'production',
+  dataset: process.env.SANITY_STUDIO_DATASET || 'development',
 
   plugins: [
     structureTool({structure}),

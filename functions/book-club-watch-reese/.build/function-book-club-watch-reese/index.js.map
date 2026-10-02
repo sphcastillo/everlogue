@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","names":[],"sources":["index.ts"],"sourcesContent":["import {scheduledWatch} from '../../src/lib/book-club-watch/runtime'\nexport const handler = scheduledWatch('reese')\n"],"mappings":";;AACA,IAAa,UAAU,eAAe,OAAO"}
