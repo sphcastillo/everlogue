@@ -54,7 +54,7 @@ async function publishDiscovery(client, id) {
 	if (id.startsWith("drafts.")) return;
 	for (let attempt = 0; attempt < 4; attempt++) {
 		const doc = await client.fetch("*[_type == \"bookClubDiscovery\" && _id == $id][0]", { id }, fresh);
-		if (!doc || doc.status !== "approved") return;
+		if (!doc || doc.status !== "approved" || "catalogBook" in doc) return;
 		try {
 			if (!doc.approval || !doc.approvedAt || !doc.reviewedBy) throw new Error("Publication requires an explicit editorial approval snapshot.");
 			doc.approval = approvalFor({

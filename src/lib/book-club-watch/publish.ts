@@ -38,7 +38,7 @@ export async function publishDiscovery(client: SanityClient, id: string) {
   if (id.startsWith('drafts.')) return
   for (let attempt = 0; attempt < 4; attempt++) {
     const doc = await client.fetch<Discovery | null>('*[_type == "bookClubDiscovery" && _id == $id][0]', {id}, fresh)
-    if (!doc || doc.status !== 'approved') return
+    if (!doc || doc.status !== 'approved' || 'catalogBook' in doc) return
     try {
       if (!doc.approval || !doc.approvedAt || !doc.reviewedBy) throw new Error('Publication requires an explicit editorial approval snapshot.')
       // Validate the frozen snapshot again; mutable discovery fields are never published.

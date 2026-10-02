@@ -5,7 +5,10 @@ export const CLUBS = {
   reese: {name: "Reese's Book Club", collectionId: 'curatedCollection.reeses-book-club', sourceUrl: 'https://reesesbookclub.com/the-complete-list/', schedule: '0 9 1-8 * *'},
   gma: {name: 'GMA Book Club', collectionId: 'curatedCollection.gma-book-club', sourceUrl: 'https://www.goodmorningamerica.com/news/story/shop-gma-book-club-picks-list--81520726', schedule: '0 10 * * 2'},
   'read-with-jenna': {name: 'Today / Read With Jenna', collectionId: 'curatedCollection.read-with-jenna', sourceUrl: 'https://www.today.com/shop/read-jenna-book-club-list-today-s-jenna-bush-hager-t164652', schedule: '0 9 * * 1,2'},
-  oprah: {name: "Oprah's Book Club", collectionId: 'curatedCollection.oprahs-book-club', sourceUrl: 'https://www.oprahdaily.com/entertainment/books/g23067476/oprah-book-club-list/', schedule: '0 9 * * 1,3,5'},
+  oprah: {name: "Oprah's Book Club", collectionId: 'curatedCollection.oprahs-book-club', sourceUrl: 'https://www.oprahdaily.com/entertainment/books/g23067476/oprah-book-club-list/', 
+    // schedule: '0 * * * *',
+    schedule: '0 9 * * 1,3,5'
+  },
 } as const
 export type Club = keyof typeof CLUBS
 export type Status = 'discovered' | 'needs_review' | 'approved' | 'published' | 'rejected'

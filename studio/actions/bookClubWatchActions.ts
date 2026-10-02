@@ -1,58 +1,66 @@
-import {useState} from 'react'
+import type {SanityClient} from '@sanity/client'
+import {useEffect, useRef, useState} from 'react'
 import {useClient, useCurrentUser, type DocumentActionComponent, type DocumentActionsContext} from 'sanity'
 import {useToast} from '@sanity/ui/toast'
-import {approvalFor, type Discovery} from '../../src/lib/book-club-watch/model'
+import {completeCatalogReview} from '../../src/lib/book-club-watch/catalog-review'
 
-type Operation = 'approve' | 'reject' | 'reopen' | 'retry'
-function action(operation: Operation): DocumentActionComponent {
+function watchStatusAction(operation: 'reject' | 'reopen'): DocumentActionComponent {
   return function WatchAction(props) {
     const client = useClient({apiVersion: '2026-09-01'}), user = useCurrentUser(), toast = useToast()
     const [busy, setBusy] = useState(false)
-    const status = props.published?.status || props.draft?.status
-    const allowed = operation === 'approve' || operation === 'reject' ? status === 'needs_review' : operation === 'reopen' ? status === 'rejected' : status === 'approved'
-    if (!allowed) return null
+    const doc = props.published
+    if (!doc || (operation === 'reject' ? !['needs_review', 'discovered'].includes(String(doc.status)) : doc.status !== 'rejected')) return null
     return {
-      label: {approve: 'Approve and publish to catalog', reject: 'Reject', reopen: 'Reopen for review', retry: 'Retry publication'}[operation],
-      disabled: busy || !user,
+      label: operation === 'reject' ? 'Reject' : 'Reopen for review', disabled: busy || !user,
       onHandle: async () => {
         setBusy(true)
         try {
-          const docs = await client.fetch<Discovery[]>('*[_id in $ids]', {ids: [props.id, `drafts.${props.id}`]}, {perspective: 'raw'})
-          const live = docs.find((doc) => doc._id === props.id), draft = docs.find((doc) => doc._id.startsWith('drafts.'))
-          if (!live) throw new Error('Discovery is missing. Reload Studio.')
-          if ((operation === 'approve' || operation === 'reject') && live.status !== 'needs_review' || operation === 'reopen' && live.status !== 'rejected' || operation === 'retry' && live.status !== 'approved') throw new Error('Discovery changed. Reload before continuing.')
-          // Do not approve a stale Studio form while its autosave is still in flight.
-          if (draft && props.draft?._rev !== draft._rev) throw new Error('Wait for your edits to finish saving, then try again.')
-          const edited = draft || live
-          const now = new Date().toISOString()
-          const approval = operation === 'approve' ? approvalFor(edited) : undefined
-          const fields = approval ? {
-            approval, status: 'approved', approvedAt: now, reviewedBy: user!.id,
-            reviewedTitle: approval.title, reviewedAuthors: approval.authors,
-            selectionMonth: approval.selectionMonth, publicationMode: approval.mode,
-            ...(approval.selectionDate ? {selectionDate: approval.selectionDate} : {}),
-            ...(approval.matchedBook ? {matchedBook: approval.matchedBook} : {}),
-            ...(approval.metadata ? {proposedMetadata: approval.metadata} : {}),
-          } : operation === 'retry' ? {retryRequestedAt: now} : {status: operation === 'reject' ? 'rejected' : 'needs_review', reviewedBy: user!.id}
-          const unset = ['processingError', ...(approval ? [
-            ...(!approval.selectionDate ? ['selectionDate'] : []),
-            ...(!approval.matchedBook ? ['matchedBook'] : []),
-            ...(!approval.metadata ? ['proposedMetadata'] : []),
-          ] : [])]
-          const tx = client.transaction().patch(live._id, (p) => p.ifRevisionId(live._rev).set(fields).unset(unset))
-          if (draft) tx.patch(draft._id, (p) => p.ifRevisionId(draft._rev).set({status: draft.status})).delete(draft._id)
-          await tx.commit({visibility: 'sync'})
+          await client.patch(props.id).ifRevisionId(doc._rev).set({status: operation === 'reject' ? 'rejected' : 'needs_review', reviewedBy: user!.id}).commit()
           props.onComplete()
-        } catch (error) { toast.push({status: 'error', title: error instanceof Error ? error.message : 'Action failed'}) }
+        } catch { toast.push({status: 'error', title: 'Discovery changed. Reload and try again.'}) }
         finally { setBusy(false) }
       },
     }
   }
 }
-const actions = [action('approve'), action('reject'), action('reopen'), action('retry')]
+
+function withWatchCompletion(PublishAction: DocumentActionComponent): DocumentActionComponent {
+  const PublishWithWatch: DocumentActionComponent = props => {
+    const client = useClient({apiVersion: '2026-09-01'}), user = useCurrentUser(), toast = useToast()
+    const pendingRevision = useRef<string | null>(null)
+    const action = PublishAction(props)
+    useEffect(() => {
+      if (pendingRevision.current === null || props.draft || !props.published || props.published._rev === pendingRevision.current) return
+      pendingRevision.current = null
+      void completeCatalogReview(client as unknown as SanityClient, props.id, user?.id || 'studio-editor')
+        .catch(error => toast.push({status: 'error', title: 'Book published; Watch review needs a retry', description: error instanceof Error ? error.message : 'Use Finish Watch review to retry.'}))
+    }, [props.published, props.draft, props.id, client, user?.id, toast])
+    return action && {...action, onHandle: () => {
+      pendingRevision.current = props.published?._rev || ''
+      action.onHandle?.()
+    }}
+  }
+  PublishWithWatch.action = PublishAction.action
+  return PublishWithWatch
+}
+const finishWatchReview: DocumentActionComponent = props => {
+  const client = useClient({apiVersion: '2026-09-01'}), user = useCurrentUser(), toast = useToast()
+  const [busy, setBusy] = useState(false)
+  if (!props.published?.watchDiscovery || props.draft) return null
+  return {label: 'Finish Watch review', disabled: busy, onHandle: async () => {
+    setBusy(true)
+    try {
+      await completeCatalogReview(client as unknown as SanityClient, props.id, user?.id || 'studio-editor')
+      toast.push({status: 'success', title: 'Watch review complete'})
+      props.onComplete()
+    } catch (error) { toast.push({status: 'error', title: error instanceof Error ? error.message : 'Could not finish Watch review'}) }
+    finally { setBusy(false) }
+  }}
+}
+const watchActions = [watchStatusAction('reject'), watchStatusAction('reopen')]
 export function bookClubWatchActions(prev: DocumentActionComponent[], context: DocumentActionsContext) {
   if (context.schemaType === 'bookClubWatchRun') return []
+  if (context.schemaType === 'book') return [...prev.map(action => action.action === 'publish' ? withWatchCompletion(action) : action), finishWatchReview]
   if (context.schemaType !== 'bookClubDiscovery') return prev
-  // The standard Publish action must never authorize catalog publication.
-  return [...prev.filter((a) => a.action === 'discardChanges'), ...actions]
+  return watchActions
 }

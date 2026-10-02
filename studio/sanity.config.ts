@@ -1,3 +1,4 @@
+import {BookClubDiscoveryShowcase} from './components/BookClubDiscoveryShowcase'
 import {bookClubWatchActions} from './actions/bookClubWatchActions'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
@@ -6,17 +7,26 @@ import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {editorialReviewActions} from './actions/editorialReviewActions'
 
+
+const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
+
 export default defineConfig({
   name: 'default',
-  title: 'Everlogue',
+  title: `Everlogue · ${dataset}`,
 
   projectId: '3h0o1unw',
-  dataset: process.env.SANITY_STUDIO_DATASET || 'development',
+  dataset,
 
   plugins: [
-    structureTool({structure}),
+    structureTool({structure, defaultDocumentNode: (S, {schemaType}) => schemaType === 'bookClubDiscovery' ? S.document().views([S.view.component(BookClubDiscoveryShowcase).title('Discovery')]) : S.document().views([S.view.form()])}),
     visionTool(),
   ],
+
+  studio: {
+    components: {
+
+    },
+  },
 
   schema: {
     types: schemaTypes,

@@ -23,7 +23,7 @@ export default defineBlueprint({
     defineDocumentFunction({name: 'book-club-watch-publish', displayName: 'Book Club Watch — publish approved discovery',
       project, robotToken, timeout: 180, memory: 1, env,
       event: {on: ['update'], resource: {type: 'dataset', id: `${project}.${dataset}`},
-        filter: '_type == "bookClubDiscovery" && status == "approved" && !(_id in path("drafts.**")) && (delta::changedAny(status) || delta::changedAny(retryRequestedAt))',
+        filter: '_type == "bookClubDiscovery" && status == "approved" && !defined(catalogBook) && !(_id in path("drafts.**")) && (delta::changedAny(status) || delta::changedAny(retryRequestedAt))',
         projection: '{_id}',
       },
     }),

@@ -12,8 +12,10 @@ const metadataFields = [
 ]
 export const bookClubDiscovery = defineType({
   name: 'bookClubDiscovery', title: 'Book Club Discovery', type: 'document', icon: SearchIcon,
-  readOnly: ({document}) => document?.status === 'approved' || document?.status === 'published',
+  readOnly: true,
   fields: [
+    defineField({name: 'catalogBaselineRevision', type: 'string', hidden: true, readOnly: true}),
+    defineField({name: 'catalogBook', title: 'Bookclub import', type: 'reference', to: [{type: 'book'}], weak: true, readOnly: true}),
     defineField({name: 'bookClub', type: 'string', readOnly: true, options: {list: Object.entries(CLUBS).map(([value, c]) => ({value, title: c.name}))}}),
     defineField({name: 'status', type: 'string', readOnly: true, options: {list: ['discovered', 'needs_review', 'approved', 'published', 'rejected']}}),
     defineField({name: 'selectionMonth', type: 'string', validation: (r) => r.required().regex(/^\d{4}-(0[1-9]|1[0-2])$/), description: 'Official selection month, YYYY-MM.'}),

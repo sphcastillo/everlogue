@@ -1,8 +1,11 @@
+import type {SanityClient} from '@sanity/client'
 import {useEffect, useMemo, useState} from 'react'
-import {Box, Card, Flex, Spinner, Stack, Text, TextInput} from '@sanity/ui'
+import {Box, Card, Flex, Spinner, Stack, Text, TextInput, Button} from '@sanity/ui'
 import {SearchIcon} from '@sanity/icons'
 import {useClient} from 'sanity'
-import {IntentLink} from 'sanity/router'
+import {IntentLink, useRouter} from 'sanity/router'
+import {openCatalogImport} from '../../src/lib/book-club-watch/catalog-review'
+import {CLUBS, type Discovery} from '../../src/lib/book-club-watch/model'
 import {BOOKCLUB_IMPORTS_FILTER} from '../lib/catalog-request-filters'
 
 type Row = {
@@ -54,10 +57,18 @@ export function BookClubImportsPane() {
   const client = useClient({apiVersion: '2026-02-01'})
   const [rows, setRows] = useState<Row[] | null>(null)
   const [query, setQuery] = useState('')
+  const [discoveries, setDiscoveries] = useState<Discovery[]>([])
+  const [busy, setBusy] = useState<string | null>(null)
+  const router = useRouter()
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
+    const loadDiscoveries = () => client.fetch<Discovery[]>('*[_type == "bookClubDiscovery" && status in ["discovered", "needs_review"] && !(_id in path("drafts.**"))] | order(discoveredAt desc)', {}, {perspective: 'raw', useCdn: false})
+      .then(docs => { if (!cancelled) setDiscoveries(docs) })
+      .catch(() => { if (!cancelled) setError('Could not load Watch discoveries.') })
+    void loadDiscoveries()
+    const subscription = client.listen('*[_type in ["book", "bookClubDiscovery"]]').subscribe(() => { void loadDiscoveries() })
     client
       .fetch<Row[]>(
         `*[${BOOKCLUB_IMPORTS_FILTER} && !(_id in path("drafts.**"))] | order(_createdAt desc) {
@@ -78,6 +89,7 @@ export function BookClubImportsPane() {
       })
     return () => {
       cancelled = true
+      subscription.unsubscribe()
     }
   }, [client])
 
@@ -99,7 +111,7 @@ export function BookClubImportsPane() {
     )
   }
 
-  if (!rows.length) {
+  if (!rows.length && !discoveries.length) {
     return (
       <Box padding={4}>
         <Text muted>No unmarked or needs-review book club imports.</Text>
@@ -120,9 +132,23 @@ export function BookClubImportsPane() {
       </Box>
       <Box padding={2} paddingBottom={3}>
         <Text size={1} muted>
-          {visible.length} of {rows.length} {rows.length === 1 ? 'book' : 'books'}
+          {discoveries.length} Watch discoveries · {visible.length} catalog imports
         </Text>
       </Box>
+      {discoveries.filter(doc => matchesSearch({ _id: doc._id, title: doc.discoveredTitle, author: doc.discoveredAuthor, clubs: [CLUBS[doc.bookClub].name]}, query)).map(doc => (
+        <Card key={doc._id} padding={3} radius={2} shadow={1}><Stack gap={3}>
+          <Text weight="semibold">{doc.discoveredTitle}</Text>
+          <Text size={1} muted>{doc.discoveredAuthor} · {CLUBS[doc.bookClub].name} · {doc.selectionMonth}</Text>
+          <Text size={1}>Discovered by Book Club Watch. Review here, then Publish to approve.</Text>
+          {doc.processingError && <Text size={1}>{doc.processingError}</Text>}
+          <Button text="Review book import" disabled={busy !== null} loading={busy === doc._id} onClick={async () => {
+            setBusy(doc._id)
+            try { const id = await openCatalogImport(client as unknown as SanityClient, doc._id); router.navigateIntent('edit', {id, type: 'book'}) }
+            catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not open import.') }
+            finally { setBusy(null) }
+          }} />
+        </Stack></Card>
+      ))}
       {visible.length ? (
         visible.map((row) => {
           const clubs = clubLabel(row)
@@ -148,7 +174,7 @@ export function BookClubImportsPane() {
         })
       ) : (
         <Box padding={3}>
-          <Text muted>No books match “{query.trim()}”.</Text>
+          <Text muted>No other catalog imports{query.trim() ? ` matching “${query.trim()}”` : ''}.</Text>
         </Box>
       )}
     </Stack>

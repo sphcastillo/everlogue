@@ -537,6 +537,8 @@ export type BookClubDiscovery = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  catalogBaselineRevision?: string;
+  catalogBook?: BookReference;
   bookClub?: "reese" | "gma" | "read-with-jenna" | "oprah";
   status?:
     "discovered" | "needs_review" | "approved" | "published" | "rejected";

@@ -1,3 +1,4 @@
+import {BookClubDiscoveryShowcase} from '../components/BookClubDiscoveryShowcase'
 import type { StructureResolver } from 'sanity/structure'
 import {
   BookIcon,
@@ -37,13 +38,14 @@ export const structure: StructureResolver = (S, context) =>
         S.list().title('Book Club Watch').items([
           ...[
             {title: 'Review queue', filter: 'status in ["discovered", "needs_review"]'},
-            {title: 'Approved / publication failures', filter: 'status == "approved"'},
+            {title: 'Approved', filter: 'status == "approved"'},
             {title: 'Published history', filter: 'status == "published"'},
             {title: 'Rejected discoveries', filter: 'status == "rejected"'},
           ].map(({title, filter}) => S.listItem().title(title).child(
             S.documentTypeList('bookClubDiscovery').title(title)
               .filter('_type == "bookClubDiscovery" && ' + filter)
-              .defaultOrdering([{field: 'discoveredAt', direction: 'desc'}]),
+              .defaultOrdering([{field: 'discoveredAt', direction: 'desc'}])
+              .child(id => S.document().documentId(id).schemaType('bookClubDiscovery').views([S.view.component(BookClubDiscoveryShowcase).title('Discovery')])),
           )),
           S.documentTypeListItem('bookClubWatchRun').title('Run history'),
         ]),

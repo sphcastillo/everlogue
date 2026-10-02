@@ -225,3 +225,76 @@ test('identifier matches take precedence, including ISBNs stored on editions', a
   assert.equal((await findBook(db.client, pick.title, pick.authors, {isbn13: '9780140328721'}))?._id, 'second')
   assert.equal((await findBook(db.client, pick.title, pick.authors, {isbn10: '0140328726'}))?._id, 'second')
 })
+
+test('catalog imports create only one draft; Publish files Watch as approved and preserves history', async () => {
+  const {openCatalogImport, completeCatalogReview} = await import('../src/lib/book-club-watch/catalog-review')
+  const db = database([collection])
+  await runWatch(db.client, 'gma', options)
+  const doc = discoveries(db)[0]
+  const ids = await Promise.all([openCatalogImport(db.client, doc._id), openCatalogImport(db.client, doc._id)])
+  assert.equal(ids[0], ids[1])
+  assert.equal([...db.docs.values()].filter(d => d._type === 'book' && !d._id.startsWith('drafts.')).length, 0)
+  assert.equal(discoveries(db)[0].status, 'needs_review')
+  await assert.rejects(completeCatalogReview(db.client, ids[0], 'editor'), /Publish the catalog book/)
+  const draft = db.docs.get(`drafts.${ids[0]}`)!
+  db.save({...draft, _id: ids[0], title: 'Editor corrected title'})
+  db.docs.delete(draft._id)
+  await Promise.all([completeCatalogReview(db.client, ids[0], 'editor'), completeCatalogReview(db.client, ids[0], 'editor')])
+  assert.equal(discoveries(db)[0].status, 'approved')
+  assert.equal(db.docs.get(ids[0])?.title, 'Editor corrected title')
+  const entries = db.docs.get(collection._id)?.books as {_key: string; selectionNumber: number}[]
+  assert.equal(entries.length, 2)
+  assert.equal(entries[0]._key, 'old')
+  assert.equal(entries[1].selectionNumber, 9)
+  await publishDiscovery(db.client, doc._id)
+  assert.equal(discoveries(db)[0].status, 'approved')
+})
+
+test('catalog review reuses existing metadata and recovers after collection update fails', async () => {
+  const {openCatalogImport, completeCatalogReview} = await import('../src/lib/book-club-watch/catalog-review')
+  const db = database([collection, {_id: 'existing', _type: 'book', title: pick.title, authors: pick.authors, description: 'Editorial copy'}])
+  await runWatch(db.client, 'gma', options)
+  const doc = discoveries(db)[0]
+  db.save({...doc, matchedBook: {_type: 'reference', _ref: 'existing'}})
+  assert.equal(await openCatalogImport(db.client, doc._id), 'existing')
+  assert.equal(db.docs.get('drafts.existing')?.description, 'Editorial copy')
+  await assert.rejects(completeCatalogReview(db.client, 'existing', 'editor'), /Publish the reviewed/)
+  db.save({...db.docs.get('existing')!})
+  db.docs.delete('drafts.existing')
+  db.failPublication(true)
+  await assert.rejects(completeCatalogReview(db.client, 'existing', 'editor'))
+  assert.equal(discoveries(db)[0].status, 'needs_review')
+  db.failPublication(false)
+  await completeCatalogReview(db.client, 'existing', 'editor')
+  assert.equal(discoveries(db)[0].status, 'approved')
+  assert.equal(db.docs.get('existing')?.description, 'Editorial copy')
+})
+
+test('first catalog publication creates the missing club collection atomically under concurrent retries', async () => {
+  const {openCatalogImport, completeCatalogReview} = await import('../src/lib/book-club-watch/catalog-review')
+  const db = database()
+  await runWatch(db.client, 'gma', options)
+  const doc = discoveries(db)[0]
+  const id = await openCatalogImport(db.client, doc._id)
+  db.save({...db.docs.get(`drafts.${id}`)!, _id: id})
+  db.docs.delete(`drafts.${id}`)
+  await Promise.all([completeCatalogReview(db.client, id, 'editor'), completeCatalogReview(db.client, id, 'editor')])
+  const created = db.docs.get(CLUBS.gma.collectionId)!
+  assert.equal(created.title, CLUBS.gma.name)
+  assert.deepEqual(created.slug, {_type: 'slug', current: 'gma-book-club'})
+  assert.equal(created.totalSelections, 1)
+  assert.equal(discoveries(db)[0].status, 'approved')
+  assert.equal([...db.docs.values()].filter(d => d._type === 'curatedCollection').length, 1)
+})
+
+test('catalog completion reuses a collection with a generated ID and matching slug', async () => {
+  const {openCatalogImport, completeCatalogReview} = await import('../src/lib/book-club-watch/catalog-review')
+  const db = database([{...collection, _id: 'generated-club', slug: {current: 'gma-book-club'}}])
+  await runWatch(db.client, 'gma', options)
+  const id = await openCatalogImport(db.client, discoveries(db)[0]._id)
+  db.save({...db.docs.get(`drafts.${id}`)!, _id: id})
+  db.docs.delete(`drafts.${id}`)
+  await completeCatalogReview(db.client, id, 'editor')
+  assert.equal(db.docs.has(CLUBS.gma.collectionId), false)
+  assert.equal(db.docs.get('generated-club')?.totalSelections, 2)
+})
