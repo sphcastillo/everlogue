@@ -655,6 +655,11 @@ export type Book = {
   publisher?: string;
   publishedDate?: string;
   pageCount?: number;
+  isStandalone: boolean;
+  series?: {
+    name: string;
+    position: number;
+  };
   categories?: Array<string>;
   language?: string;
   googleBooksId?: string;

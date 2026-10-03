@@ -93,11 +93,13 @@ export const structure: StructureResolver = (S, context) =>
                 .title('Engaged but incomplete')
                 .icon(BookIcon)
                 .child(async () => {
-                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const client = context
+                    .getClient({apiVersion: '2026-02-01'})
+                    .withConfig({perspective: 'drafts'})
                   const filter =
                     '_type == "book" && defined(coverOverride.asset) && catalogReviewStatus != "reviewed"'
                   const count = await client.fetch<number>(
-                    `count(*[${filter} && !(_id in path("drafts.**"))])`,
+                    `count(*[${filter}])`,
                   )
                   return S.documentTypeList('book')
                     .title(`Engaged but incomplete · ${count}`)
@@ -109,10 +111,12 @@ export const structure: StructureResolver = (S, context) =>
                 .title('Marked as reviewed')
                 .icon(BookIcon)
                 .child(async () => {
-                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const client = context
+                    .getClient({apiVersion: '2026-02-01'})
+                    .withConfig({perspective: 'drafts'})
                   const filter = '_type == "book" && catalogReviewStatus == "reviewed"'
                   const count = await client.fetch<number>(
-                    `count(*[${filter} && !(_id in path("drafts.**"))])`,
+                    `count(*[${filter}])`,
                   )
                   return S.documentTypeList('book')
                     .title(`Marked as reviewed · ${count}`)
