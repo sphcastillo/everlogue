@@ -26,6 +26,8 @@ const client = {fetch: async (query: string, params: Record<string, unknown>) =>
 test('title lookups recognize The Reader without treating club history as a catalog search', () => {
   assert.equal(extractLookupTitle("Find The Reader on Oprah's book club"), 'The Reader')
   assert.equal(extractLookupTitle("Is The Reader on Oprah's book club?"), 'The Reader')
+  assert.equal(extractLookupTitle('Tell me about the book The House in the Pines'), 'The House in the Pines')
+  assert.equal(extractLookupTitle('The Book Thief'), 'The Book Thief')
   assert.equal(isCatalogTitleLookup('The Reader'), true)
   assert.equal(isCatalogTitleLookup("Is The Reader on Oprah's book club?"), true)
   assert.equal(isCatalogTitleLookup('What should I read next?'), false)

@@ -110,7 +110,8 @@ const LOOKUP_FILLER =
   /^(can you |could you |please |hey |hi )+/i
 
 export function extractLookupTitle(message: string) {
-  return message
+  const wrappedBookNoun = /\b(the|a|this)\s+(book|novel|title)(\s+(called|titled))?\s+(the|a)\b/i.test(message)
+  let title = message
     .replace(LOOKUP_FILLER, '')
     .replace(/\b(find|look(?:ing)? up|search for|do you have|have you got|is there|tell me about|what about|what(?:'s| is) )\b/gi, ' ')
     .replace(/^(is|was|does)\s+/i, '')
@@ -118,6 +119,10 @@ export function extractLookupTitle(message: string) {
     .replace(/[?!.,]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim()
+  if (wrappedBookNoun) {
+    title = title.replace(/^(the|a|this)\s+(book|novel|title)\s+(called|titled\s+)?/i, '').trim()
+  }
+  return title
 }
 
 export function isCatalogTitleLookup(message: string) {
