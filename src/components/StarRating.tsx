@@ -37,7 +37,31 @@ export function StarRating({
       <div
         role="radiogroup"
         aria-label="Rating in half-star steps, from 0.5 to 5"
-        className="mt-3 flex items-center gap-0.5"
+        className="mt-3 grid grid-cols-5 gap-1.5 sm:hidden"
+      >
+        {HALF_STARS.map((rating) => (
+          <button
+            key={rating}
+            type="button"
+            role="radio"
+            aria-checked={optimistic === rating}
+            aria-label={`${formatRating(rating)} stars`}
+            disabled={!signedIn || pending}
+            onClick={() => choose(rating)}
+            className={`min-h-11 rounded-xs border font-mono text-[11px] font-medium disabled:opacity-40 ${
+              optimistic === rating
+                ? 'border-ink bg-ink text-white'
+                : 'border-(--line) bg-paper text-ink active:border-ink'
+            }`}
+          >
+            {formatRating(rating)} ★
+          </button>
+        ))}
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Rating in half-star steps, from 0.5 to 5"
+        className="mt-3 hidden items-center gap-0.5 sm:flex"
         onPointerLeave={() => setPreview(null)}
       >
         {[1, 2, 3, 4, 5].map((star) => {
@@ -73,7 +97,10 @@ export function StarRating({
           )
         })}
       </div>
-      <p className="mt-2 text-[11px] text-muted">Left side of a star is a half. Right side is the full star.</p>
+      <p className="mt-2 text-[11px] text-muted sm:hidden">Choose any rating in half-star steps.</p>
+      <p className="mt-2 hidden text-[11px] text-muted sm:block">
+        Left side of a star is a half. Right side is the full star.
+      </p>
       <div className="mt-3 flex max-w-md items-center justify-between gap-4 text-sm">
         <p className="text-muted">
           {shown === null ? 'Unrated — not the same as zero' : `${formatRating(shown)} stars`}
