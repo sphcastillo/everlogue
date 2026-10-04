@@ -3,6 +3,8 @@ import {privateClient, noStore} from '@/sanity/client'
 import {fetchCatalog} from '@/sanity/fetch'
 import {FOR_YOU_BOOKS_QUERY, SHELF_PICKS_QUERY} from '@/sanity/queries'
 import {hasManualCover} from '@/lib/book-covers'
+import {loadHomeShelfData} from '@/lib/home-shelf-data'
+import {ReaderSetupRecovery} from './ReaderSetupRecovery'
 import {HomePickUpForShelfPicks, type ShelfPickBook, type ShelfPickTab} from './HomePickUpForShelfPicks'
 
 const PUBLIC_TABS = [
@@ -11,15 +13,27 @@ const PUBLIC_TABS = [
   {id: 'short', label: 'Short & sharp', slug: 'short-and-sharp', source: 'short' as const},
 ]
 
+class ReaderUnavailableError extends Error {}
+
 export default async function HomePickUpForShelf() {
-  const reader = await getOptionalReader().catch(() => null)
-  const picks = await fetchCatalog<{
-    collections: {slug?: string | null; books?: ShelfPickBook[] | null}[] | null
-    strange: ShelfPickBook[] | null
-    feelings: ShelfPickBook[] | null
-    short: ShelfPickBook[] | null
-    latest: ShelfPickBook[] | null
-  }>(SHELF_PICKS_QUERY)
+  // Preserve setup failure as a distinct state, never treat it as a guest.
+  const data = await loadHomeShelfData(
+    () => getOptionalReader().catch(() => { throw new ReaderUnavailableError() }),
+    () => fetchCatalog<{
+      collections: {slug?: string | null; books?: ShelfPickBook[] | null}[] | null
+      strange: ShelfPickBook[] | null
+      feelings: ShelfPickBook[] | null
+      short: ShelfPickBook[] | null
+      latest: ShelfPickBook[] | null
+    }>(SHELF_PICKS_QUERY),
+    reader => privateClient.fetch<ShelfPickBook[]>(FOR_YOU_BOOKS_QUERY, {readerId: reader.readerId}, noStore),
+  ).catch(error => {
+    if (error instanceof ReaderUnavailableError) return null
+    throw error
+  })
+
+  if (!data) return <ReaderSetupRecovery />
+  const {reader, picks, books} = data
 
   const latest = validBooks(picks.latest)
   const publicTabs: ShelfPickTab[] = PUBLIC_TABS.map((tab) => {
@@ -31,13 +45,7 @@ export default async function HomePickUpForShelf() {
     return {id: tab.id, label: tab.label, books}
   })
 
-  let forYou: ShelfPickBook[] = []
-
-  if (reader) {
-    forYou = validBooks(
-      await privateClient.fetch<ShelfPickBook[]>(FOR_YOU_BOOKS_QUERY, {readerId: reader.readerId}, noStore),
-    )
-  }
+  const forYou = validBooks(books)
 
   const visiblePublic = publicTabs.filter((tab) => tab.books.length)
   const tabs: ShelfPickTab[] = reader

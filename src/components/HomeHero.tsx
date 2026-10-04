@@ -5,9 +5,11 @@ import {HomeGreeting} from './HomeGreeting'
 export function HomeHero({
   displayName,
   signedIn = false,
+  greeting,
 }: {
   displayName?: string | null
   signedIn?: boolean
+  greeting?: React.ReactNode
 }) {
   return (
     <section className="relative grid items-stretch px-0 py-0 min-[875px]:grid-cols-2 min-[875px]:items-start min-[875px]:gap-x-8 min-[875px]:px-6 min-[875px]:pt-6 min-[875px]:pb-10 xl:gap-x-16">
@@ -24,7 +26,7 @@ export function HomeHero({
       </div>
       <div className="relative z-10 flex flex-col justify-between gap-10 pb-8 text-white min-[875px]:aspect-square min-[875px]:w-full min-[875px]:gap-5 min-[875px]:self-start min-[875px]:pb-0 min-[875px]:text-ink min-[875px]:@container">
         <div className='px-3 min-[875px]:px-0'>
-          <HomeGreeting displayName={displayName} />
+          {greeting ?? <HomeGreeting displayName={displayName} />}
           <h1 className="mt-4 font-display text-[clamp(2.75rem,14.5vw,6.55rem)] leading-[0.91] font-black tracking-[-0.13em] min-[875px]:mt-3 min-[875px]:text-[clamp(5rem,12.5cqi,4.7rem)] lg:text-[clamp(6rem,12.5cqi,4.7rem)]">
             <span className="block">Find the book</span>
             <span className="block">you can&apos;t stop</span>
