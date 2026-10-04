@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import type {SanityClient} from '@sanity/client'
-import {placePendingGoodreadsImports} from '../src/lib/goodreads-place-import'
+import {placeCatalogImportFailure, placePendingGoodreadsImports} from '../src/lib/goodreads-place-import'
 
 type Doc = Record<string, unknown> & {_id: string}
 const ref = (value: unknown) => (value as {_ref?: string} | undefined)?._ref
@@ -11,7 +11,7 @@ function database(initial: Doc[] = []) {
   const client = {
     async fetch(query: string, params: Record<string, string>) {
       const all = [...docs.values()]
-      if (query.includes('pendingImportPlacements')) return all.find((doc) => doc._id === params.id) || null
+      if (query.includes('pendingImportPlacements') || query.includes('shelfStatus')) return all.find((doc) => doc._id === params.id) || null
       if (query.includes('_type == "shelfEntry"')) {
         return all.some((doc) => doc._type === 'shelfEntry' && ref(doc.book) === params.bookId)
       }
@@ -98,6 +98,25 @@ test('publishing a failed import places the book on the waiting reader’s shelf
   assert.equal(docs.get('rating-reader-1-book-1')?.value, 4)
   assert.equal(docs.get('book-1')?.pendingImportPlacements, undefined)
   assert.ok(docs.get('failure-1')?.resolvedAt)
+})
+
+test('an existing catalog book replaces the failed import request on the reader’s shelf', async () => {
+  const {client, docs} = database([
+    {_id: 'book-2', _type: 'book', title: 'The Marriage Portrait', authors: ['Maggie O’Farrell']},
+    {
+      _id: 'failure-2',
+      _type: 'catalogImportFailure',
+      title: 'The Marriage Portrait',
+      author: "Maggie O'Farrell",
+      reader: {_ref: 'reader-1'},
+      book: {_ref: 'book-2'},
+      shelfStatus: 'wantToRead',
+    },
+  ])
+  const result = await placeCatalogImportFailure(client, 'failure-2')
+  assert.equal(result.bookId, 'book-2')
+  assert.equal(ref([...docs.values()].find((doc) => doc._type === 'shelfEntry')?.book), 'book-2')
+  assert.ok(docs.get('failure-2')?.resolvedAt)
 })
 
 test('a draft cannot be placed on a shelf until it is published', async () => {

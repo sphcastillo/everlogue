@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
-import {importReportNews} from '../src/lib/goodreads-report'
+import {importReportNews, importRetriesExhausted} from '../src/lib/goodreads-report'
+
+test('a title can be retried twice, then it is handed to the librarian', () => {
+  assert.equal(importRetriesExhausted(0), false)
+  assert.equal(importRetriesExhausted(1), false)
+  assert.equal(importRetriesExhausted(2), true)
+})
 
 test('a clean import tells the reader the books are in', () => {
   const news = importReportNews({imported: 12, updated: 0, skipped: 196, failed: 0})

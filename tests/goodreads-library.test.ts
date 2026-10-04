@@ -40,6 +40,19 @@ test('key lists can rebuild a lookup for a faster re-upload', () => {
   assert.deepEqual(missing.map((book) => book.title), ['New Book'])
 })
 
+test('a series suffix still matches a catalog title already on the shelf', () => {
+  const index = buildLibraryIndex([
+    {bookId: 'book-1', title: 'The Last Thing He Told Me', authors: ['Laura Dave']},
+  ])
+  assert.equal(
+    findOwnedLibraryBook(
+      {row: 4, title: 'The Last Thing He Told Me (Hannah Hall, #1)', author: 'Laura Dave', status: 'finished'},
+      index,
+    )?.bookId,
+    'book-1',
+  )
+})
+
 test('Goodreads IDs match even when the title text differs slightly', () => {
   const index = buildLibraryIndex([
     {bookId: 'book-1', title: 'A Book: A Novel', authors: ['An Author'], goodreadsId: '123'},

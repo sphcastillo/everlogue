@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto'
 import type {SanityClient} from '@sanity/client'
+import {lookupCatalogBook} from './catalog-book-match'
 import type {GoodreadsBook} from './goodreads-csv'
 
 type ImportReader = {readerId: string; displayName: string}
@@ -29,6 +30,13 @@ export async function reportCatalogImportFailure(
 ) {
   const now = new Date().toISOString()
   const _id = catalogImportFailureId(reader.readerId, book)
+  if (!bookId) {
+    try {
+      bookId = (await lookupCatalogBook(client, book))?._id
+    } catch {
+      bookId = undefined
+    }
+  }
   const snapshot = {
     reader: reference(reader.readerId),
     readerName: reader.displayName,

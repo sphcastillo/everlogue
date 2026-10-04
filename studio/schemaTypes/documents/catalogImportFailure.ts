@@ -7,7 +7,7 @@ export const catalogImportFailure = defineType({
   type: 'document',
   icon: ErrorOutlineIcon,
   readOnly: true,
-  description: 'A Goodreads import row that did not save to a reader’s library. The linked catalog book is the document to edit and publish.',
+  description: 'A Goodreads import that did not land on the reader’s shelf. Catalog book is filled when this is a title we already have — use that book instead of creating another.',
   fields: [
     defineField({
       name: 'reader',
@@ -22,7 +22,7 @@ export const catalogImportFailure = defineType({
       title: 'Catalog book',
       type: 'reference',
       to: [{type: 'book'}],
-      description: 'Set when a catalog record already exists or was created before the library write failed.',
+      description: 'Filled when this request is a book already in the Everlogue catalog. That existing book replaces the incoming request.',
     }),
     defineField({name: 'title', type: 'string', validation: (rule) => rule.required()}),
     defineField({name: 'author', type: 'string', validation: (rule) => rule.required()}),
@@ -62,13 +62,15 @@ export const catalogImportFailure = defineType({
       readerName: 'readerName',
       rating: 'rating',
       shelfStatus: 'shelfStatus',
+      catalogTitle: 'book.title',
     },
-    prepare({title, author, readerName, rating, shelfStatus}) {
+    prepare({title, author, readerName, rating, shelfStatus, catalogTitle}) {
       const shelf =
         shelfStatus === 'finished' ? 'Read' : shelfStatus === 'currentlyReading' ? 'Currently reading' : shelfStatus === 'wantToRead' ? 'Want to read' : 'Shelf unknown'
+      const match = catalogTitle ? `Already in catalog: ${catalogTitle}` : 'New book request'
       return {
         title: title || 'Untitled import',
-        subtitle: [author, readerName, rating ? `${rating}★` : 'Unrated', shelf].filter(Boolean).join(' · '),
+        subtitle: [match, author, readerName, rating ? `${rating}★` : 'Unrated', shelf].filter(Boolean).join(' · '),
       }
     },
   },

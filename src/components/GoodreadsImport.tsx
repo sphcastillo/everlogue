@@ -6,7 +6,7 @@ import {getReaderLibraryIndex, importGoodreadsBatch} from '@/lib/goodreads-actio
 import {IMPORT_BATCH_SIZE, MAX_CSV_BYTES, parseGoodreadsCsv, SHELF_LABELS, type GoodreadsBook, type GoodreadsPreview} from '@/lib/goodreads-csv'
 import {libraryIndexFromKeys, partitionGoodreadsBooks} from '@/lib/goodreads-library'
 import type {ImportResult} from '@/lib/goodreads-import'
-import {importReportNews} from '@/lib/goodreads-report'
+import {importReportNews, importRetriesExhausted, LIBRARIAN_HANDOFF} from '@/lib/goodreads-report'
 
 function skippedOwned(book: {row: number; title: string}): ImportResult {
   return {
@@ -28,6 +28,7 @@ export function GoodreadsImport() {
   const [complete, setComplete] = useState(false)
   const [retryingRow, setRetryingRow] = useState<number | null>(null)
   const [libraryKeys, setLibraryKeys] = useState<string[] | null>(null)
+  const [retryAttempts, setRetryAttempts] = useState<Record<number, number>>({})
   const running = useRef(false)
   const selection = useRef(0)
   const dragDepth = useRef(0)
@@ -37,7 +38,7 @@ export function GoodreadsImport() {
   async function selectFile(file?: File) {
     if (!file || uploadDisabled || running.current) return
     const version = ++selection.current
-    setPreview(null); setResults([]); setError(''); setComplete(false); setLibraryKeys(null)
+    setPreview(null); setResults([]); setError(''); setComplete(false); setLibraryKeys(null); setRetryAttempts({})
     setFileName(file?.name || '')
     setReading(true)
     try {
@@ -76,7 +77,7 @@ export function GoodreadsImport() {
   async function startImport() {
     if (!preview || running.current) return
     running.current = true
-    setBusy(true); setError(''); setComplete(false); setResults([])
+    setBusy(true); setError(''); setComplete(false); setResults([]); setRetryAttempts({})
     try {
       const keys = libraryKeys ?? (await getReaderLibraryIndex()).keys
       const {owned, missing} = partitionGoodreadsBooks(preview.books, libraryIndexFromKeys(keys))
@@ -96,15 +97,18 @@ export function GoodreadsImport() {
 
   async function retryBook(book: NonNullable<GoodreadsPreview['books']>[number]) {
     if (uploadDisabled || running.current || retryingRow !== null) return
+    if (importRetriesExhausted(retryAttempts[book.row] ?? 0)) return
     setRetryingRow(book.row)
     setError('')
     try {
       const [result] = await importGoodreadsBatch([book])
+      setRetryAttempts((previous) => ({...previous, [book.row]: (previous[book.row] ?? 0) + 1}))
       setResults((previous) => {
         const next = previous.filter((item) => item.row !== book.row)
         return [...next, result]
       })
     } catch {
+      setRetryAttempts((previous) => ({...previous, [book.row]: (previous[book.row] ?? 0) + 1}))
       setError('This title could not be retried. Check your connection and sign-in, then try again.')
     } finally {
       setRetryingRow(null)
@@ -217,6 +221,7 @@ export function GoodreadsImport() {
               preview={preview}
               busy={busy}
               retryingRow={retryingRow}
+              retryAttempts={retryAttempts}
               onRetry={retryBook}
             />
           ) : failed.length ? (
@@ -225,6 +230,7 @@ export function GoodreadsImport() {
               preview={preview}
               busy={busy}
               retryingRow={retryingRow}
+              retryAttempts={retryAttempts}
               onRetry={retryBook}
             />
           ) : null}
@@ -249,6 +255,7 @@ function ImportReport({
   preview,
   busy,
   retryingRow,
+  retryAttempts,
   onRetry,
 }: {
   reportRef: RefObject<HTMLElement | null>
@@ -261,6 +268,7 @@ function ImportReport({
   preview: GoodreadsPreview
   busy: boolean
   retryingRow: number | null
+  retryAttempts: Record<number, number>
   onRetry: (book: GoodreadsBook) => void
 }) {
   return (
@@ -312,11 +320,18 @@ function ImportReport({
             preview={preview}
             busy={busy}
             retryingRow={retryingRow}
+            retryAttempts={retryAttempts}
             onRetry={onRetry}
           />
-          <p className="mt-4 max-w-xl text-sm leading-6 text-muted">
-            If a title still won’t load, Everlogue will take care of it. You’ll see it in the catalog shortly — no need to keep retrying.
-          </p>
+          {failed.some((item) => importRetriesExhausted(retryAttempts[item.row] ?? 0)) ? (
+            <p className="mt-4 max-w-xl text-sm leading-6 text-muted">
+              The Everlogue librarian will take care of any title that still won’t load. It will be added to your shelf in the next 1–2 days.
+            </p>
+          ) : (
+            <p className="mt-4 max-w-xl text-sm leading-6 text-muted">
+              You can retry a title twice. If it still won’t load, the Everlogue librarian will take it from here and add it to your shelf in the next 1–2 days.
+            </p>
+          )}
         </div>
       ) : null}
       <div className="mt-6 flex flex-wrap gap-3">
@@ -331,36 +346,47 @@ function FailedTitles({
   preview,
   busy,
   retryingRow,
+  retryAttempts,
   onRetry,
 }: {
   failed: ImportResult[]
   preview: GoodreadsPreview
   busy: boolean
   retryingRow: number | null
+  retryAttempts: Record<number, number>
   onRetry: (book: GoodreadsBook) => void
 }) {
+  const canRetryAny = failed.some((item) => !importRetriesExhausted(retryAttempts[item.row] ?? 0))
   return (
     <div>
       <h4 className="font-semibold">Couldn’t add ({failed.length})</h4>
-      <p className="mt-1 text-sm text-muted">Retry a title on its own. Books that already saved stay on your shelves.</p>
+      <p className="mt-1 text-sm text-muted">
+        {canRetryAny
+          ? 'Retry a title up to two times. Books that already saved stay on your shelves.'
+          : 'These titles are with the Everlogue librarian now. They’ll be added to your shelf in the next 1–2 days.'}
+      </p>
       <ul className="mt-3 divide-y divide-(--line) border-y border-(--line)">
         {failed.map((item) => {
           const book = preview.books.find((entry) => entry.row === item.row)
+          const handedOff = importRetriesExhausted(retryAttempts[item.row] ?? 0)
           return (
             <li key={item.row} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="font-medium">{item.title}</p>
                 {book?.author ? <p className="mt-1 text-sm text-muted">{book.author}</p> : null}
-                {item.message ? <p className="mt-1 text-sm text-muted">{item.message}</p> : null}
+                {item.message && !handedOff ? <p className="mt-1 text-sm text-muted">{item.message}</p> : null}
+                {handedOff ? <p className="mt-1 text-sm text-muted">{LIBRARIAN_HANDOFF}</p> : null}
               </div>
-              <button
-                type="button"
-                className="pill rounded-sm! px-4 py-2 text-sm disabled:opacity-60"
-                disabled={!book || retryingRow !== null || busy}
-                onClick={() => book && onRetry(book)}
-              >
-                {retryingRow === item.row ? 'Retrying…' : 'Retry'}
-              </button>
+              {handedOff ? null : (
+                <button
+                  type="button"
+                  className="pill rounded-sm! px-4 py-2 text-sm disabled:opacity-60"
+                  disabled={!book || retryingRow !== null || busy}
+                  onClick={() => book && onRetry(book)}
+                >
+                  {retryingRow === item.row ? 'Retrying…' : 'Retry'}
+                </button>
+              )}
             </li>
           )
         })}

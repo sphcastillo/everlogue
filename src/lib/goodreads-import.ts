@@ -1,5 +1,6 @@
 import type {SanityClient} from '@sanity/client'
 import type {GoodreadsBook} from './goodreads-csv'
+import {lookupCatalogBook} from './catalog-book-match'
 import {catalogImportKey} from './catalog-import-failure'
 import {slugify, stableId} from './validation'
 import {ensureImportEdition} from './import-edition'
@@ -22,6 +23,8 @@ export async function ensureGoodreadsCatalogBook(client: SanityClient, book: Goo
   const find = () => client.fetch<string | null>(query, params, {cache: 'no-store'})
   const existing = await find()
   if (existing) return existing
+  const matched = await lookupCatalogBook(client, book)
+  if (matched) return matched._id
 
   let authorId = await client.fetch<string | null>(
     `*[_type == "author" && !(_id in path("drafts.**")) && lower(name) == $name][0]._id`,

@@ -23,6 +23,12 @@ function database(initial: Record<string, unknown>[] = []) {
   const docs = new Map<string, Record<string, unknown>>(initial.map((doc) => [String(doc._id), {...doc}]))
   const client = {
     async fetch(query: string, params: Record<string, string>) {
+      if (query.includes('$bareTitle')) {
+        return [...docs.values()].filter((doc) => doc._type === 'book' && (
+          String(doc.title).toLowerCase() === params.title ||
+          String(doc.title).toLowerCase() === params.bareTitle
+        ))
+      }
       if (query.includes('_type == "book" && importKey')) {
         return [...docs.values()].find((doc) => doc._type === 'book' && doc.importKey === params.importKey)?._id || null
       }
@@ -101,6 +107,14 @@ test('failed imports are stored with the reader and book details', async () => {
   assert.equal(doc.shelfStatus, 'finished')
   assert.equal(doc.retryCount, 1)
   assert.equal(doc.resolvedAt, undefined)
+})
+
+test('a failed import is linked to a catalog book we already have', async () => {
+  const {client, docs} = database([
+    {_id: 'book-1', _type: 'book', title: 'Failed Title', authors: ['Failed Author']},
+  ])
+  await reportCatalogImportFailure(client, {readerId: 'reader-1', displayName: 'Ada'}, book, new Error('Network failure'))
+  assert.equal((docs.get(catalogImportFailureId('reader-1', book))?.book as {_ref: string})._ref, 'book-1')
 })
 
 test('failed imports attach the waiting reader to the catalog book', async () => {

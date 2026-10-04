@@ -97,3 +97,60 @@ export async function placePendingGoodreadsImports(client: SanityClient, bookId:
   await client.patch(id).unset(['pendingImportPlacements']).commit()
   return {placed: placements.length}
 }
+
+export async function placeCatalogImportFailure(client: SanityClient, failureId: string) {
+  const failure = await client.fetch<{
+    _id: string
+    title?: string | null
+    author?: string | null
+    reader?: {_ref?: string} | null
+    book?: {_ref?: string} | null
+    shelfStatus?: Placement['shelfStatus']
+    rating?: number
+    addedAt?: string
+    finishedAt?: string
+    readCount?: number
+    resolvedAt?: string | null
+  } | null>(
+    `*[_id == $id][0]{_id, title, author, reader, book, shelfStatus, rating, addedAt, finishedAt, readCount, resolvedAt}`,
+    {id: failureId.replace(/^drafts\./, '')},
+    {cache: 'no-store'},
+  )
+  if (!failure?.reader?._ref) throw new Error('This import request is missing a reader.')
+  if (!failure.book?._ref) throw new Error('Link the existing catalog book before adding it to the reader’s shelf.')
+  if (!failure.shelfStatus) throw new Error('This import request is missing a shelf.')
+
+  const bookId = failure.book._ref
+  const readerId = failure.reader._ref
+  const alreadyOnShelf = await client.fetch<boolean>(
+    `count(*[_type == "shelfEntry" && book._ref == $bookId && shelf->owner._ref == $readerId && shelf->kind in ["finished", "currentlyReading", "wantToRead"]]) > 0`,
+    {bookId, readerId},
+    {cache: 'no-store'},
+  )
+  if (!alreadyOnShelf) {
+    const shelfId = stableId(['shelf', readerId, failure.shelfStatus])
+    await client
+      .transaction()
+      .createIfNotExists({
+        _id: stableId(['progress', readerId, bookId]),
+        _type: 'readingProgress',
+        reader: reference(readerId),
+        book: reference(bookId),
+        status: failure.shelfStatus,
+        importSource: 'goodreads',
+        ...(failure.finishedAt ? {finishedAt: failure.finishedAt} : {}),
+        ...(failure.readCount !== undefined ? {readCount: failure.readCount} : {}),
+      })
+      .createIfNotExists({
+        _id: stableId(['shelfEntry', shelfId, bookId]),
+        _type: 'shelfEntry',
+        shelf: reference(shelfId),
+        book: reference(bookId),
+        addedAt: failure.addedAt ? `${failure.addedAt}T00:00:00.000Z` : new Date().toISOString(),
+      })
+      .commit({visibility: 'sync'})
+    await importMissingRating(client, readerId, bookId, failure.rating)
+  }
+  await client.patch(failure._id).set({resolvedAt: new Date().toISOString()}).commit()
+  return {placed: alreadyOnShelf ? 0 : 1, bookId}
+}

@@ -3,8 +3,6 @@ export const PENDING_CATALOG_REVIEW =
 
 export const FROM_READER_SEARCH = 'catalogSource == "readerSearch"'
 
-export const FAILED_IMPORT_BOOKS = 'count(pendingImportPlacements) > 0'
-
 export const FROM_GOODREADS =
   '(catalogSource == "goodreadsImport" || (!defined(catalogSource) && defined(importKey)))'
 

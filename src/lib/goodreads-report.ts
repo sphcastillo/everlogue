@@ -1,3 +1,12 @@
+export const IMPORT_TITLE_RETRIES = 2
+
+export const LIBRARIAN_HANDOFF =
+  'The Everlogue librarian will take care of this one. It will be added to your shelf in the next 1–2 days.'
+
+export function importRetriesExhausted(retries: number) {
+  return retries >= IMPORT_TITLE_RETRIES
+}
+
 export type ImportReportCounts = {
   imported: number
   updated: number

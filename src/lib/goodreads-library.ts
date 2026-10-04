@@ -1,11 +1,10 @@
 import type {GoodreadsBook} from './goodreads-csv'
+import {catalogWorkKey} from './catalog-book-match'
 
 export type LibraryIndexEntry = {bookId: string; hasRating: boolean}
 
 export function libraryTitleKey(title: string, author?: string | null) {
-  const normalizedTitle = title.trim().toLowerCase()
-  const normalizedAuthor = author?.trim().toLowerCase()
-  return normalizedAuthor ? `${normalizedTitle}|${normalizedAuthor}` : `title:${normalizedTitle}`
+  return catalogWorkKey(title, author)
 }
 
 export function libraryBookKeys(book: Pick<GoodreadsBook, 'title' | 'author' | 'goodreadsId' | 'isbn10' | 'isbn13'>) {

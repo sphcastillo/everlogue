@@ -14,6 +14,12 @@ function database(initial: Doc[] = []) {
   const client = {
     async fetch(query: string, params: Record<string, string>) {
       const all = [...docs.values()]
+      if (query.includes('$bareTitle')) {
+        return all.filter((doc) => doc._type === 'book' && (
+          String(doc.title).toLowerCase() === params.title ||
+          String(doc.title).toLowerCase() === params.bareTitle
+        ))
+      }
       if (query.startsWith('coalesce')) return all.find((doc) => doc._type === 'book' && (doc.importKey === params.importKey || String(doc.title).toLowerCase() === params.title))?._id || null
       if (query.includes('_type == "author"')) return all.find((doc) => doc._type === 'author')?._id || null
       if (query.includes('_type == "rating"')) {
@@ -80,6 +86,20 @@ test('reimport fills a missing rating without changing the existing shelf or dat
   assert.equal((docs.get('existing-book')?.ratingStats as {average: number}).average, 4)
   assert.equal((await importGoodreadsBook(client, 'reader', {...book, rating: 5})).status, 'skipped')
   assert.equal(docs.get('rating-reader-existing-book')?.value, 4)
+})
+
+test('an existing catalog book is reused when the Goodreads title has a series suffix', async () => {
+  const {client, docs} = database([
+    {_id: 'existing-book', _type: 'book', title: 'The Last Thing He Told Me', authors: ['Laura Dave']},
+  ])
+  const result = await importGoodreadsBook(client, 'reader', {
+    ...book,
+    title: 'The Last Thing He Told Me (Hannah Hall, #1)',
+    author: 'Laura Dave',
+  })
+  assert.equal(result.status, 'imported')
+  assert.equal([...docs.values()].filter((doc) => doc._type === 'book').length, 1)
+  assert.equal(docs.get('existing-book')?.catalogReviewStatus, undefined)
 })
 
 test('a pre-existing catalog book is reused and is not queued for review', async () => {
