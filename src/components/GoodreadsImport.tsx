@@ -2,9 +2,19 @@
 
 import Link from 'next/link'
 import {useRef, useState, type DragEvent} from 'react'
-import {importGoodreadsBatch} from '@/lib/goodreads-actions'
+import {getReaderLibraryIndex, importGoodreadsBatch} from '@/lib/goodreads-actions'
 import {IMPORT_BATCH_SIZE, MAX_CSV_BYTES, parseGoodreadsCsv, SHELF_LABELS, type GoodreadsPreview} from '@/lib/goodreads-csv'
+import {libraryIndexFromKeys, partitionGoodreadsBooks} from '@/lib/goodreads-library'
 import type {ImportResult} from '@/lib/goodreads-import'
+
+function skippedOwned(book: {row: number; title: string}): ImportResult {
+  return {
+    row: book.row,
+    title: book.title,
+    status: 'skipped',
+    message: 'Already in your library; kept your existing shelf, dates, and rating.',
+  }
+}
 
 export function GoodreadsImport() {
   const [preview, setPreview] = useState<GoodreadsPreview | null>(null)
@@ -15,6 +25,8 @@ export function GoodreadsImport() {
   const [dragging, setDragging] = useState(false)
   const [results, setResults] = useState<ImportResult[]>([])
   const [complete, setComplete] = useState(false)
+  const [retryingRow, setRetryingRow] = useState<number | null>(null)
+  const [libraryKeys, setLibraryKeys] = useState<string[] | null>(null)
   const running = useRef(false)
   const selection = useRef(0)
   const dragDepth = useRef(0)
@@ -23,7 +35,7 @@ export function GoodreadsImport() {
   async function selectFile(file?: File) {
     if (!file || uploadDisabled || running.current) return
     const version = ++selection.current
-    setPreview(null); setResults([]); setError(''); setComplete(false)
+    setPreview(null); setResults([]); setError(''); setComplete(false); setLibraryKeys(null)
     setFileName(file?.name || '')
     setReading(true)
     try {
@@ -31,7 +43,15 @@ export function GoodreadsImport() {
       if (file.size > MAX_CSV_BYTES) throw new Error('Please upload a CSV smaller than 10 MB.')
       const text = await file.text()
       if (version !== selection.current) return
-      setPreview(parseGoodreadsCsv(text))
+      const nextPreview = parseGoodreadsCsv(text)
+      setPreview(nextPreview)
+      try {
+        const {keys} = await getReaderLibraryIndex()
+        if (version !== selection.current) return
+        setLibraryKeys(keys)
+      } catch {
+        if (version === selection.current) setLibraryKeys(null)
+      }
     } catch (error) {
       if (version === selection.current) setError((error as Error).message)
     } finally {
@@ -56,16 +76,36 @@ export function GoodreadsImport() {
     running.current = true
     setBusy(true); setError(''); setComplete(false); setResults([])
     try {
-      for (let offset = 0; offset < preview.books.length; offset += IMPORT_BATCH_SIZE) {
-        const batch = await importGoodreadsBatch(preview.books.slice(offset, offset + IMPORT_BATCH_SIZE))
+      const keys = libraryKeys ?? (await getReaderLibraryIndex()).keys
+      const {owned, missing} = partitionGoodreadsBooks(preview.books, libraryIndexFromKeys(keys))
+      setResults(owned.map(skippedOwned))
+      for (let offset = 0; offset < missing.length; offset += IMPORT_BATCH_SIZE) {
+        const batch = await importGoodreadsBatch(missing.slice(offset, offset + IMPORT_BATCH_SIZE))
         setResults((previous) => [...previous, ...batch])
       }
       setComplete(true)
     } catch {
-      setError('The import was interrupted. Books already saved are safe. Check your connection and sign-in, then retry; existing books will be skipped.')
+      setError('The import was interrupted. Books already saved are safe. Check your connection and sign-in, then retry the titles that failed.')
     } finally {
       running.current = false
       setBusy(false)
+    }
+  }
+
+  async function retryBook(book: NonNullable<GoodreadsPreview['books']>[number]) {
+    if (uploadDisabled || running.current || retryingRow !== null) return
+    setRetryingRow(book.row)
+    setError('')
+    try {
+      const [result] = await importGoodreadsBatch([book])
+      setResults((previous) => {
+        const next = previous.filter((item) => item.row !== book.row)
+        return [...next, result]
+      })
+    } catch {
+      setError('This title could not be retried. Check your connection and sign-in, then try again.')
+    } finally {
+      setRetryingRow(null)
     }
   }
 
@@ -73,6 +113,16 @@ export function GoodreadsImport() {
   const updated = results.filter((item) => item.status === 'updated').length
   const skipped = results.filter((item) => item.status === 'skipped').length
   const failed = results.filter((item) => item.status === 'failed')
+  const review = preview && libraryKeys
+    ? partitionGoodreadsBooks(preview.books, libraryIndexFromKeys(libraryKeys))
+    : null
+  const importLabel = review
+    ? review.missing.length
+      ? `Import ${review.missing.length} missing ${review.missing.length === 1 ? 'book' : 'books'}`
+      : 'These titles are already on your shelves'
+    : preview
+      ? `Import ${preview.books.length} books`
+      : 'Import books'
 
   return (
     <section className="surface mt-8 p-6 sm:p-8" aria-labelledby="goodreads-heading">
@@ -127,19 +177,19 @@ export function GoodreadsImport() {
         <label htmlFor="goodreads-csv" className="pill mt-4 inline-flex cursor-pointer rounded-sm! px-4 py-2 text-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed">Choose CSV file</label>
         {fileName ? <p className="mt-3 wrap-break-word text-sm text-muted" role="status">Selected file: {fileName}</p> : null}
       </div>
-      <p className="mt-4 text-xs leading-5 text-muted">Includes your ratings, shelf status, date added, date read, and read count when available. Re-uploading fills missing ratings while keeping existing ratings, shelves, and dates. A Goodreads rating of 0 means unrated. Reviews, custom shelves, and individual reread dates are not imported.</p>
-      {reading ? <p role="status" className="mt-4 text-sm">Reading your CSV…</p> : null}
+      <p className="mt-4 text-xs leading-5 text-muted">Includes your ratings, shelf status, date added, date read, and read count when available. Uploading the same CSV again checks titles already on your shelves and only adds the missing ones. Existing ratings, shelves, and dates stay as they are. A Goodreads rating of 0 means unrated. Reviews, custom shelves, and individual reread dates are not imported.</p>
+      {reading ? <p role="status" className="mt-4 text-sm">{preview ? 'Checking titles already on your shelves…' : 'Reading your CSV…'}</p> : null}
       {error ? <p role="alert" className="mt-4 text-sm text-red-700">{error}</p> : null}
       {preview ? (
         <div className="mt-6 border-t pt-6">
           <h3 className="font-semibold">{complete ? 'Import complete' : 'Review your import'}</h3>
-          <p className="mt-1 wrap-break-word text-sm text-muted">{fileName} · {preview.total} rows · {preview.books.length} ready to import · {preview.books.filter((book) => book.rating !== undefined).length} with ratings · {preview.issues.length} skipped in preview</p>
+          <p className="mt-1 wrap-break-word text-sm text-muted">{fileName} · {preview.total} rows · {preview.books.length} in the file · {review ? `${review.missing.length} not on your shelves yet · ${review.owned.length} already in your library` : 'checking your shelves'} · {preview.books.filter((book) => book.rating !== undefined).length} with ratings · {preview.issues.length} skipped in preview</p>
           {preview.issues.length ? (
             <details className="mt-3 text-sm"><summary className="cursor-pointer">Review skipped rows ({preview.issues.length})</summary>
               <ul className="mt-2 max-h-60 space-y-2 overflow-auto text-muted">{preview.issues.map((issue) => <li key={issue.row}>Row {issue.row}: {issue.title || 'Untitled'} — {issue.message}</li>)}</ul>
             </details>
           ) : null}
-          {preview.books.length > 0 && !complete ? <button type="button" className="pill is-active mt-5 px-5 py-2.5 text-sm disabled:opacity-60" disabled={busy} onClick={startImport}>{busy ? 'Importing…' : results.length ? 'Retry import' : `Import ${preview.books.length} books`}</button> : null}
+          {preview.books.length > 0 && !complete ? <button type="button" className="pill is-active mt-5 px-5 py-2.5 text-sm disabled:opacity-60" disabled={busy || retryingRow !== null || reading} onClick={startImport}>{busy ? 'Importing…' : results.length ? 'Retry import' : importLabel}</button> : null}
           {busy || results.length > 0 ? (
             <div className="mt-5" role="status" aria-live="polite">
               <progress className="h-2 w-full accent-[var(--accent)]" value={results.length} max={preview.books.length} aria-label="Books processed" />
@@ -147,8 +197,34 @@ export function GoodreadsImport() {
               {busy ? <p className="mt-1 text-xs text-muted">Keep this page open until the import finishes.</p> : null}
             </div>
           ) : null}
-          {failed.length ? <details className="mt-3 text-sm"><summary className="cursor-pointer">Review failed books ({failed.length})</summary><ul className="mt-2 max-h-60 space-y-2 overflow-auto text-muted">{failed.map((item) => <li key={item.row}>{item.title} — {item.message}</li>)}</ul></details> : null}
-          {complete ? <div className="mt-5 flex flex-wrap gap-3"><Link href="/my-books" className="pill is-active px-5 py-2.5 text-sm">View My Books</Link>{failed.length ? <button type="button" onClick={startImport} className="pill px-5 py-2.5 text-sm">Retry import</button> : null}</div> : null}
+          {failed.length ? (
+            <div className="mt-5">
+              <h4 className="font-semibold">Failed to upload ({failed.length})</h4>
+              <p className="mt-1 text-sm text-muted">Retry each title on its own. Books that already saved stay on your shelves.</p>
+              <ul className="mt-3 divide-y divide-(--line) border-y border-(--line)">
+                {failed.map((item) => {
+                  const book = preview.books.find((entry) => entry.row === item.row)
+                  return (
+                    <li key={item.row} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">{item.title}</p>
+                        {item.message ? <p className="mt-1 text-sm text-muted">{item.message}</p> : null}
+                      </div>
+                      <button
+                        type="button"
+                        className="pill rounded-sm! px-4 py-2 text-sm disabled:opacity-60"
+                        disabled={!book || retryingRow !== null || busy}
+                        onClick={() => book && void retryBook(book)}
+                      >
+                        {retryingRow === item.row ? 'Retrying…' : 'Retry'}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ) : null}
+          {complete ? <div className="mt-5 flex flex-wrap gap-3"><Link href="/my-books" className="pill is-active px-5 py-2.5 text-sm">View My Books</Link></div> : null}
         </div>
       ) : null}
     </section>

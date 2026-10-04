@@ -1,8 +1,9 @@
 import {getOptionalReader} from '@/lib/reader'
 import {privateClient, noStore} from '@/sanity/client'
 import {fetchCatalog} from '@/sanity/fetch'
-import {FOR_YOU_BOOKS_QUERY, SHELF_PICKS_QUERY} from '@/sanity/queries'
+import {FOR_YOU_BOOKS_QUERY, SHELF_PICK_GENRES, SHELF_PICKS_QUERY} from '@/sanity/queries'
 import {hasManualCover} from '@/lib/book-covers'
+import {rankForYouBooks, type ForYouTaste} from '@/lib/for-you-picks'
 import {loadHomeShelfData} from '@/lib/home-shelf-data'
 import {ReaderSetupRecovery} from './ReaderSetupRecovery'
 import {HomePickUpForShelfPicks, type ShelfPickBook, type ShelfPickTab} from './HomePickUpForShelfPicks'
@@ -24,31 +25,61 @@ export default async function HomePickUpForShelf() {
       strange: ShelfPickBook[] | null
       feelings: ShelfPickBook[] | null
       short: ShelfPickBook[] | null
-      latest: ShelfPickBook[] | null
-    }>(SHELF_PICKS_QUERY),
-    reader => privateClient.fetch<ShelfPickBook[]>(FOR_YOU_BOOKS_QUERY, {readerId: reader.readerId}, noStore),
+    }>(SHELF_PICKS_QUERY, {
+      strangeGenres: SHELF_PICK_GENRES.strange,
+      feelingsGenres: SHELF_PICK_GENRES.feelings,
+      shortGenres: SHELF_PICK_GENRES.short,
+    }),
+    reader => privateClient.fetch<{
+      books: ShelfPickBook[] | null
+      hasLibrary: boolean
+      taste?: ForYouTaste | null
+    }>(
+      FOR_YOU_BOOKS_QUERY,
+      {readerId: reader.readerId},
+      noStore,
+    ).then((personal) => ({
+      books: rankForYouBooks(validBooks(personal.books), personal.taste ?? {}),
+      hasLibrary: personal.hasLibrary,
+    })),
   ).catch(error => {
     if (error instanceof ReaderUnavailableError) return null
     throw error
   })
 
   if (!data) return <ReaderSetupRecovery />
-  const {reader, picks, books} = data
+  const {reader, picks, books, hasLibrary} = data
 
-  const latest = validBooks(picks.latest)
   const publicTabs: ShelfPickTab[] = PUBLIC_TABS.map((tab) => {
-    const fromCollection = validBooks(
-      picks.collections?.find((collection) => collection.slug === tab.slug)?.books,
+    const eligible = (items?: ShelfPickBook[] | null) =>
+      validBooks(items).filter((book) =>
+        tab.source !== 'short' ||
+        (
+          typeof book.pageCount === 'number' &&
+          book.pageCount > 0 &&
+          book.pageCount <= 250
+        ),
+      )
+
+    const fromCollection = eligible(
+      picks.collections?.find(
+        (collection) => collection.slug === tab.slug,
+      )?.books,
     )
-    const fromFilter = validBooks(picks[tab.source])
-    const books = uniqueTake(fromCollection.length ? fromCollection : fromFilter, latest)
-    return {id: tab.id, label: tab.label, books}
+
+    const fromFilter = eligible(picks[tab.source])
+
+    return {
+      id: tab.id,
+      label: tab.label,
+      books: uniqueTake(fromCollection, fromFilter),
+    }
   })
 
-  const forYou = validBooks(books)
+  const forYou = books
 
   const visiblePublic = publicTabs.filter((tab) => tab.books.length)
-  const tabs: ShelfPickTab[] = reader
+  const tabs: ShelfPickTab[] = hasLibrary
     ? [{id: 'forYou', label: 'For you', books: forYou}, ...visiblePublic]
     : visiblePublic
 

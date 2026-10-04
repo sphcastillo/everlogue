@@ -19,7 +19,7 @@ test('public catalog starts before reader setup finishes; personal picks do not 
     async session => {
       calls.push(`personal:${session.readerId}`)
       personalStarted.resolve()
-      return ['personal-book']
+      return {books: ['personal-book'], hasLibrary: true}
     },
   )
   assert.deepEqual(calls, ['catalog', 'reader'])
@@ -27,7 +27,12 @@ test('public catalog starts before reader setup finishes; personal picks do not 
   await personalStarted.promise
   assert.ok(calls.includes('personal:authenticated-reader'))
   catalog.resolve(['catalog-book'])
-  assert.deepEqual(await result, {reader: {readerId: 'authenticated-reader'}, picks: ['catalog-book'], books: ['personal-book']})
+  assert.deepEqual(await result, {
+    reader: {readerId: 'authenticated-reader'},
+    picks: ['catalog-book'],
+    books: ['personal-book'],
+    hasLibrary: true,
+  })
 })
 
 test('guests never run a personal query and each request loads fresh data', async () => {
@@ -37,8 +42,8 @@ test('guests never run a personal query and each request loads fresh data', asyn
     async () => ++catalogReads,
     async () => { throw new Error('Guest must not query private shelves') },
   )
-  assert.deepEqual(await load(), {picks: 1, reader: null, books: []})
-  assert.deepEqual(await load(), {picks: 2, reader: null, books: []})
+  assert.deepEqual(await load(), {picks: 1, reader: null, books: [], hasLibrary: false})
+  assert.deepEqual(await load(), {picks: 2, reader: null, books: [], hasLibrary: false})
 })
 
 test('failed reader setup is not silently treated as an empty personal library', async () => {

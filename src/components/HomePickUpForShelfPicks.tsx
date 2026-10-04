@@ -6,7 +6,12 @@ import type {BookCardData} from './BookCard'
 import {BookCover} from './BookCover'
 
 export type ShelfPickBook = BookCardData & {
-  genres?: {_id?: string; title?: string | null; slug?: string | null}[] | null
+  pageCount?: number | null
+  genres?: {
+    _id?: string
+    title?: string | null
+    slug?: string | null
+  }[] | null
 }
 
 export type ShelfPickTab = {

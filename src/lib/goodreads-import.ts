@@ -1,6 +1,6 @@
-import {createHash} from 'node:crypto'
 import type {SanityClient} from '@sanity/client'
 import type {GoodreadsBook} from './goodreads-csv'
+import {catalogImportKey} from './catalog-import-failure'
 import {slugify, stableId} from './validation'
 import {ensureImportEdition} from './import-edition'
 import {isbn13For, type EditionInput, type EditionMetadata} from './edition-metadata'
@@ -11,7 +11,7 @@ const isConflict = (error: unknown) => Boolean(error && typeof error === 'object
 export type ImportResult = {row: number; title: string; status: 'imported' | 'updated' | 'skipped' | 'failed'; message?: string}
 
 async function resolveBook(client: SanityClient, book: GoodreadsBook) {
-  const importKey = createHash('sha256').update(`${book.title.toLowerCase()}\n${book.author.toLowerCase()}`).digest('hex')
+  const importKey = catalogImportKey(book)
   const params = {importKey, goodreadsId: book.goodreadsId || '', isbn10: book.isbn10 || '', isbn13: book.isbn13 || (book.isbn10 ? isbn13For(book.isbn10) : ''), title: book.title.toLowerCase(), author: book.author.toLowerCase()}
   const query = `coalesce(
     *[_type == "book" && !(_id in path("drafts.**")) && (importKey == $importKey || (defined(goodreadsBookId) && goodreadsBookId == $goodreadsId))][0]._id,

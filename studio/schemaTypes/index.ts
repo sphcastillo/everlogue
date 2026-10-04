@@ -1,6 +1,7 @@
 import {bookClubDiscovery} from './documents/bookClubDiscovery'
 import {bookClubWatchRun} from './documents/bookClubWatchRun'
 import {author} from './documents/author'
+import {catalogImportFailure} from './documents/catalogImportFailure'
 import {catalogImportIdentity} from './documents/catalogImportIdentity'
 import {book} from './documents/book'
 import {celebrityClub} from './documents/celebrityClub'
@@ -31,6 +32,7 @@ export const schemaTypes = [
   bookClubDiscovery,
   bookClubWatchRun,
   catalogImportIdentity,
+  catalogImportFailure,
   sourceProvenance,
   ratingStats,
   edition,

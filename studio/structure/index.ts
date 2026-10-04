@@ -234,6 +234,7 @@ export const structure: StructureResolver = (S, context) =>
             'sourceProvenance',
             'ratingStats',
             'catalogImportIdentity',
+            'catalogImportFailure',
           ].includes(id)
         )
       }),
@@ -260,6 +261,16 @@ export const structure: StructureResolver = (S, context) =>
                 title: 'Goodreads imports',
                 filter: `_type == "book" && ${PENDING_CATALOG_REVIEW} && ${FROM_GOODREADS}`,
               }),
+              S.listItem()
+                .id('catalog-requests-failed-imports')
+                .title('Failed to Upload Import')
+                .icon(BookIcon)
+                .child(
+                  S.documentTypeList('catalogImportFailure')
+                    .title('Failed to Upload Import')
+                    .filter('_type == "catalogImportFailure" && !defined(resolvedAt)')
+                    .defaultOrdering([{field: 'lastFailedAt', direction: 'desc'}]),
+                ),
               S.listItem()
                 .id('catalog-requests-book-clubs')
                 .title('Bookclub imports')
