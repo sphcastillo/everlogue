@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 const LINKS = [
+  {href: '/', label: 'Home'},
   {href: '/discover', label: 'Discover'},
   {href: '/genres', label: 'Genres'},
 ]

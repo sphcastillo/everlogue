@@ -82,6 +82,7 @@ export class CompanionUsage {
   private stages: Array<ReturnType<typeof usageNumbers> & {stage: UsageStage; _key: string}> = []
   private finished = false
   private failed = false
+  private callsStarted = 0
   constructor(private client: SanityClient, readonly id: string, private started: number) {}
 
   record(stage: UsageStage, usage: Partial<LanguageModelUsage>) {
@@ -89,6 +90,7 @@ export class CompanionUsage {
   }
 
   async measure<T extends {usage: LanguageModelUsage}>(stage: UsageStage, operation: () => Promise<T>): Promise<T> {
+    this.startCall()
     try {
       const result = await operation()
       this.record(stage, result.usage)
@@ -102,6 +104,7 @@ export class CompanionUsage {
   }
 
   markFailed() { this.failed = true }
+  startCall() { this.callsStarted++ }
 
   async finish(outcome: UsageOutcome) {
     if (this.finished) return
@@ -115,7 +118,7 @@ export class CompanionUsage {
     }), {inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0, estimatedUsd: 0})
     const summary = {...totals, status: this.failed && outcome === 'completed' ? 'failed' : outcome,
       finishedAt: new Date().toISOString(), durationMs: Date.now() - this.started,
-      modelCalls: this.stages.length, usageIncomplete: outcome !== 'completed' || this.failed || this.stages.some(step => step.usageMissing),
+      modelCalls: Math.max(this.callsStarted, this.stages.length), usageIncomplete: outcome !== 'completed' || this.failed || this.stages.some(step => step.usageMissing),
     }
     console.info('companion_usage', JSON.stringify({id: this.id, model: COMPANION_MODEL, ...summary}))
     try { await this.client.patch(this.id).set({...summary, stages: this.stages}).commit() }

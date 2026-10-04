@@ -139,6 +139,48 @@ export type Slug = {
   source?: string;
 };
 
+export type CompanionQuota = {
+  _id: string;
+  _type: "companionQuota";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  day?: string;
+  count?: number;
+  lastStartedAt?: number;
+};
+
+export type CompanionUsage = {
+  _id: string;
+  _type: "companionUsage";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  model?: string;
+  audience?: string;
+  status?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  durationMs?: number;
+  modelCalls?: number;
+  usageIncomplete?: boolean;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  reasoningTokens?: number;
+  estimatedUsd?: number;
+  stages?: Array<{
+    stage?: string;
+    inputTokens?: number;
+    cachedInputTokens?: number;
+    outputTokens?: number;
+    reasoningTokens?: number;
+    estimatedUsd?: number;
+    usageMissing?: boolean;
+    _key: string;
+  }>;
+};
+
 export type CompanionConversation = {
   _id: string;
   _type: "companionConversation";
@@ -818,6 +860,8 @@ export type AllSanitySchemaTypes =
   | ClubMembership
   | CommunityClub
   | Slug
+  | CompanionQuota
+  | CompanionUsage
   | CompanionConversation
   | EditionReference
   | ReadingProgress

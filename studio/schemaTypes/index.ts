@@ -8,6 +8,7 @@ import {celebritySelection} from './documents/celebritySelection'
 import {clubMembership} from './documents/clubMembership'
 import {communityClub} from './documents/communityClub'
 import {companionConversation} from './documents/companionConversation'
+import {companionUsage, companionQuota} from './documents/companionUsage'
 import {curatedCollection} from './documents/curatedCollection'
 import {discussionPost} from './documents/discussionPost'
 import {discussionThread} from './documents/discussionThread'
@@ -48,6 +49,8 @@ export const schemaTypes = [
   shelfEntry,
   readingProgress,
   companionConversation,
+  companionUsage,
+  companionQuota,
   communityClub,
   clubMembership,
   poll,

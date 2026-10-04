@@ -124,8 +124,8 @@ export function GoodreadsImport() {
           void selectFile(event.target.files?.[0])
           event.target.value = ''
         }} aria-describedby="csv-help" className="peer sr-only" />
-        <label htmlFor="goodreads-csv" className="pill mt-4 inline-flex cursor-pointer px-4 py-2 text-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-[var(--accent)] peer-disabled:cursor-not-allowed">Choose CSV file</label>
-        {fileName ? <p className="mt-3 break-words text-sm text-muted" role="status">Selected file: {fileName}</p> : null}
+        <label htmlFor="goodreads-csv" className="pill mt-4 inline-flex cursor-pointer rounded-sm! px-4 py-2 text-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed">Choose CSV file</label>
+        {fileName ? <p className="mt-3 wrap-break-word text-sm text-muted" role="status">Selected file: {fileName}</p> : null}
       </div>
       <p className="mt-4 text-xs leading-5 text-muted">Includes your ratings, shelf status, date added, date read, and read count when available. Re-uploading fills missing ratings while keeping existing ratings, shelves, and dates. A Goodreads rating of 0 means unrated. Reviews, custom shelves, and individual reread dates are not imported.</p>
       {reading ? <p role="status" className="mt-4 text-sm">Reading your CSV…</p> : null}
@@ -133,7 +133,7 @@ export function GoodreadsImport() {
       {preview ? (
         <div className="mt-6 border-t pt-6">
           <h3 className="font-semibold">{complete ? 'Import complete' : 'Review your import'}</h3>
-          <p className="mt-1 break-words text-sm text-muted">{fileName} · {preview.total} rows · {preview.books.length} ready to import · {preview.books.filter((book) => book.rating !== undefined).length} with ratings · {preview.issues.length} skipped in preview</p>
+          <p className="mt-1 wrap-break-word text-sm text-muted">{fileName} · {preview.total} rows · {preview.books.length} ready to import · {preview.books.filter((book) => book.rating !== undefined).length} with ratings · {preview.issues.length} skipped in preview</p>
           {preview.issues.length ? (
             <details className="mt-3 text-sm"><summary className="cursor-pointer">Review skipped rows ({preview.issues.length})</summary>
               <ul className="mt-2 max-h-60 space-y-2 overflow-auto text-muted">{preview.issues.map((issue) => <li key={issue.row}>Row {issue.row}: {issue.title || 'Untitled'} — {issue.message}</li>)}</ul>

@@ -63,7 +63,11 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({error: 'The companion is temporarily unavailable. Please try again shortly.'}, {status: 503})
   }
-  try { return await companionResponse(input.data, request.signal, shelfContext, readerId, libraryUnavailable, usage) }
+  try {
+    const response = await companionResponse(input.data, request.signal, shelfContext, readerId, libraryUnavailable, usage)
+    response.headers.set('X-Companion-Request-Id', usage.id)
+    return response
+  }
   catch {
     await usage.finish(request.signal.aborted ? 'cancelled' : 'failed')
     return NextResponse.json({error: 'The reading companion could not connect. Please try again.'}, {status: 502})

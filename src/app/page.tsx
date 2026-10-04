@@ -1,3 +1,4 @@
+import BringYourGoodReads from '@/components/BringYourGoodReads'
 import GoodTasteTravels from '@/components/GoodTasteTravels'
 import HomeCatalogGrowth from '@/components/HomeCatalogGrowth'
 import {HomeHero} from '@/components/HomeHero'
@@ -15,6 +16,7 @@ export default async function HomePage() {
       <HomePickUpForShelf />
       <GoodTasteTravels />
       <HomeCatalogGrowth />
+      <BringYourGoodReads />
     </>
   )
 }

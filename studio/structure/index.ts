@@ -30,6 +30,7 @@ export const structure: StructureResolver = (S, context) =>
   S.list()
     .title('Everlogue')
     .items([
+      S.documentTypeListItem('companionUsage').title('Companion usage'),
       S.listItem()
         .title('Site settings')
         .icon(CogIcon)
@@ -221,6 +222,8 @@ export const structure: StructureResolver = (S, context) =>
             'discussionThread',
             'readerProfile',
             'companionConversation',
+            'companionUsage',
+            'companionQuota',
             'rating',
             'review',
             'shelf',

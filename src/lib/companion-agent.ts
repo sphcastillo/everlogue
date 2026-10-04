@@ -258,12 +258,13 @@ Server-supplied library context: ${shelfContext}`,
       messages: conversation.map(message => ({role: message.role, content: message.text})),
       prepareStep: ({stepNumber, messages}) => {
         if (JSON.stringify(messages).length > 80000) throw new Error('Companion context budget exceeded')
-        return ({
-        toolChoice: stepNumber === 0
-          ? {type: 'tool', toolName: 'initial_context'}
-          : stepNumber === 1 ? 'required' : stepNumber === 5 ? 'none' : 'auto',
-        })
+        return {
+          toolChoice: stepNumber === 0
+            ? {type: 'tool', toolName: 'initial_context'}
+            : stepNumber === 1 ? 'required' : stepNumber === 5 ? 'none' : 'auto',
+        }
       },
+      onLanguageModelCallStart: () => { usage.startCall() },
       onStepEnd: ({usage: stepUsage}) => { usage.record('context', stepUsage) },
       onError: () => { usage.markFailed() },
     })
