@@ -139,6 +139,24 @@ export type Slug = {
   source?: string;
 };
 
+export type CompanionConversation = {
+  _id: string;
+  _type: "companionConversation";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  reader: ReaderProfileReference;
+  messages?: Array<{
+    role: "user" | "assistant";
+    text: string;
+    createdAt?: string;
+    _type: "companionMessage";
+    _key: string;
+  }>;
+  hiddenRecommendationIds?: Array<string>;
+  updatedAt?: string;
+};
+
 export type EditionReference = {
   _ref: string;
   _type: "reference";
@@ -800,6 +818,7 @@ export type AllSanitySchemaTypes =
   | ClubMembership
   | CommunityClub
   | Slug
+  | CompanionConversation
   | EditionReference
   | ReadingProgress
   | ShelfReference
@@ -837,6 +856,31 @@ export type AllSanitySchemaTypes =
   | SanityAssetSourceData
   | SanityImageAsset
   | Geopoint;
+
+// Source: ../src/lib/companion-history.ts
+// Variable: COMPANION_HISTORY_QUERY
+// Query: *[  _id == $documentId &&  _type == "companionConversation" &&  reader._ref == $readerId][0]{  "messages": coalesce(messages[]{_key, role, text, createdAt}, []),  "updatedAt": coalesce(updatedAt, _updatedAt),  "hiddenRecommendationIds": coalesce(hiddenRecommendationIds, [])}
+export type COMPANION_HISTORY_QUERY_RESULT = {
+  messages:
+    | Array<{
+        _key: string;
+        role: "assistant" | "user";
+        text: string;
+        createdAt: string | null;
+      }>
+    | Array<never>;
+  updatedAt: string;
+  hiddenRecommendationIds: Array<string> | Array<never>;
+} | null;
+
+// Source: ../src/lib/companion-history.ts
+// Variable: LEGACY_RECOMMENDATION_BOOKS_QUERY
+// Query: *[  _type == "book" &&  title in $titles]{  _id,  title,  "slug": slug.current}
+export type LEGACY_RECOMMENDATION_BOOKS_QUERY_RESULT = Array<{
+  _id: string;
+  title: string;
+  slug: string | null;
+}>;
 
 // Source: ../src/sanity/queries.ts
 // Variable: SITE_SETTINGS_QUERY
@@ -2046,6 +2090,8 @@ export type TASTE_TRAVELS_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
+    '*[\n  _id == $documentId &&\n  _type == "companionConversation" &&\n  reader._ref == $readerId\n][0]{\n  "messages": coalesce(messages[]{_key, role, text, createdAt}, []),\n  "updatedAt": coalesce(updatedAt, _updatedAt),\n  "hiddenRecommendationIds": coalesce(hiddenRecommendationIds, [])\n}': COMPANION_HISTORY_QUERY_RESULT;
+    '*[\n  _type == "book" &&\n  title in $titles\n]{\n  _id,\n  title,\n  "slug": slug.current\n}': LEGACY_RECOMMENDATION_BOOKS_QUERY_RESULT;
     '\n  *[_id == "siteSettings"][0]{\n    tagline,\n    catalogDisclaimer,\n    ratingMethod,\n    minimumRatingCount,\n    openLibraryAttribution\n  }\n': SITE_SETTINGS_QUERY_RESULT;
     '\n  *[_type == "editorialCollection" && workflowStatus == "approved" && kind == "discover"] | order(title asc){\n    _id,\n    title,\n    "slug": slug.current,\n    description,\n    "books": books[]->{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n }\n  }\n': DISCOVER_COLLECTIONS_QUERY_RESULT;
     '\n  *[_type == "curatedCollection"] | order(coalesce(sortOrder, 999) asc, title asc){\n    _id,\n    title,\n    "slug": slug.current,\n    collectionType,\n    description,\n    image{asset->{_id, url}, alt, hotspot, crop},\n    curator,\n    instagramUrl,\n    source,\n    totalSelections,\n    "books": books[]{\n        selectionNumber,\n        month,\n        year,\n        selectionDate,\n        "book": book->{ \n  _id,\n  title,\n  authors,\n  "slug": coalesce(slug.current, _id),\n  googleBooksId,\n  publishedDate,\n  isbn10, isbn13, coverOverride{asset->{_id, url}, alt, hotspot, crop},\n  "edition": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n},\n  cover\n }\n      }\n  }\n': CURATED_COLLECTIONS_QUERY_RESULT;

@@ -220,6 +220,7 @@ export const structure: StructureResolver = (S, context) =>
             'poll',
             'discussionThread',
             'readerProfile',
+            'companionConversation',
             'rating',
             'review',
             'shelf',

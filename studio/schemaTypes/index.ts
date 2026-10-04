@@ -7,6 +7,7 @@ import {celebrityClub} from './documents/celebrityClub'
 import {celebritySelection} from './documents/celebritySelection'
 import {clubMembership} from './documents/clubMembership'
 import {communityClub} from './documents/communityClub'
+import {companionConversation} from './documents/companionConversation'
 import {curatedCollection} from './documents/curatedCollection'
 import {discussionPost} from './documents/discussionPost'
 import {discussionThread} from './documents/discussionThread'
@@ -46,6 +47,7 @@ export const schemaTypes = [
   shelf,
   shelfEntry,
   readingProgress,
+  companionConversation,
   communityClub,
   clubMembership,
   poll,

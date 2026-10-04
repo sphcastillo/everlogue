@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       const transaction = client.transaction()
       for (const profile of profiles) {
         const related = await client.fetch<{_id: string}[]>(
-          `*[references($id) && _type in ["rating","review","shelf","shelfEntry","readingProgress","clubMembership","vote","discussionPost"]]{_id}`,
+          `*[references($id) && _type in ["rating","review","shelf","shelfEntry","readingProgress","companionConversation","clubMembership","vote","discussionPost"]]{_id}`,
           {id: profile._id},
           {cache: 'no-store'},
         )

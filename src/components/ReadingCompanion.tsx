@@ -1,21 +1,115 @@
 'use client'
 
 import {useEffect, useRef, useState} from 'react'
+import {CompanionMessageText} from './CompanionMessageText'
 
 const STARTERS = [
   {label: 'What should I read next?', message: 'What should I read next?'},
   {label: 'Show me my current reads', message: 'Show me my current reads'},
 ]
 
-type ChatMessage = {role: 'user' | 'assistant'; text: string}
+type ChatMessage = {
+  _key?: string
+  role: 'user' | 'assistant'
+  text: string
+  createdAt?: string
+}
+const MAX_SAVED_MESSAGES = 40
 
-export function ReadingCompanion() {
+function parseMessages(value: unknown): ChatMessage[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      !('role' in item) ||
+      !('text' in item) ||
+      (item.role !== 'user' && item.role !== 'assistant') ||
+      typeof item.text !== 'string' ||
+      !item.text.trim()
+    ) return []
+    return [{
+      role: item.role,
+      text: item.text,
+      ...('_key' in item && typeof item._key === 'string' ? {_key: item._key} : {}),
+      ...(
+        'createdAt' in item &&
+        typeof item.createdAt === 'string' &&
+        Number.isFinite(Date.parse(item.createdAt))
+          ? {createdAt: item.createdAt}
+          : {}
+      ),
+    }]
+  }).slice(-MAX_SAVED_MESSAGES)
+}
+
+export function ReadingCompanion({readerId}: {readerId?: string}) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [historyLoaded, setHistoryLoaded] = useState(!readerId)
   const [error, setError] = useState('')
   const log = useRef<HTMLDivElement>(null)
+  const savedHistory = useRef('[]')
+
+  useEffect(() => {
+    if (!readerId) return
+    let cancelled = false
+
+    void fetch('/api/companion/history', {cache: 'no-store'})
+      .then(async response => {
+        if (!response.ok) throw new Error('Unable to load companion history.')
+        const data = await response.json() as {messages?: unknown}
+        if (!cancelled) {
+          const parsed = parseMessages(data.messages)
+          savedHistory.current = JSON.stringify(parsed)
+          setMessages(parsed)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError('Your saved conversation could not be loaded.')
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoaded(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [readerId])
+
+  useEffect(() => {
+    if (!readerId || !historyLoaded) return
+    const savableMessages =
+      pending && messages.at(-1)?.role === 'assistant' ? messages.slice(0, -1) : messages
+    const completeMessages = savableMessages
+      .filter(message => message.text.trim())
+      .slice(-MAX_SAVED_MESSAGES)
+    const snapshot = JSON.stringify(completeMessages)
+    if (snapshot === savedHistory.current) return
+
+    const timer = window.setTimeout(() => {
+      void fetch('/api/companion/history', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({messages: completeMessages}),
+      }).then(response => {
+        if (response.ok) savedHistory.current = snapshot
+      }).catch(() => {})
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [historyLoaded, messages, pending, readerId])
+
+  useEffect(() => {
+    function clearHistory() {
+      savedHistory.current = '[]'
+      setMessages([])
+      setError('')
+    }
+    window.addEventListener('everlogue:companion-history-cleared', clearHistory)
+    return () => window.removeEventListener('everlogue:companion-history-cleared', clearHistory)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -32,11 +126,14 @@ export function ReadingCompanion() {
 
   async function send(text: string) {
     const message = text.trim()
-    if (!message || pending) return
+    if (!message || pending || !historyLoaded) return
     setDraft('')
     setError('')
     setPending(true)
-    setMessages((current) => [...current, {role: 'user', text: message}])
+    setMessages((current) => [
+      ...current,
+      {role: 'user', text: message, createdAt: new Date().toISOString()},
+    ])
     try {
       const response = await fetch('/api/companion', {
         method: 'POST',
@@ -47,7 +144,10 @@ export function ReadingCompanion() {
         const data = await response.json().catch(() => null) as {error?: string} | null
         throw new Error(data?.error || 'The companion could not answer.')
       }
-      setMessages(current => [...current, {role: 'assistant', text: ''}])
+      setMessages(current => [
+        ...current,
+        {role: 'assistant', text: '', createdAt: new Date().toISOString()},
+      ])
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = '', complete = false
@@ -114,11 +214,11 @@ export function ReadingCompanion() {
                 {messages.map((item, index) => (
                   <li key={`${item.role}-${index}`} className={item.role === 'user' ? 'text-right' : ''}>
                     <p
-                      className={`inline-block max-w-[95%] whitespace-pre-wrap break-words px-3 py-2 text-left text-sm leading-6 ${
+                      className={`inline-block max-w-[95%] whitespace-pre-wrap wrap-break-word px-3 py-2 text-left text-sm leading-6 ${
                         item.role === 'user' ? 'bg-ink text-white' : 'border bg-paper border-[#eadfd3]!'
                       }`}
                     >
-                      {item.text}
+                      {item.role === 'assistant' ? <CompanionMessageText text={item.text} /> : item.text}
                     </p>
                   </li>
                 ))}
@@ -139,7 +239,8 @@ export function ReadingCompanion() {
                     <button
                       key={item.label}
                       type="button"
-                      className="border bg-paper px-3 py-2.5 text-left text-sm border-[#d6d6d6]! hover:bg-white sm:py-2"
+                      disabled={!historyLoaded}
+                      className="border bg-paper px-3 py-2.5 text-left text-sm border-[#d6d6d6]! hover:bg-white disabled:opacity-50 sm:py-2"
                       onClick={() => void send(item.message)}
                     >
                       {item.label}
@@ -162,7 +263,7 @@ export function ReadingCompanion() {
               <textarea
                 rows={1}
                 value={draft}
-                disabled={pending}
+                disabled={pending || !historyLoaded}
                 inputMode="text"
                 enterKeyHint="send"
                 autoComplete="off"
@@ -180,7 +281,7 @@ export function ReadingCompanion() {
               />
               <button
                 type="submit"
-                disabled={pending || !draft.trim()}
+                disabled={pending || !historyLoaded || !draft.trim()}
                 className="absolute top-1.5 right-1.5 grid size-9 place-items-center bg-[#c4b8a8] text-ink disabled:opacity-40"
                 aria-label="Send"
               >

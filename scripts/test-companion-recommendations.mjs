@@ -11,8 +11,16 @@ async function ask(message, history = []) {
 
 function assertRecommendations(result) {
   assert.ok(result.tools.includes('search_catalog'), 'Recommendations must search the full catalog')
-  const books = [...result.answer.matchAll(/(?:^|\n)\s*[123][.)]\s+([^\n]+?)\s+(?:—| - )\s+([^\n]+)/g)]
+  const firstRecommendation = result.answer.search(/(?:^|\n)\s*1[.)]\s+/)
+  assert.ok(
+    firstRecommendation > 0 && result.answer.slice(0, firstRecommendation).trim().length > 0,
+    'Recommendations must begin with a personal response to the reader',
+  )
+  const books = [...result.answer.matchAll(
+    /(?:^|\n)\s*[123][.)]\s+\[([^\]\n]+)\]\((\/books\/[A-Za-z0-9._~%+-]+)\)\s+(?:—| - )\s+([^\n]+)/g,
+  )]
   assert.equal(books.length, 3, 'Response must contain three numbered title-and-author recommendations')
+  assert.ok(books.every(match => match[2].startsWith('/books/')), 'Every recommended title must link to its book page')
   assert.doesNotMatch(result.answer, /\b\d+\s+pages?\b/i, 'Recommendations must not mention page counts')
   assert.doesNotMatch(
     result.answer,

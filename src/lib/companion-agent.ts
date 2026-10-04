@@ -2,16 +2,24 @@ import {loadReaderPreferences} from './companion-preferences'
 import 'server-only'
 import {createMCPClient} from '@ai-sdk/mcp'
 import {openai} from '@ai-sdk/openai'
-import {stepCountIs, streamText} from 'ai'
+import {generateObject, generateText, stepCountIs, streamText} from 'ai'
 import {createClient} from '@sanity/client'
 import {apiVersion, dataset, projectId} from '@/sanity/env'
 import {explicitConversationLimits, hasReadingDirection, MOOD_QUESTION, searchRecommendationCatalog} from './companion-catalog'
+import {linkRecommendationTitles} from './companion-links'
 import {interpretRecommendationRequest, selectRecommendationCandidates} from './companion-selection'
 import {z} from 'zod'
 
 export const companionRequest = z.object({
   message: z.string().trim().min(1).max(2000),
   history: z.array(z.object({role: z.enum(['user', 'assistant']), text: z.string().min(1).max(8000)})).max(12).default([]),
+})
+const recommendationResponse = z.object({
+  personalResponse: z.string().trim().min(1).max(400),
+  explanations: z.array(z.object({
+    bookId: z.string().min(1),
+    text: z.string().trim().min(1).max(700),
+  })).max(3),
 })
 export const CONTEXT_URL = 'https://api.sanity.io/v1/context/organizations/oWrzPSsUw/mcp/everlogue-book-knowledge'
 const ERROR_MESSAGE = 'The reading companion could not finish its answer. Please try again.'
@@ -83,9 +91,14 @@ function streamResponse(
   })
 }
 
-function textResponse(text: string) {
+function textResponse(text: string, retrievalTools: string[] = []) {
+  const events = [
+    ...retrievalTools.map(tool => ({type: 'retrieval', tool})),
+    {type: 'text', text},
+    {type: 'done'},
+  ]
   return new Response(
-    `${JSON.stringify({type: 'text', text})}\n${JSON.stringify({type: 'done'})}\n`,
+    events.map(event => JSON.stringify(event)).join('\n') + '\n',
     {
       headers: {
         'Content-Type': 'application/x-ndjson; charset=utf-8',
@@ -149,18 +162,32 @@ export async function companionResponse(
       requestSignal,
     )
 
-    const result = streamText({
+    if (!selections.length) {
+      const result = await generateText({
+        model: openai('gpt-5.4-mini'),
+        maxOutputTokens: 160,
+        maxRetries: 1,
+        abortSignal: requestSignal,
+        providerOptions: {openai: {store: false}},
+        system: `You are Everlogue's warm, conversational reading companion. Ask exactly one natural question that helps redirect the reader toward a useful recommendation. Do not explain catalog limitations, mention searching or metadata, offer a menu, or ask them to relax a requirement they never stated.`,
+        prompt: JSON.stringify({conversation, interpretation}),
+      })
+      return textResponse(result.text, ['search_catalog'])
+    }
+
+    const {object: written} = await generateObject({
       model: openai('gpt-5.4-mini'),
+      schema: recommendationResponse,
       maxOutputTokens: 1200,
       maxRetries: 1,
       abortSignal: requestSignal,
       providerOptions: {openai: {store: false}},
       system: `You are Everlogue's reading companion. Write like a thoughtful, book-loving friend: warm, specific, relaxed, and conversational. Use contractions and natural language.
-You are receiving books already chosen by a separate selection step. Recommend only those selected books and rely only on their supplied catalog descriptions, genres, and supported reasons. Do not add, replace, or research books. Write plain text without Markdown or bold formatting.
-When selections are present, use a short numbered list. Start each item "1. Title — Author", then give one or two spoiler-free conversational sentences about its particular appeal and connection to the reader's request. Keep the choices distinct and avoid generic phrases such as "matches your preferences."
+The books were already chosen by a separate selection step. Rely only on their supplied catalog descriptions, genres, and supported reasons. Do not add, replace, or research books.
+personalResponse must be one brief sentence responding specifically to what the reader said—the mood they want, a book they mentioned, or feedback they gave. Make it personal and natural, not a canned acknowledgment.
+Return one explanation for each selected book, identified by its exact bookId. Each explanation should be one or two spoiler-free conversational sentences about that book's particular appeal and connection to the request. Do not repeat its title or author. Keep the choices distinct and avoid generic phrases such as "matches your preferences."
 Preserve the reader's explicit exclusions in how you explain the choices. A contextual author or recent-read reference is not a request for more of the same subject. Never claim personal reading experience.
 Do not mention searching, selection, candidates, evidence, catalog coverage, eligibility, verification, missing fields, diagnostics, counts, metadata, or page counts. Do not ask the reader to allow series or relax a requirement they never stated.
-If no books were selected, ask exactly one natural question that helps redirect the conversation. Do not explain why, report limitations, or offer a menu.
 Maintain continuity with rejection feedback in the conversation. Do not claim to save preferences or change shelves.`,
       prompt: JSON.stringify({
         conversation,
@@ -172,15 +199,17 @@ Maintain continuity with rejection feedback in the conversation. Do not claim to
         },
         selections,
       }),
-      onError: () => {},
     })
-    return streamResponse(
-      result.stream,
-      requestSignal,
-      async () => { abort.abort() },
-      async () => {},
-      ['search_catalog'],
+    const explanations = new Map(
+      written.explanations.map(explanation => [explanation.bookId, explanation.text]),
     )
+    const list = selections.map(({book, supportedReason}, index) => {
+      const authors = book.authors?.filter(Boolean).join(', ') || 'Author unknown'
+      const explanation = explanations.get(book._id) || supportedReason
+      return `${index + 1}. ${book.title} — ${authors}\n${explanation}`
+    }).join('\n\n')
+    const response = `${written.personalResponse.trim()}\n\n${list}`
+    return textResponse(linkRecommendationTitles(response, selections), ['search_catalog'])
   }
 
   const mcp = await createMCPClient({

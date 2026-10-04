@@ -2,8 +2,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {auth} from '@clerk/nextjs/server'
 import {BookCover} from '@/components/BookCover'
+import {ProfileCompanionHistory} from '@/components/ProfileCompanionHistory'
 import {ReviewCopy, ReviewSpoiler} from '@/components/ReviewSpoiler'
 import {formatRating, StarDisplay} from '@/components/StarDisplay'
+import {getCompanionProfileHistory} from '@/lib/companion-history'
 import {getOptionalReader} from '@/lib/reader'
 import {getReaderProfileShowcase} from '@/lib/actions'
 
@@ -17,6 +19,10 @@ export default async function ProfilePage() {
   await auth.protect()
   const reader = await getOptionalReader().catch(() => null)
   const showcase = await getReaderProfileShowcase().catch(() => ({ratings: [], reviews: []}))
+  const companionHistory = reader
+    ? await getCompanionProfileHistory(reader.readerId)
+      .catch(() => ({groups: [], hasHistory: false}))
+    : {groups: [], hasHistory: false}
   const name = reader?.displayName || 'Reader'
   const initials = name.trim().charAt(0) || 'R'
   const ratings = showcase.ratings
@@ -48,7 +54,7 @@ export default async function ProfilePage() {
               {name}.
             </h1>
             <p className="mt-3 max-w-md text-[1.02rem] leading-7 text-muted">
-              Ratings and reviews you leave live here, alongside the books they belong to.
+              Your ratings, reviews, and reading companion recommendations live here.
             </p>
           </div>
         </div>
@@ -66,7 +72,12 @@ export default async function ProfilePage() {
         </dl>
       </header>
 
-      <section>
+      <ProfileCompanionHistory
+        initialGroups={companionHistory.groups}
+        initialHasHistory={companionHistory.hasHistory}
+      />
+
+      <section className="mt-16">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-(--line) pb-3">
           <h2 className="flex items-baseline gap-3 font-display text-[1.45rem] leading-none font-black tracking-[-0.04em]">
             Ratings

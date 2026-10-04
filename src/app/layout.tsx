@@ -65,7 +65,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
             {children}
             <Footer />
           </div>
-          <ReadingCompanion />
+          <ReadingCompanion key={reader?.readerId || 'guest'} readerId={reader?.readerId} />
         </ClerkProvider>
       </body>
     </html>
