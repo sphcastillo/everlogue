@@ -28,7 +28,9 @@ export function HomeHero({
           <h1 className="mt-4 font-display text-[clamp(2.75rem,14.5vw,6.55rem)] leading-[0.91] font-black tracking-[-0.13em] min-[875px]:mt-3 min-[875px]:text-[clamp(5rem,12.5cqi,4.7rem)] lg:text-[clamp(6rem,12.5cqi,4.7rem)]">
             <span className="block">Find the book</span>
             <span className="block">you can&apos;t stop</span>
-            <span className="block w-fit border-b-[0.045em] border-current pb-[0.02em]">thinking about.</span>
+            <span className="block w-fit border-b-[0.045em] border-current pb-[0.02em]">
+              thinking about<span className="min-[875px]:text-[#b8b8b8]">.</span>
+            </span>
           </h1>
           <p className="mt-6 max-w-88 text-[1.02rem] leading-[1.6] font-normal text-white/80 min-[875px]:mt-4 min-[875px]:text-muted lg:text-[1.1rem]">
             Not the next book everyone&apos;s reading. The one that feels like it found you.

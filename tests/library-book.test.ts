@@ -93,6 +93,20 @@ test('updates and clears migrated ratings using their preserved IDs', async () =
   assert.equal([...docs.values()].filter((doc) => doc._type === 'rating').length, 0)
 })
 
+test('ratings require a Currently Reading or Read status', async () => {
+  const {docs, client} = database()
+  await saveBookStatus(client, 'reader', 'book-new', 'wantToRead')
+  await assert.rejects(
+    saveBookRating(client, 'reader', 'book-new', 4.5),
+    /Currently Reading or Read/,
+  )
+  assert.equal(docs.get('rating-reader-old')?.value, 4)
+
+  await saveBookStatus(client, 'reader', 'book-new', 'currentlyReading')
+  await saveBookRating(client, 'reader', 'book-new', 4.5)
+  assert.equal(docs.get('rating-reader-old')?.value, 4.5)
+})
+
 test('re-saving and moving a migrated book preserves imported reading history', async () => {
   const {docs, client} = database()
   await saveBookStatus(client, 'reader', 'book-new', 'finished')

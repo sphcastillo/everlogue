@@ -157,9 +157,9 @@ function PickCard({book}: {book: ShelfPickBook}) {
             {book.title}
           </Link>
           <p className="mt-0.5 truncate text-sm text-muted">{authors}</p>
-          {genre ? (
+          {/* {genre ? (
             <p className="mt-2 text-[0.62rem] font-medium tracking-[0.16em] text-muted uppercase">{genre}</p>
-          ) : null}
+          ) : null} */}
         </div>
         {rating ? <p className="shrink-0 pt-0.5 text-sm text-muted tabular-nums">{rating}</p> : null}
       </div>

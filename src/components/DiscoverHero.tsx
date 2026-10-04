@@ -39,9 +39,11 @@ export default function DiscoverHero({
 
         <div className="mt-8 grid items-stretch gap-10 lg:grid-cols-[minmax(0,1.1fr)_auto_minmax(22rem,30rem)] lg:gap-x-6 xl:gap-x-10">
           <div>
-            <h1 className="max-w-4xl font-display text-[clamp(2.8rem,7.4vw,6.4rem)] leading-[0.86] font-black tracking-[-0.13em]">
+            <h1 className="max-w-4xl font-display text-[clamp(5rem,calc(4.3rem+2.7vw),6.4rem)] leading-[0.86] font-black tracking-[-0.13em]">
               <span className="block">Read with</span>
-              <span className="block">a point of view.</span>
+              <span className="block">
+                a point of view<span className="text-[#b8b8b8]" aria-hidden="true">.</span>
+              </span>
             </h1>
             <p className="mt-7 max-w-96 text-[1.02rem] leading-[1.6] text-muted">
               The book clubs making the group chat better. Browse their pick lists, follow the hosts whose taste
@@ -82,7 +84,7 @@ export default function DiscoverHero({
             <div className="relative z-1 border-t border-white/20 pt-5">
               <div className="flex items-end justify-between gap-4 font-mono text-[0.62rem] font-medium tracking-[0.16em] uppercase">
                 <p>The best place to start</p>
-                <p className="text-white/70">M / 01</p>
+                <p className="text-white/70">Chapter / 01</p>
               </div>
             </div>
           </div>

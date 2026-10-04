@@ -16,6 +16,16 @@ async function requireBook(client: SanityClient, bookId: string) {
 export async function saveBookRating(client: SanityClient, readerId: string, bookId: string, value: number | null) {
   const parsed = value === null ? null : ratingValueSchema.parse(value)
   await requireBook(client, bookId)
+  if (parsed !== null) {
+    const status = await client.fetch<string | null>(
+      `*[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0].status`,
+      {readerId, bookId},
+      {cache: 'no-store'},
+    )
+    if (status !== 'currentlyReading' && status !== 'finished') {
+      throw new Error('Mark this book as Currently Reading or Read before rating it.')
+    }
+  }
   // Migrated library documents keep their original IDs. Resolve by relationship
   // rather than assuming the ID was generated from the current book ID.
   const existing = await client.fetch<{_id: string} | null>(

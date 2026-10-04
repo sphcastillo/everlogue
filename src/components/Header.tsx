@@ -7,6 +7,7 @@ import {GlobalBookSearch} from './GlobalBookSearch'
 const NAV = [
     { href: '/', label: 'Home' },
     { href: '/discover', label: 'Discover' },
+    { href: '/genres', label: 'Genres' },
     { href: '/my-books', label: 'My Books' },
 ]
 

@@ -105,7 +105,19 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
 
   return (
     <div className="px-5 pb-20 sm:px-8 lg:px-9">
-      <header className="flex flex-wrap items-end justify-between gap-8 pt-8 pb-8">
+      <div className="flex items-center justify-end py-4">
+        <Link
+          href="/profile"
+          className="inline-flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.16em] uppercase"
+        >
+          My profile
+          <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden="true">
+            <path d="M4 12 12 4" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M6 4h6v6" stroke="currentColor" strokeWidth="1.4" />
+          </svg>
+        </Link>
+      </div>
+      <header className="flex flex-wrap items-end justify-between gap-8 pt-4 pb-8">
         <div className="max-w-xl">
           <p className="flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">
             <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden="true">

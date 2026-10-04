@@ -31,8 +31,11 @@ export default async function ProfilePage() {
   return (
     <div className="px-5 pb-20 sm:px-8 lg:px-9">
       <header className="flex flex-wrap items-end justify-between gap-8 pt-8 pb-10">
-        <div className="flex min-w-0 items-center gap-4">
-          <span className="relative size-16 shrink-0 overflow-hidden rounded-full bg-ink">
+        <div className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-4">
+          <p className="col-start-2 row-start-1 mb-2 font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">
+            Your profile
+          </p>
+          <span className="relative col-start-1 row-start-2 size-16 overflow-hidden rounded-full bg-ink">
             {reader?.avatarSrc ? (
               <Image
                 src={reader.avatarSrc}
@@ -48,15 +51,12 @@ export default async function ProfilePage() {
               </span>
             )}
           </span>
-          <div className="min-w-0">
-            <p className="font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Your profile</p>
-            <h1 className="mt-2 font-display text-[clamp(2.4rem,6vw,4.2rem)] leading-[0.88] font-black tracking-[-0.07em]">
-              {name}.
-            </h1>
-            <p className="mt-3 max-w-md text-[1.02rem] leading-7 text-muted">
-              Your ratings, reviews, and reading companion recommendations live here.
-            </p>
-          </div>
+          <h1 className="col-start-2 row-start-2 min-w-0 font-display text-[clamp(2.4rem,6vw,4.2rem)] leading-[0.88] font-black tracking-[-0.07em]">
+            {name}.
+          </h1>
+          <p className="col-start-2 row-start-3 mt-3 max-w-md text-[1.02rem] leading-7 text-muted">
+            Your ratings, reviews, and reading companion recommendations live here.
+          </p>
         </div>
         <dl className="flex gap-8 sm:gap-12">
           <div className="text-right">
@@ -86,27 +86,27 @@ export default async function ProfilePage() {
           <p className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Half stars count</p>
         </div>
         {ratings.length ? (
-          <ul className="divide-y divide-(--line)">
+          <ul className="grid grid-cols-2 gap-x-4 md:grid-cols-3 md:gap-x-6">
             {ratings.map((row) => {
               const book = row.book!
               const href = book.slug ? `/books/${book.slug}` : '#'
               const authors = book.authors?.filter(Boolean).join(', ') || 'Author unknown'
               return (
-                <li key={`${book._id}-${row.value}`}>
-                  <Link href={href} className="group flex items-center gap-4 py-4">
+                <li key={`${book._id}-${row.value}`} className="border-b border-(--line)">
+                  <Link href={href} className="group flex items-start gap-3 py-4">
                     <BookCover
                       cover={book.cover}
                       title={book.title}
-                      className="aspect-2/3 w-12 shrink-0"
+                      className="aspect-2/3 w-10 shrink-0 sm:w-12"
                       imageWidth={160}
                       sizes="48px"
                     />
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 pt-0.5">
                       <span className="block truncate font-medium">{book.title}</span>
                       <span className="mt-0.5 block truncate text-sm text-muted">{authors}</span>
-                    </span>
-                    <span className="flex shrink-0 flex-col items-end gap-1">
-                      <StarDisplay value={row.value} id={`rating-${book._id}`} size="sm" />
+                      <span className="mt-2 block">
+                        <StarDisplay value={row.value} id={`rating-${book._id}`} size="sm" />
+                      </span>
                       <span className="font-mono text-[10px] font-medium tracking-[0.14em] text-muted uppercase">
                         {formatRating(row.value)} / 5
                       </span>

@@ -16,6 +16,32 @@ type Row = {
   catalogReviewStatus?: string | null
   clubs?: string[] | null
   celebrityClubs?: string[] | null
+  manualCoverUrl?: string | null
+}
+
+type DiscoveryRow = Discovery & {matchedManualCoverUrl?: string | null}
+
+function CoverThumbnail({src, title}: {src?: string | null; title: string}) {
+  if (!src) return null
+  return (
+    <Flex
+      align="center"
+      justify="center"
+      style={{
+        width: 64,
+        height: 96,
+        flex: '0 0 64px',
+        overflow: 'hidden',
+        background: 'var(--card-muted-bg-color)',
+      }}
+    >
+      <img
+        src={src}
+        alt={`Cover of ${title}`}
+        style={{display: 'block', width: '100%', height: '100%', objectFit: 'cover'}}
+      />
+    </Flex>
+  )
 }
 
 function clubLabel(row: Row) {
@@ -57,14 +83,21 @@ export function BookClubImportsPane() {
   const client = useClient({apiVersion: '2026-02-01'})
   const [rows, setRows] = useState<Row[] | null>(null)
   const [query, setQuery] = useState('')
-  const [discoveries, setDiscoveries] = useState<Discovery[]>([])
+  const [discoveries, setDiscoveries] = useState<DiscoveryRow[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const router = useRouter()
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    const loadDiscoveries = () => client.fetch<Discovery[]>('*[_type == "bookClubDiscovery" && status in ["discovered", "needs_review"] && !(_id in path("drafts.**"))] | order(discoveredAt desc)', {}, {perspective: 'raw', useCdn: false})
+    const loadDiscoveries = () => client.fetch<DiscoveryRow[]>(`*[
+      _type == "bookClubDiscovery" &&
+      status in ["discovered", "needs_review"] &&
+      !(_id in path("drafts.**"))
+    ] | order(discoveredAt desc){
+      ...,
+      "matchedManualCoverUrl": matchedBook->coverOverride.asset->url
+    }`, {}, {perspective: 'raw', useCdn: false})
       .then(docs => { if (!cancelled) setDiscoveries(docs) })
       .catch(() => { if (!cancelled) setError('Could not load Watch discoveries.') })
     void loadDiscoveries()
@@ -77,8 +110,9 @@ export function BookClubImportsPane() {
           authors,
           "author": authors[0],
           catalogReviewStatus,
-          "clubs": *[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0].title,
-          "celebrityClubs": *[_type == "celebritySelection" && count(books[_ref == ^._id]) > 0].club->title
+          "clubs": *[_type == "curatedCollection" && references(^._id)].title,
+          "celebrityClubs": *[_type == "celebritySelection" && references(^._id)].club->name,
+          "manualCoverUrl": coverOverride.asset->url
         }`,
       )
       .then((docs) => {
@@ -136,18 +170,27 @@ export function BookClubImportsPane() {
         </Text>
       </Box>
       {discoveries.filter(doc => matchesSearch({ _id: doc._id, title: doc.discoveredTitle, author: doc.discoveredAuthor, clubs: [CLUBS[doc.bookClub].name]}, query)).map(doc => (
-        <Card key={doc._id} padding={3} radius={2} shadow={1}><Stack gap={3}>
-          <Text weight="semibold">{doc.discoveredTitle}</Text>
-          <Text size={1} muted>{doc.discoveredAuthor} · {CLUBS[doc.bookClub].name} · {doc.selectionMonth}</Text>
-          <Text size={1}>Discovered by Book Club Watch. Review here, then Publish to approve.</Text>
-          {doc.processingError && <Text size={1}>{doc.processingError}</Text>}
-          <Button text="Review book import" disabled={busy !== null} loading={busy === doc._id} onClick={async () => {
-            setBusy(doc._id)
-            try { const id = await openCatalogImport(client as unknown as SanityClient, doc._id); router.navigateIntent('edit', {id, type: 'book'}) }
-            catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not open import.') }
-            finally { setBusy(null) }
-          }} />
-        </Stack></Card>
+        <Card key={doc._id} padding={3} radius={2} shadow={1}>
+          <Flex gap={3} align="flex-start">
+            <CoverThumbnail
+              src={doc.matchedManualCoverUrl}
+              title={doc.discoveredTitle}
+            />
+            <Stack gap={2} style={{flex: 1}}>
+              <Text weight="semibold">{doc.discoveredTitle}</Text>
+              <Text size={1}>{doc.discoveredAuthor || 'Author unknown'}</Text>
+              <Text size={1} muted>{CLUBS[doc.bookClub].name} · {doc.selectionMonth}</Text>
+              <Text size={1}>Discovered by Book Club Watch. Review here, then Publish to approve.</Text>
+              {doc.processingError && <Text size={1}>{doc.processingError}</Text>}
+              <Button text="Review book import" disabled={busy !== null} loading={busy === doc._id} onClick={async () => {
+                setBusy(doc._id)
+                try { const id = await openCatalogImport(client as unknown as SanityClient, doc._id); router.navigateIntent('edit', {id, type: 'book'}) }
+                catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not open import.') }
+                finally { setBusy(null) }
+              }} />
+            </Stack>
+          </Flex>
+        </Card>
       ))}
       {visible.length ? (
         visible.map((row) => {
@@ -160,14 +203,15 @@ export function BookClubImportsPane() {
               style={{textDecoration: 'none', color: 'inherit'}}
             >
               <Card padding={3} radius={2} shadow={1}>
-                <Stack gap={2}>
-                  <Text weight="semibold">{row.title || 'Untitled'}</Text>
-                  <Text size={1} muted>
-                    {[row.author, reviewLabel(row.catalogReviewStatus), clubs || 'Club not linked']
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                </Stack>
+                <Flex gap={3} align="flex-start">
+                  <CoverThumbnail src={row.manualCoverUrl} title={row.title || 'Untitled'} />
+                  <Stack gap={2} style={{flex: 1}}>
+                    <Text weight="semibold">{row.title || 'Untitled'}</Text>
+                    <Text size={1}>{row.author || 'Author unknown'}</Text>
+                    <Text size={1} muted>{clubs || 'Club not linked'}</Text>
+                    <Text size={1} muted>{reviewLabel(row.catalogReviewStatus)}</Text>
+                  </Stack>
+                </Flex>
               </Card>
             </IntentLink>
           )

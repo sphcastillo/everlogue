@@ -1,6 +1,7 @@
 'use client'
 
-import {useOptimistic, useState, useTransition} from 'react'
+import {SignInButton} from '@clerk/nextjs'
+import {Fragment, useOptimistic, useState, useTransition} from 'react'
 import {saveShelfStatusAction} from '@/lib/server-actions'
 import type {ShelfBook} from '@/lib/validation'
 
@@ -76,11 +77,10 @@ export function ShelfButtons({
       <div className="grid gap-2 sm:grid-cols-3" aria-busy={pending}>
         {OPTIONS.map((option) => {
           const selected = optimistic === option.value
-          return (
+          const button = (
             <button
-              key={option.value}
               type="button"
-              disabled={!signedIn || pending}
+              disabled={pending}
               aria-pressed={selected}
               onClick={() => choose(selected ? null : option.value)}
               className={`inline-flex min-h-14 items-center justify-center gap-2 border px-3 font-mono text-[0.62rem] font-medium tracking-[0.14em] uppercase disabled:opacity-50 ${
@@ -92,6 +92,13 @@ export function ShelfButtons({
               {option.icon}
               {option.label}
             </button>
+          )
+          return signedIn ? (
+            <Fragment key={option.value}>{button}</Fragment>
+          ) : (
+            <SignInButton key={option.value} mode="modal">
+              {button}
+            </SignInButton>
           )
         })}
       </div>

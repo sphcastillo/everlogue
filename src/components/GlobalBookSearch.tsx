@@ -126,7 +126,7 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
         role="search"
         className={
           header
-            ? 'flex h-11 items-center gap-2.5 rounded-md border bg-paper px-4 border-[#d6d6d6]!'
+            ? 'flex h-11 items-center gap-2.5 rounded-sm border bg-paper px-4 border-[#d6d6d6]!'
             : catalog
               ? 'flex h-12 items-center border border-ink bg-white'
               : 'flex items-center gap-2'

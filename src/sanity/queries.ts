@@ -137,12 +137,18 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
       firstPublicationOfBook,
       ${editionCoverFields}
     },
-    "clubs": *[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0] | order(lastSyncedAt desc){
+    "clubs": *[_type == "curatedCollection" && references(^._id)] | order(lastSyncedAt desc){
       title,
       "slug": slug.current,
+      "href": "/collections/" + slug.current,
       curator,
       description,
       "selectionNumber": books[book._ref == ^.^._id][0].selectionNumber
+    },
+    "celebrityClubs": *[_type == "celebritySelection" && references(^._id)] | order(year desc, month desc){
+      "title": club->name,
+      "slug": club->slug.current,
+      "href": "/clubs/" + club->slug.current
     }
   }
 `)
@@ -150,12 +156,18 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
 export const BOOK_BY_GOOGLE_ID_QUERY = defineQuery(`
   *[${searchCatalogFilter}][0]{
     ${bookCardFields},
-    "clubs": *[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0] | order(lastSyncedAt desc){
+    "clubs": *[_type == "curatedCollection" && references(^._id)] | order(lastSyncedAt desc){
       title,
       "slug": slug.current,
+      "href": "/collections/" + slug.current,
       curator,
       description,
       "selectionNumber": books[book._ref == ^.^._id][0].selectionNumber
+    },
+    "celebrityClubs": *[_type == "celebritySelection" && references(^._id)] | order(year desc, month desc){
+      "title": club->name,
+      "slug": club->slug.current,
+      "href": "/clubs/" + club->slug.current
     }
   }
 `)
@@ -166,7 +178,8 @@ export const GENRES_QUERY = defineQuery(`
     title,
     "slug": slug.current,
     description,
-    "parent": parent->{ title, "slug": slug.current }
+    "parent": parent->{ title, "slug": slug.current },
+    "bookCount": count(*[_type == "book" && references(^._id)])
   }
 `)
 
