@@ -2,6 +2,7 @@ import 'server-only'
 import {auth, currentUser} from '@clerk/nextjs/server'
 import {privateClient, writeClient} from '@/sanity/client'
 import {cache} from 'react'
+import {retryReaderSetup} from './reader-setup-retry'
 import {ensureSystemShelves, PROFILE_QUERY, profileAvatarSrc, syncReaderProfile, type ReaderProfile} from './reader-profile'
 
 export type ReaderSession = {
@@ -18,7 +19,7 @@ export const getOptionalReader = cache(async (): Promise<ReaderSession | null> =
   const {isAuthenticated, userId} = await auth()
   if (!isAuthenticated || !userId) return null
   try {
-    return await getOrCreateReader(userId)
+    return await retryReaderSetup(() => getOrCreateReader(userId))
   } catch (error) {
     console.error('Unable to load the Sanity reader profile:', error)
     throw error
@@ -35,7 +36,7 @@ export async function requireReader(): Promise<ReaderSession> {
 
 async function getOrCreateReader(clerkUserId: string): Promise<ReaderSession> {
   const existing = await privateClient.fetch<ReaderProfile | null>(
-    PROFILE_QUERY, {clerkUserId}, {cache: 'no-store'},
+    PROFILE_QUERY, {clerkUserId}, {cache: 'no-store', signal: new AbortController().signal},
   )
   if (existing?._id) {
     await ensureSystemShelves(writeClient(), existing._id, existing.systemShelves)

@@ -1,7 +1,12 @@
 import {clerkMiddleware} from '@clerk/nextjs/server'
+import {NextResponse} from 'next/server'
 
 // Resources enforce authentication themselves; the proxy supplies Clerk context.
-export default clerkMiddleware()
+export default clerkMiddleware((_auth, request) => {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', request.nextUrl.pathname)
+  return NextResponse.next({request: {headers: requestHeaders}})
+})
 
 export const config = {
   matcher: [

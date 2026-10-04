@@ -1,6 +1,7 @@
 import type {SanityClient} from '@sanity/client'
 import {urlFor} from '@/sanity/image'
 import {slugify, stableId} from './validation'
+import {ReaderProfilePendingError, retryReaderSetup} from './reader-setup-retry'
 
 export type ReaderAvatar = {
   asset?: {_id?: string; _ref?: string; url?: string | null} | null
@@ -52,7 +53,9 @@ export const identityGuardId = (id: string) => `clerkIdentity.${id}`
 
 export async function syncReaderProfile(client: SanityClient, user: ClerkIdentity) {
   const findProfile = () => client.fetch<ReaderProfile | null>(
-    PROFILE_QUERY, {clerkUserId: user.id}, {cache: 'no-store'},
+    // no-store disables persistent caching, but not React GET deduplication.
+    // A fresh signal opts out so a retry cannot replay the pre-creation null.
+    PROFILE_QUERY, {clerkUserId: user.id}, {cache: 'no-store', signal: new AbortController().signal},
   )
   const fields = {
     displayName: user.firstName || user.username || 'Reader',
@@ -62,18 +65,25 @@ export async function syncReaderProfile(client: SanityClient, user: ClerkIdentit
   if (!profile) {
     try {
       // The guard and generated profile commit together; competing creators fail
-      // before adding a second profile. Synchronous visibility makes it queryable.
-      await client.transaction()
+      // before adding a second profile. Use the returned document directly;
+      // resolving it through another query can replay the earlier null result.
+      const created = await client.transaction()
         .create({_id: identityGuardId(user.id), _type: 'clerkIdentity', clerkUserId: user.id})
         .create({_type: 'readerProfile', clerkUserId: user.id, ...fields, profileVisibility: 'private'})
-        .commit({visibility: 'sync'})
+        .commit<ReaderProfile>({visibility: 'sync', returnDocuments: true, returnFirst: false})
+      profile = created.find(document => document._type === 'readerProfile' && document.clerkUserId === user.id) ?? null
     } catch (error) {
       if (!(error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 409)) {
         throw error
       }
     }
-    profile = await findProfile()
-    if (!profile) throw new Error('Unable to resolve the Clerk reader profile.')
+    // A losing creator may see the guard conflict before the winner's profile
+    // reaches the query index. Wait for visibility instead of failing sign-in.
+    if (!profile) profile = await retryReaderSetup(async () => {
+      const resolved = await findProfile()
+      if (!resolved) throw new ReaderProfilePendingError('Unable to resolve the Clerk reader profile.')
+      return resolved
+    })
   }
   // Patch only identity fields; preserve shelves, preferences, bio and visibility.
   await client.patch(profile._id).set(fields).commit()

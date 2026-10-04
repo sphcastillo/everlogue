@@ -2,11 +2,12 @@ import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import type {SanityClient} from '@sanity/client'
 import {ensureSystemShelves, profileAvatarSrc, syncReaderProfile} from '../src/lib/reader-profile'
+import {ReaderProfilePendingError, retryReaderSetup} from '../src/lib/reader-setup-retry'
 
 type Document = Record<string, unknown> & {_id: string}
 const user = {id: 'user_test', firstName: 'Avery', username: null, imageUrl: 'https://example.com/avatar.png'}
 
-function database(initial: Document[] = []) {
+function database(initial: Document[] = [], hiddenProfileReads = 0) {
   const docs = new Map(initial.map((doc) => [doc._id, {...doc}]))
   let sequence = 0
   let failShelves = false
@@ -17,6 +18,7 @@ function database(initial: Document[] = []) {
       calls.fetch++
       if (params.readerId) return shelvesFor(params.readerId)
       const doc = [...docs.values()].find((doc) => doc._type === 'readerProfile' && doc.clerkUserId === params.clerkUserId)
+      if (doc && hiddenProfileReads-- > 0) return null
       return doc ? {...doc, systemShelves: shelvesFor(doc._id)} : null
     },
     transaction() {
@@ -30,7 +32,7 @@ function database(initial: Document[] = []) {
         },
         createIfNotExists(doc: Document) { missing.push(doc); return tx },
         patch(id: string, update: {set: object}) { patches.push({id, set: update.set}); return tx },
-        async commit() {
+        async commit(options?: {returnDocuments?: boolean}) {
           if (missing.length || patches.length) {
             calls.shelfCommits++
             if (failShelves) throw new Error('Sanity unavailable')
@@ -39,6 +41,7 @@ function database(initial: Document[] = []) {
           for (const doc of pending) docs.set(doc._id, doc)
           for (const doc of missing) if (!docs.has(doc._id)) docs.set(doc._id, doc)
           for (const patch of patches) docs.set(patch.id, {...docs.get(patch.id)!, ...patch.set})
+          if (options?.returnDocuments) return pending.map(doc => ({...doc}))
         },
       }
       return tx
@@ -97,6 +100,74 @@ test('concurrent signup and signed-in requests share one profile and three shelv
   const shelves = [...docs.values()].filter((doc) => doc._type === 'shelf')
   assert.equal(shelves.length, 3)
   assert.ok(shelves.every((doc) => (doc.owner as {_ref: string})._ref === results[0]._id))
+})
+
+test('a competing creator waits for query visibility instead of failing the first signed-in page', async () => {
+  const {client, docs} = database([
+    {_id: `clerkIdentity.${user.id}`, _type: 'clerkIdentity', clerkUserId: user.id},
+    {_id: 'winning-profile', _type: 'readerProfile', clerkUserId: user.id, displayName: 'Avery'},
+  ], 3)
+  const profile = await syncReaderProfile(client, user)
+  assert.equal(profile._id, 'winning-profile')
+  assert.equal([...docs.values()].filter(doc => doc._type === 'readerProfile').length, 1)
+  assert.equal([...docs.values()].filter(doc => doc._type === 'shelf').length, 3)
+})
+
+test('successful creation uses the transaction document without another profile query', async () => {
+  const db = database([], 100)
+  const profile = await syncReaderProfile(db.client, user)
+  assert.ok(profile._id)
+  assert.equal(db.calls.fetch, 2) // initial profile query, then shelf query only
+  assert.equal([...db.docs.values()].filter(doc => doc._type === 'readerProfile').length, 1)
+  assert.equal(db.shelvesFor(profile._id).length, 3)
+})
+
+test('conflict recovery bypasses request memoization of a missing profile', async () => {
+  const db = database([
+    {_id: `clerkIdentity.${user.id}`, _type: 'clerkIdentity', clerkUserId: user.id},
+    {_id: 'existing', _type: 'readerProfile', clerkUserId: user.id, displayName: 'Avery'},
+  ], 1)
+  const fetch = db.client.fetch.bind(db.client)
+  const signals: AbortSignal[] = []
+  db.client.fetch = (async (query: string, params: {clerkUserId?: string}, options?: {signal?: AbortSignal}) => {
+    if (params.clerkUserId) {
+      // Simulate Next reusing the first null for requests without a signal.
+      if (!options?.signal) return null
+      assert.ok(!signals.includes(options.signal))
+      signals.push(options.signal)
+    }
+    return fetch(query, params, options)
+  }) as typeof db.client.fetch
+  assert.equal((await syncReaderProfile(db.client, user))._id, 'existing')
+  assert.equal(signals.length, 2)
+})
+
+test('temporary reader setup failures retry within the original request', async () => {
+  for (const error of [Object.assign(new Error('Unavailable'), {statusCode: 503}),
+    Object.assign(new Error('Rate limited'), {status: 429}),
+    new TypeError('fetch failed', {cause: {code: 'ECONNRESET'}}), new ReaderProfilePendingError()]) {
+    let attempts = 0
+    const delays: number[] = []
+    const result = await retryReaderSetup(async () => {
+      if (++attempts < 3) throw error
+      return 'ready'
+    }, async ms => { delays.push(ms) })
+    assert.equal(result, 'ready')
+    assert.deepEqual(delays, [200, 600])
+  }
+})
+
+test('reader setup retries stop and never retry permissions or invalid configuration', async () => {
+  for (const [error, expectedAttempts] of [
+    [Object.assign(new Error('Unavailable'), {statusCode: 503}), 3],
+    [Object.assign(new Error('Unauthorized'), {statusCode: 401}), 1],
+    [Object.assign(new Error('Forbidden'), {statusCode: 403}), 1],
+    [new Error('Missing token'), 1],
+  ] as const) {
+    let attempts = 0
+    await assert.rejects(retryReaderSetup(async () => { attempts++; throw error }, async () => {}), e => e === error)
+    assert.equal(attempts, expectedAttempts)
+  }
 })
 
 test('updates reuse an existing profile and preserve reader preferences', async () => {

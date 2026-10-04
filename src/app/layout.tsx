@@ -1,12 +1,16 @@
 import type {Metadata} from 'next'
 import {ClerkProvider} from '@clerk/nextjs'
+import {auth} from '@clerk/nextjs/server'
+import {headers} from 'next/headers'
 import {DM_Mono, DM_Sans, Instrument_Serif, Inter, Playfair_Display} from 'next/font/google'
 import {AuthControl} from '@/components/AuthControl'
+import {SignedOutRedirect} from '@/components/SignedOutRedirect'
 import {getOptionalReader} from '@/lib/reader'
 import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import {ReadingCompanion} from '@/components/ReadingCompanion'
+import {ReaderSetupRecovery} from '@/components/ReaderSetupRecovery'
 
 const display = DM_Sans({
   subsets: ['latin'],
@@ -50,8 +54,29 @@ export const metadata: Metadata = {
   description: 'A home for everything you read.',
 }
 
+function isImportExportPath(pathname: string) {
+  return pathname === '/settings/library/import-export' || pathname === '/settings/library/import-export/'
+}
+
 export default async function RootLayout({children}: {children: React.ReactNode}) {
-  const reader = await getOptionalReader()
+  const {isAuthenticated} = await auth()
+  const pathname = (await headers()).get('x-pathname') ?? ''
+
+  if (!isAuthenticated && isImportExportPath(pathname)) {
+    const signInHref = `/sign-in?redirect_url=${encodeURIComponent('/settings/library/import-export')}`
+    return (
+      <html lang="en">
+        <body className="bg-paper">
+          <SignedOutRedirect href={signInHref} />
+        </body>
+      </html>
+    )
+  }
+
+  // A Sanity setup failure must not turn a valid Clerk session into a failed
+  // root layout (or a guest session). Resource-level auth remains unchanged.
+  const reader = await getOptionalReader().catch(() => null)
+  const readerUnavailable = isAuthenticated && !reader
 
   return (
     <html lang="en">
@@ -59,13 +84,13 @@ export default async function RootLayout({children}: {children: React.ReactNode}
         className={`${display.variable} ${sans.variable} ${accent.variable} ${wordmark.variable} ${mono.variable} antialiased`}
         style={{fontFamily: 'var(--font-inter), ui-sans-serif, system-ui'}}
       >
-        <ClerkProvider>
-          <Header auth={<AuthControl avatarSrc={reader?.avatarSrc} />} signedIn={Boolean(reader)} />
+        <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
+          <Header auth={<AuthControl avatarSrc={reader?.avatarSrc} signedIn={isAuthenticated} />} signedIn={isAuthenticated} />
           <main className="mx-auto w-full max-w-7xl">
-            {children}
+            {readerUnavailable ? <ReaderSetupRecovery /> : children}
           </main>
-          <Footer signedIn={Boolean(reader)} />
-          <ReadingCompanion key={reader?.readerId || 'guest'} readerId={reader?.readerId} />
+          <Footer signedIn={isAuthenticated} />
+          {!readerUnavailable ? <ReadingCompanion key={reader?.readerId || 'guest'} readerId={reader?.readerId} /> : null}
         </ClerkProvider>
       </body>
     </html>

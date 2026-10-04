@@ -202,10 +202,10 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex flex-col items-stretch gap-2 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:items-end sm:gap-3">
+    <div className="pointer-events-none fixed right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6 sm:gap-3">
       {open ? (
         <section
-          className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh-5.5rem))] w-full flex-col overflow-hidden border bg-[#f6f1ea] shadow-[0_24px_50px_rgba(17,17,17,0.18)] border-[#e3d8cc]! sm:max-h-[min(36rem,calc(100dvh-7rem))] sm:w-[min(calc(100vw-3rem),26rem)]"
+          className="pointer-events-auto flex h-[min(46rem,calc(100dvh-5.25rem))] w-[min(calc(100vw-4.5rem),21.5rem)] flex-col overflow-hidden border bg-[#f6f1ea] shadow-[0_24px_50px_rgba(17,17,17,0.18)] border-[#e3d8cc]! sm:h-auto sm:max-h-[min(36rem,calc(100dvh-7rem))] sm:w-[min(calc(100vw-3rem),26rem)]"
           aria-label="Everlogue reading companion"
         >
           <header className="flex items-start justify-between gap-3 border-b px-4 pt-3.5 pb-3.5 border-[#eadfd3]! sm:gap-4 sm:px-5 sm:pt-4 sm:pb-4">
