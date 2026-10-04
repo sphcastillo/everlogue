@@ -14,6 +14,17 @@ function bookHref(book: LinkableSelection['book']) {
   return `/books/${encodeURIComponent(book.slug || book._id)}`
 }
 
+export function stripCompanionSources(text: string) {
+  return text
+    .replace(/\n+(?:sources?|references?|further reading|read more)\s*:[\s\S]*$/i, '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\s+\(\s*\)/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+
 export function plainRecommendationTitles(text: string) {
   return [...text.matchAll(
     /(?:^|\n)\s*\d+[.)]\s+(.+?)\s+(?:—|–|-)\s+[^\n]+/g,

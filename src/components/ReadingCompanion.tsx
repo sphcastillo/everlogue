@@ -1,5 +1,6 @@
 'use client'
 
+import {usePathname} from 'next/navigation'
 import {useEffect, useRef, useState} from 'react'
 import {CompanionMessageText} from './CompanionMessageText'
 
@@ -44,6 +45,7 @@ function parseMessages(value: unknown): ChatMessage[] {
 }
 
 export function ReadingCompanion({readerId}: {readerId?: string}) {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
@@ -55,6 +57,10 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
   const previousMessageCount = useRef(0)
   const wasOpen = useRef(false)
   const savedHistory = useRef('[]')
+
+  useEffect(() => {
+    setOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     if (!readerId) return
@@ -205,8 +211,13 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
     <div className="pointer-events-none fixed right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6 sm:gap-3">
       {open ? (
         <section
-          className="pointer-events-auto flex h-[min(46rem,calc(100dvh-5.25rem))] w-[min(calc(100vw-4.5rem),21.5rem)] flex-col overflow-hidden border bg-[#f6f1ea] shadow-[0_24px_50px_rgba(17,17,17,0.18)] border-[#e3d8cc]! sm:h-auto sm:max-h-[min(36rem,calc(100dvh-7rem))] sm:w-[min(calc(100vw-3rem),26rem)]"
+          className="pointer-events-auto flex h-[min(46rem,calc(100dvh-5.25rem))] w-[min(92vw,calc(100vw-1.5rem))] flex-col overflow-hidden border bg-[#f6f1ea] shadow-[0_24px_50px_rgba(17,17,17,0.18)] border-[#e3d8cc]! sm:h-auto sm:max-h-[min(36rem,calc(100dvh-7rem))] sm:w-[min(calc(100vw-3rem),26rem)]"
           aria-label="Everlogue reading companion"
+          onClick={(event) => {
+            const target = event.target
+            if (!(target instanceof Element)) return
+            if (target.closest('a[href^="/"]')) setOpen(false)
+          }}
         >
           <header className="flex items-start justify-between gap-3 border-b px-4 pt-3.5 pb-3.5 border-[#eadfd3]! sm:gap-4 sm:px-5 sm:pt-4 sm:pb-4">
             <div className="min-w-0">

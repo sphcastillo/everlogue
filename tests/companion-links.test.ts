@@ -3,12 +3,20 @@ import test from 'node:test'
 import {
   linkRecommendationTitles,
   plainRecommendationTitles,
+  stripCompanionSources,
 } from '../src/lib/companion-links'
 
 const selections = [
   {book: {_id: 'book.one', slug: 'the-first-book', title: 'The First Book'}},
   {book: {_id: 'book.two', title: 'Book Two (Again)'}},
 ]
+
+test('hides source URLs and source lists from companion replies', () => {
+  assert.equal(
+    stripCompanionSources('The Reader is in the catalog.\n\nSources:\nhttps://example.com/oprah'),
+    'The Reader is in the catalog.',
+  )
+})
 
 test('links recommendation titles without requiring one exact list format', () => {
   const answer = linkRecommendationTitles(

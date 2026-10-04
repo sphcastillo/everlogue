@@ -106,6 +106,67 @@ export async function searchRecommendationCatalog(client: SanityClient, terms: s
   ).slice(0, 30)
 }
 
+const LOOKUP_FILLER =
+  /^(can you |could you |please |hey |hi )+/i
+
+export function extractLookupTitle(message: string) {
+  return message
+    .replace(LOOKUP_FILLER, '')
+    .replace(/\b(find|look(?:ing)? up|search for|do you have|have you got|is there|tell me about|what about|what(?:'s| is) )\b/gi, ' ')
+    .replace(/^(is|was|does)\s+/i, '')
+    .replace(/\b(in (the )?(everlogue )?catalog|on (oprah'?s?|reese'?s?|jenna(?:'?s)?|gma)( book club)?|oprah'?s? book club)\b/gi, ' ')
+    .replace(/[?!.,]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export function isCatalogTitleLookup(message: string) {
+  const text = message.trim()
+  if (!text || isNextReadOpening(text) || /recommend|similar to|read next/i.test(text)) return false
+  if (/\b(current(ly)? reads?|want to read|my shelves|my books|my library)\b/i.test(text)) return false
+  if (/\b(how long|since when|started|founded|been running)\b/i.test(text) && /\bclub\b/i.test(text)) return false
+  const title = extractLookupTitle(text)
+  if (title.length < 2 || title.split(/\s+/).length > 10) return false
+  return (
+    /\b(find|look(?:ing)? up|do you have|is there|tell me about|search|catalog|book club|oprah|reese|jenna|gma)\b/i.test(text)
+    || (!hasReadingDirection(text) && title.split(/\s+/).length <= 8)
+  )
+}
+
+export type CatalogLookup = CatalogMatch & {clubs?: string[] | null}
+
+export async function findCatalogBooks(client: SanityClient, title: string) {
+  const exact = title.trim().toLowerCase()
+  const fuzzy = `${title.trim()}*`
+  return client.fetch<CatalogLookup[]>(
+    `*[_type == "book" && !(_id in path("drafts.**")) && defined(title) && (lower(title) == $exact || title match $fuzzy)] | order(select(lower(title) == $exact => 0, 1) asc, title asc)[0...8]{
+      ${fields},
+      "clubs": array::unique(*[_type == "curatedCollection" && count(books[book._ref == ^._id]) > 0].title)
+    }`,
+    {exact, fuzzy},
+    {cache: 'no-store'},
+  )
+}
+
+export function catalogLookupAnswer(books: CatalogLookup[], askedTitle: string) {
+  if (!books.length) return `I don’t have “${askedTitle}” in the Everlogue catalog.`
+  const asked = askedTitle.toLowerCase()
+  const exact = books.filter(book => book.title.toLowerCase() === asked)
+  const shown = (exact.length ? exact : books).slice(0, 3)
+  return shown.map(book => {
+    const authors = book.authors?.filter(Boolean).join(', ') || 'Author unknown'
+    const clubs = (book.clubs || []).filter(Boolean)
+    const clubLine = clubs.length ? ` It’s on ${clubs.join(' and ')}.` : ''
+    const blurb = book.description?.trim().split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')
+    const href = `/books/${encodeURIComponent(book.slug || book._id)}`
+    const titleLink = `[${book.title}](${href})`
+    const lead = shown.length === 1
+      ? `Yes — ${titleLink} by ${authors} is in Everlogue.`
+      : `${titleLink} — ${authors}`
+    return `${lead}${clubLine}${blurb ? `\n${blurb}` : ''}`
+  }).join('\n\n')
+}
+
 // A loved book may already be read: allow looking up its metadata as an anchor, never as a recommendation.
 export async function findLovedBook(client: SanityClient, title: string) {
   return client.fetch<CatalogMatch[]>(`*[_type == "book" && !(_id in path("drafts.**")) && title match $title][0...5]{${fields}}`, {title}, {cache: 'no-store'})

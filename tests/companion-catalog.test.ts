@@ -3,7 +3,10 @@ import {test} from 'node:test'
 import {evaluate, parse} from 'groq-js'
 import type {SanityClient} from '@sanity/client'
 import {
+  catalogLookupAnswer,
+  extractLookupTitle,
   explicitConversationLimits,
+  isCatalogTitleLookup,
   isNextReadOpening,
   searchRecommendationCatalog,
   shouldAskMoodQuestion,
@@ -19,6 +22,32 @@ const docs = [
   ...[['read','finished'], ['current','currentlyReading'], ['want','wantToRead'], ['other-reader','other-shelf']].map(([book,shelf]) => ({_id: `entry-${book}`, _type:'shelfEntry', book:ref(book), shelf:ref(shelf)})),
 ]
 const client = {fetch: async (query: string, params: Record<string, unknown>) => (await evaluate(parse(query), {dataset: docs, params})).get()} as unknown as SanityClient
+
+test('title lookups recognize The Reader without treating club history as a catalog search', () => {
+  assert.equal(extractLookupTitle("Find The Reader on Oprah's book club"), 'The Reader')
+  assert.equal(extractLookupTitle("Is The Reader on Oprah's book club?"), 'The Reader')
+  assert.equal(isCatalogTitleLookup('The Reader'), true)
+  assert.equal(isCatalogTitleLookup("Is The Reader on Oprah's book club?"), true)
+  assert.equal(isCatalogTitleLookup('What should I read next?'), false)
+  assert.equal(isCatalogTitleLookup('Show me my current reads'), false)
+  assert.equal(isCatalogTitleLookup("How long has Oprah's book club been running?"), false)
+})
+
+test('a catalog lookup names the club without inventing a missing title', () => {
+  const answer = catalogLookupAnswer(
+    [{
+      _id: 'book.google.ff47bbb141bd2622',
+      title: 'The Reader',
+      slug: 'the-reader',
+      authors: ['Bernhard Schlink'],
+      clubs: ["Oprah's Book Club"],
+    }],
+    'The Reader',
+  )
+  assert.match(answer, /Oprah's Book Club/)
+  assert.match(answer, /\[The Reader\]\(\/books\/the-reader\)/)
+  assert.match(catalogLookupAnswer([], 'Missing Book'), /don’t have/)
+})
 
 test('asks the mood question before giving generic next-read recommendations', () => {
   assert.equal(isNextReadOpening('What should I read next?'), true)

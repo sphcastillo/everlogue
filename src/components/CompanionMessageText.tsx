@@ -1,14 +1,16 @@
 import Link from 'next/link'
 import type {ReactElement} from 'react'
+import {stripCompanionSources} from '@/lib/companion-links'
 
 export function CompanionMessageText({text}: {text: string}) {
+  const visible = stripCompanionSources(text)
   const links = /\[([^\]\n]+)\]\((\/books\/[A-Za-z0-9._~%+-]+)\)/g
   const content: (string | ReactElement)[] = []
   let cursor = 0
 
-  for (const match of text.matchAll(links)) {
+  for (const match of visible.matchAll(links)) {
     const index = match.index ?? 0
-    content.push(text.slice(cursor, index))
+    content.push(visible.slice(cursor, index))
     content.push(
       <Link
         key={`${match[2]}-${index}`}
@@ -21,6 +23,6 @@ export function CompanionMessageText({text}: {text: string}) {
     cursor = index + match[0].length
   }
 
-  content.push(text.slice(cursor))
+  content.push(visible.slice(cursor))
   return content
 }
