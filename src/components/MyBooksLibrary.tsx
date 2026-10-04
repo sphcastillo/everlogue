@@ -87,6 +87,13 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
     finished: booksOn(byKind.get('finished')).length,
     wantToRead: booksOn(byKind.get('wantToRead')).length,
   }
+  const total = useMemo(() => {
+    const ids = new Set<string>()
+    for (const shelf of shelves) {
+      for (const book of booksOn(shelf)) ids.add(book._id)
+    }
+    return ids.size
+  }, [shelves])
   const needle = query.trim()
   const searching = Boolean(normalize(needle))
   const customShelves = shelves.filter((shelf) => shelf.kind === 'custom')
@@ -129,6 +136,9 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
           <h1 className="mt-4 font-display text-[clamp(4.2rem,6vw,4.6rem)] leading-[0.88] font-black tracking-[-0.07em]">
             My books.
           </h1>
+          <p className="mt-4 font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">
+            {pad(total)} {total === 1 ? 'book' : 'books'}
+          </p>
           <p className="mt-4 max-w-md text-[1.02rem] leading-7 text-muted">
             Everything you&apos;re reading, everything you&apos;ve finished, and everything still to come.
           </p>

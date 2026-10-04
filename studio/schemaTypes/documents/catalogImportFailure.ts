@@ -7,7 +7,7 @@ export const catalogImportFailure = defineType({
   type: 'document',
   icon: ErrorOutlineIcon,
   readOnly: true,
-  description: 'A Goodreads import row that did not save to a reader’s library.',
+  description: 'A Goodreads import row that did not save to a reader’s library. The linked catalog book is the document to edit and publish.',
   fields: [
     defineField({
       name: 'reader',

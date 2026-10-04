@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import {useRef, useState, type DragEvent} from 'react'
+import {useEffect, useRef, useState, type DragEvent, type RefObject} from 'react'
 import {getReaderLibraryIndex, importGoodreadsBatch} from '@/lib/goodreads-actions'
-import {IMPORT_BATCH_SIZE, MAX_CSV_BYTES, parseGoodreadsCsv, SHELF_LABELS, type GoodreadsPreview} from '@/lib/goodreads-csv'
+import {IMPORT_BATCH_SIZE, MAX_CSV_BYTES, parseGoodreadsCsv, SHELF_LABELS, type GoodreadsBook, type GoodreadsPreview} from '@/lib/goodreads-csv'
 import {libraryIndexFromKeys, partitionGoodreadsBooks} from '@/lib/goodreads-library'
 import type {ImportResult} from '@/lib/goodreads-import'
+import {importReportNews} from '@/lib/goodreads-report'
 
 function skippedOwned(book: {row: number; title: string}): ImportResult {
   return {
@@ -30,6 +31,7 @@ export function GoodreadsImport() {
   const running = useRef(false)
   const selection = useRef(0)
   const dragDepth = useRef(0)
+  const reportRef = useRef<HTMLElement>(null)
   const uploadDisabled = busy || reading
 
   async function selectFile(file?: File) {
@@ -123,6 +125,12 @@ export function GoodreadsImport() {
     : preview
       ? `Import ${preview.books.length} books`
       : 'Import books'
+  const news = importReportNews({imported, updated, skipped, failed: failed.length})
+  const importedTitles = results.filter((item) => item.status === 'imported' || item.status === 'updated')
+
+  useEffect(() => {
+    if (complete) reportRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'})
+  }, [complete])
 
   return (
     <section className="surface mt-8 p-6 sm:p-8" aria-labelledby="goodreads-heading">
@@ -182,7 +190,7 @@ export function GoodreadsImport() {
       {error ? <p role="alert" className="mt-4 text-sm text-red-700">{error}</p> : null}
       {preview ? (
         <div className="mt-6 border-t pt-6">
-          <h3 className="font-semibold">{complete ? 'Import complete' : 'Review your import'}</h3>
+          {complete ? null : <h3 className="font-semibold">Review your import</h3>}
           <p className="mt-1 wrap-break-word text-sm text-muted">{fileName} · {preview.total} rows · {preview.books.length} in the file · {review ? `${review.missing.length} not on your shelves yet · ${review.owned.length} already in your library` : 'checking your shelves'} · {preview.books.filter((book) => book.rating !== undefined).length} with ratings · {preview.issues.length} skipped in preview</p>
           {preview.issues.length ? (
             <details className="mt-3 text-sm"><summary className="cursor-pointer">Review skipped rows ({preview.issues.length})</summary>
@@ -190,43 +198,173 @@ export function GoodreadsImport() {
             </details>
           ) : null}
           {preview.books.length > 0 && !complete ? <button type="button" className="pill is-active mt-5 px-5 py-2.5 text-sm disabled:opacity-60" disabled={busy || retryingRow !== null || reading} onClick={startImport}>{busy ? 'Importing…' : results.length ? 'Retry import' : importLabel}</button> : null}
-          {busy || results.length > 0 ? (
+          {(busy || (results.length > 0 && !complete)) ? (
             <div className="mt-5" role="status" aria-live="polite">
               <progress className="h-2 w-full accent-[var(--accent)]" value={results.length} max={preview.books.length} aria-label="Books processed" />
               <p className="mt-2 text-sm">{results.length} of {preview.books.length} processed · {imported} imported · {updated} ratings added · {skipped} already in your library · {failed.length} failed</p>
               {busy ? <p className="mt-1 text-xs text-muted">Keep this page open until the import finishes.</p> : null}
             </div>
           ) : null}
-          {failed.length ? (
-            <div className="mt-5">
-              <h4 className="font-semibold">Failed to upload ({failed.length})</h4>
-              <p className="mt-1 text-sm text-muted">Retry each title on its own. Books that already saved stay on your shelves.</p>
-              <ul className="mt-3 divide-y divide-(--line) border-y border-(--line)">
-                {failed.map((item) => {
-                  const book = preview.books.find((entry) => entry.row === item.row)
-                  return (
-                    <li key={item.row} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                      <div className="min-w-0">
-                        <p className="font-medium">{item.title}</p>
-                        {item.message ? <p className="mt-1 text-sm text-muted">{item.message}</p> : null}
-                      </div>
-                      <button
-                        type="button"
-                        className="pill rounded-sm! px-4 py-2 text-sm disabled:opacity-60"
-                        disabled={!book || retryingRow !== null || busy}
-                        onClick={() => book && void retryBook(book)}
-                      >
-                        {retryingRow === item.row ? 'Retrying…' : 'Retry'}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
+          {complete ? (
+            <ImportReport
+              reportRef={reportRef}
+              news={news}
+              imported={imported}
+              updated={updated}
+              skipped={skipped}
+              failed={failed}
+              importedTitles={importedTitles}
+              preview={preview}
+              busy={busy}
+              retryingRow={retryingRow}
+              onRetry={retryBook}
+            />
+          ) : failed.length ? (
+            <FailedTitles
+              failed={failed}
+              preview={preview}
+              busy={busy}
+              retryingRow={retryingRow}
+              onRetry={retryBook}
+            />
           ) : null}
-          {complete ? <div className="mt-5 flex flex-wrap gap-3"><Link href="/my-books" className="pill is-active px-5 py-2.5 text-sm">View My Books</Link></div> : null}
         </div>
       ) : null}
     </section>
+  )
+}
+
+function pad(count: number) {
+  return String(count).padStart(2, '0')
+}
+
+function ImportReport({
+  reportRef,
+  news,
+  imported,
+  updated,
+  skipped,
+  failed,
+  importedTitles,
+  preview,
+  busy,
+  retryingRow,
+  onRetry,
+}: {
+  reportRef: RefObject<HTMLElement | null>
+  news: ReturnType<typeof importReportNews>
+  imported: number
+  updated: number
+  skipped: number
+  failed: ImportResult[]
+  importedTitles: ImportResult[]
+  preview: GoodreadsPreview
+  busy: boolean
+  retryingRow: number | null
+  onRetry: (book: GoodreadsBook) => void
+}) {
+  return (
+    <article ref={reportRef} className="mt-6 scroll-mt-6 border border-(--line) p-5 sm:p-6" aria-labelledby="import-report-heading">
+      <p className="font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Import report</p>
+      <h3 id="import-report-heading" className="mt-3 font-display text-[1.85rem] leading-[0.95] font-black tracking-[-0.06em]">
+        {news.headline}
+      </h3>
+      <p className="mt-3 max-w-xl text-[1.02rem] leading-7 text-muted">{news.body}</p>
+      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+        {(
+          [
+            {label: 'Added to shelves', value: imported},
+            {label: 'Ratings filled', value: updated},
+            {label: 'Already there', value: skipped},
+            {label: 'Didn’t save', value: failed.length},
+          ] as const
+        ).map((stat) => (
+          <div key={stat.label}>
+            <dt className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">{stat.label}</dt>
+            <dd className="mt-2 font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(stat.value)}</dd>
+          </div>
+        ))}
+      </dl>
+      {importedTitles.length ? (
+        <details className="mt-6 text-sm">
+          <summary className="cursor-pointer font-medium">What landed on your shelves ({importedTitles.length})</summary>
+          <ul className="mt-3 max-h-60 space-y-2 overflow-auto text-muted">
+            {importedTitles.map((item) => (
+              <li key={item.row}>{item.title}{item.message ? ` — ${item.message}` : ''}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {preview.issues.length ? (
+        <details className="mt-4 text-sm">
+          <summary className="cursor-pointer font-medium">Rows we couldn’t read ({preview.issues.length})</summary>
+          <ul className="mt-3 max-h-60 space-y-2 overflow-auto text-muted">
+            {preview.issues.map((issue) => (
+              <li key={issue.row}>Row {issue.row}: {issue.title || 'Untitled'} — {issue.message}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {failed.length ? (
+        <div className="mt-6">
+          <FailedTitles
+            failed={failed}
+            preview={preview}
+            busy={busy}
+            retryingRow={retryingRow}
+            onRetry={onRetry}
+          />
+          <p className="mt-4 max-w-xl text-sm leading-6 text-muted">
+            If a title still won’t load, Everlogue will take care of it. You’ll see it in the catalog shortly — no need to keep retrying.
+          </p>
+        </div>
+      ) : null}
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link href="/my-books" className="pill is-active px-5 py-2.5 text-sm">View My Books</Link>
+      </div>
+    </article>
+  )
+}
+
+function FailedTitles({
+  failed,
+  preview,
+  busy,
+  retryingRow,
+  onRetry,
+}: {
+  failed: ImportResult[]
+  preview: GoodreadsPreview
+  busy: boolean
+  retryingRow: number | null
+  onRetry: (book: GoodreadsBook) => void
+}) {
+  return (
+    <div>
+      <h4 className="font-semibold">Couldn’t add ({failed.length})</h4>
+      <p className="mt-1 text-sm text-muted">Retry a title on its own. Books that already saved stay on your shelves.</p>
+      <ul className="mt-3 divide-y divide-(--line) border-y border-(--line)">
+        {failed.map((item) => {
+          const book = preview.books.find((entry) => entry.row === item.row)
+          return (
+            <li key={item.row} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="font-medium">{item.title}</p>
+                {book?.author ? <p className="mt-1 text-sm text-muted">{book.author}</p> : null}
+                {item.message ? <p className="mt-1 text-sm text-muted">{item.message}</p> : null}
+              </div>
+              <button
+                type="button"
+                className="pill rounded-sm! px-4 py-2 text-sm disabled:opacity-60"
+                disabled={!book || retryingRow !== null || busy}
+                onClick={() => book && onRetry(book)}
+              >
+                {retryingRow === item.row ? 'Retrying…' : 'Retry'}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }

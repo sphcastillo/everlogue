@@ -19,9 +19,15 @@ const book: GoodreadsBook = {
   readCount: 1,
 }
 
-function database() {
-  const docs = new Map<string, Record<string, unknown>>()
+function database(initial: Record<string, unknown>[] = []) {
+  const docs = new Map<string, Record<string, unknown>>(initial.map((doc) => [String(doc._id), {...doc}]))
   const client = {
+    async fetch(query: string, params: Record<string, string>) {
+      if (query.includes('_type == "book" && importKey')) {
+        return [...docs.values()].find((doc) => doc._type === 'book' && doc.importKey === params.importKey)?._id || null
+      }
+      return null
+    },
     async createIfNotExists(doc: {_id: string}) {
       if (!docs.has(doc._id)) docs.set(doc._id, {...doc})
       return docs.get(doc._id)
@@ -31,6 +37,16 @@ function database() {
         set(fields: object) {
           const current = docs.get(id)
           if (current) docs.set(id, {...current, ...fields})
+          return ops
+        },
+        setIfMissing(fields: object) {
+          const current = docs.get(id)
+          if (current) docs.set(id, {...fields, ...current})
+          return ops
+        },
+        append(path: string, items: object[]) {
+          const current = docs.get(id)
+          if (current) current[path] = [...((current[path] as object[]) || []), ...items]
           return ops
         },
         inc(fields: Record<string, number>) {
@@ -44,7 +60,16 @@ function database() {
         },
         unset(keys: string[]) {
           const current = docs.get(id)
-          if (current) for (const key of keys) delete current[key]
+          if (!current) return ops
+          for (const key of keys) {
+            const match = key.match(/^pendingImportPlacements\[_key=="(.+)"\]$/)
+            if (match && Array.isArray(current.pendingImportPlacements)) {
+              current.pendingImportPlacements = (current.pendingImportPlacements as {_key?: string}[])
+                .filter((item) => item._key !== match[1])
+              continue
+            }
+            delete current[key]
+          }
           return ops
         },
         async commit() {
@@ -76,6 +101,23 @@ test('failed imports are stored with the reader and book details', async () => {
   assert.equal(doc.shelfStatus, 'finished')
   assert.equal(doc.retryCount, 1)
   assert.equal(doc.resolvedAt, undefined)
+})
+
+test('failed imports attach the waiting reader to the catalog book', async () => {
+  const {client, docs} = database([
+    {_id: 'book-1', _type: 'book', title: 'Failed Title', importKey: 'unused'},
+  ])
+  await reportCatalogImportFailure(
+    client,
+    {readerId: 'reader-1', displayName: 'Ada'},
+    book,
+    new Error('Network failure'),
+    'book-1',
+  )
+  const placements = docs.get('book-1')?.pendingImportPlacements as {_key: string; shelfStatus: string}[]
+  assert.equal(placements[0]._key, 'reader-1')
+  assert.equal(placements[0].shelfStatus, 'finished')
+  assert.equal((docs.get(catalogImportFailureId('reader-1', book))?.book as {_ref: string})._ref, 'book-1')
 })
 
 test('a successful retry marks the recorded failure resolved', async () => {

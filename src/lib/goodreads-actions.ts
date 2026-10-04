@@ -6,7 +6,7 @@ import {privateClient, writeClient} from '@/sanity/client'
 import {requireReader} from './reader'
 import {goodreadsBookSchema, IMPORT_BATCH_SIZE} from './goodreads-csv'
 import {reportCatalogImportFailure, resolveCatalogImportFailure} from './catalog-import-failure'
-import {importGoodreadsBook, type ImportResult} from './goodreads-import'
+import {ensureGoodreadsCatalogBook, importGoodreadsBook, type ImportResult} from './goodreads-import'
 import {resolveEditionMetadata} from './edition-metadata'
 import {buildLibraryIndex, libraryBookKeys} from './goodreads-library'
 
@@ -68,7 +68,13 @@ export async function importGoodreadsBatch(input: unknown): Promise<ImportResult
       }
     } catch (error) {
       console.error('Goodreads book import failed:', error)
-      await reportCatalogImportFailure(client, reader, book, error).catch((reportError) => {
+      let bookId: string | undefined
+      try {
+        bookId = await ensureGoodreadsCatalogBook(client, book)
+      } catch (ensureError) {
+        console.error('Could not open a catalog book for the failed import:', ensureError)
+      }
+      await reportCatalogImportFailure(client, reader, book, error, bookId).catch((reportError) => {
         console.error('Could not record the import failure:', reportError)
       })
       results.push({row: book.row, title: book.title, status: 'failed', message: 'Could not save this book. You can retry this title.'})

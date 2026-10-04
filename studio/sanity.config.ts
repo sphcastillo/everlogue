@@ -6,6 +6,7 @@ import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {editorialReviewActions} from './actions/editorialReviewActions'
+import {goodreadsImportActions} from './actions/goodreadsImportActions'
 
 
 const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
@@ -34,6 +35,6 @@ export default defineConfig({
   },
 
   document: {
-    actions: (prev, context) => bookClubWatchActions(editorialReviewActions(prev, context), context),
+    actions: (prev, context) => bookClubWatchActions(goodreadsImportActions(editorialReviewActions(prev, context), context), context),
   },
 })

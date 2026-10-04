@@ -16,7 +16,7 @@ export const book = defineType({
     defineField({name: 'title', type: 'string', validation: (rule) => rule.required()}),
     defineField({
       name: 'catalogReviewStatus', title: 'Catalog review', type: 'string',
-      description: 'Books added from search, a Goodreads import, or a book club import stay on the reader’s shelves immediately. Review metadata here, then mark Reviewed to clear Catalog Requests.',
+      description: 'Books added from search, a Goodreads import, or a book club import stay on the reader’s shelves when the import succeeds. Failed imports wait here as catalog books — edit, publish, then add them to the waiting reader’s shelf.',
       options: {list: [{title: 'Needs review', value: 'needsReview'}, {title: 'Reviewed', value: 'reviewed'}], layout: 'radio'},
     }),
     defineField({
@@ -33,6 +33,53 @@ export const book = defineType({
         ],
       },
       components: {input: CatalogOriginInput},
+    }),
+    defineField({
+      name: 'pendingImportPlacements',
+      title: 'Waiting readers',
+      description: 'Readers whose Goodreads import could not add this title yet. Edit the catalog fields, publish, then add the book to their shelf.',
+      type: 'array',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'pendingImportPlacement',
+          fields: [
+            defineField({name: 'reader', type: 'reference', to: [{type: 'readerProfile'}]}),
+            defineField({name: 'readerName', title: 'Reader', type: 'string'}),
+            defineField({
+              name: 'shelfStatus',
+              title: 'Intended shelf',
+              type: 'string',
+              options: {
+                list: [
+                  {title: 'Read', value: 'finished'},
+                  {title: 'Currently reading', value: 'currentlyReading'},
+                  {title: 'Want to read', value: 'wantToRead'},
+                ],
+              },
+            }),
+            defineField({name: 'rating', type: 'number'}),
+            defineField({name: 'addedAt', title: 'Date added', type: 'string'}),
+            defineField({name: 'finishedAt', title: 'Date read', type: 'string'}),
+            defineField({name: 'readCount', title: 'Times read', type: 'number'}),
+            defineField({name: 'message', title: 'Why it failed', type: 'text', rows: 2}),
+          ],
+          preview: {
+            select: {readerName: 'readerName', shelfStatus: 'shelfStatus'},
+            prepare({readerName, shelfStatus}) {
+              const shelf =
+                shelfStatus === 'finished'
+                  ? 'Read'
+                  : shelfStatus === 'currentlyReading'
+                    ? 'Currently reading'
+                    : shelfStatus === 'wantToRead'
+                      ? 'Want to read'
+                      : 'Shelf unknown'
+              return {title: readerName || 'Reader', subtitle: shelf}
+            },
+          },
+        }),
+      ],
     }),
     defineField({
       name: 'knowledgeSources',

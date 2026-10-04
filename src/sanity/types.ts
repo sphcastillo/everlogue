@@ -553,37 +553,6 @@ export type CatalogImportFailure = {
   resolvedAt?: string;
 };
 
-export type ReaderProfile = {
-  _id: string;
-  _type: "readerProfile";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  clerkUserId: string;
-  displayName: string;
-  avatar?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    alt?: string;
-    _type: "image";
-  };
-  avatarUrl?: string;
-  bio?: string;
-  profileVisibility?: "private" | "publicName";
-  spaceColor?:
-    | "cloud"
-    | "blush"
-    | "violet"
-    | "clay"
-    | "apricot"
-    | "butter"
-    | "mint"
-    | "sky"
-    | "navy";
-};
-
 export type CatalogImportIdentity = {
   _id: string;
   _type: "catalogImportIdentity";
@@ -709,6 +678,18 @@ export type Book = {
   title: string;
   catalogReviewStatus?: "needsReview" | "reviewed";
   catalogSource?: "readerSearch" | "goodreadsImport" | "bookClubImport";
+  pendingImportPlacements?: Array<{
+    reader?: ReaderProfileReference;
+    readerName?: string;
+    shelfStatus?: "finished" | "currentlyReading" | "wantToRead";
+    rating?: number;
+    addedAt?: string;
+    finishedAt?: string;
+    readCount?: number;
+    message?: string;
+    _type: "pendingImportPlacement";
+    _key: string;
+  }>;
   knowledgeSources?: Array<{
     label?: string;
     url: string;
@@ -777,6 +758,37 @@ export type Book = {
     providerId?: string;
     importedAt?: string;
   };
+};
+
+export type ReaderProfile = {
+  _id: string;
+  _type: "readerProfile";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  clerkUserId: string;
+  displayName: string;
+  avatar?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    alt?: string;
+    _type: "image";
+  };
+  avatarUrl?: string;
+  bio?: string;
+  profileVisibility?: "private" | "publicName";
+  spaceColor?:
+    | "cloud"
+    | "blush"
+    | "violet"
+    | "clay"
+    | "apricot"
+    | "butter"
+    | "mint"
+    | "sky"
+    | "navy";
 };
 
 export type SanityImagePaletteSwatch = {
@@ -915,13 +927,13 @@ export type AllSanitySchemaTypes =
   | Edition
   | RatingStats
   | CatalogImportFailure
-  | ReaderProfile
   | CatalogImportIdentity
   | BookClubDiscoveryReference
   | BookClubWatchRun
   | BookClubDiscovery
   | AuthorReference
   | Book
+  | ReaderProfile
   | SanityImagePaletteSwatch
   | SanityImagePalette
   | SanityImageDimensions

@@ -10,7 +10,7 @@ const isConflict = (error: unknown) => Boolean(error && typeof error === 'object
 
 export type ImportResult = {row: number; title: string; status: 'imported' | 'updated' | 'skipped' | 'failed'; message?: string}
 
-async function resolveBook(client: SanityClient, book: GoodreadsBook) {
+export async function ensureGoodreadsCatalogBook(client: SanityClient, book: GoodreadsBook) {
   const importKey = catalogImportKey(book)
   const params = {importKey, goodreadsId: book.goodreadsId || '', isbn10: book.isbn10 || '', isbn13: book.isbn13 || (book.isbn10 ? isbn13For(book.isbn10) : ''), title: book.title.toLowerCase(), author: book.author.toLowerCase()}
   const query = `coalesce(
@@ -86,7 +86,7 @@ async function importMissingRating(client: SanityClient, readerId: string, bookI
 }
 
 export async function importGoodreadsBook(client: SanityClient, readerId: string, book: GoodreadsBook, resolveMetadata?: (input: EditionInput) => Promise<EditionMetadata>): Promise<ImportResult> {
-  const bookId = await resolveBook(client, book)
+  const bookId = await ensureGoodreadsCatalogBook(client, book)
   const editionId = resolveMetadata ? await ensureImportEdition(client, bookId, book, resolveMetadata) : undefined
   const progressId = stableId(['progress', readerId, bookId])
   const existing = await client.fetch<boolean>(

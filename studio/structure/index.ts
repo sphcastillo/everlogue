@@ -12,6 +12,7 @@ import {
 } from '@sanity/icons'
 import {BookClubImportsPane} from '../components/BookClubImportsPane'
 import {
+  FAILED_IMPORT_BOOKS,
   FROM_BOOK_CLUB,
   FROM_GOODREADS,
   FROM_READER_SEARCH,
@@ -261,16 +262,11 @@ export const structure: StructureResolver = (S, context) =>
                 title: 'Goodreads imports',
                 filter: `_type == "book" && ${PENDING_CATALOG_REVIEW} && ${FROM_GOODREADS}`,
               }),
-              S.listItem()
-                .id('catalog-requests-failed-imports')
-                .title('Failed to Upload Import')
-                .icon(BookIcon)
-                .child(
-                  S.documentTypeList('catalogImportFailure')
-                    .title('Failed to Upload Import')
-                    .filter('_type == "catalogImportFailure" && !defined(resolvedAt)')
-                    .defaultOrdering([{field: 'lastFailedAt', direction: 'desc'}]),
-                ),
+              catalogRequestList(S, context, {
+                id: 'catalog-requests-failed-imports',
+                title: 'Failed to Upload Import',
+                filter: `_type == "book" && ${FAILED_IMPORT_BOOKS}`,
+              }),
               S.listItem()
                 .id('catalog-requests-book-clubs')
                 .title('Bookclub imports')
