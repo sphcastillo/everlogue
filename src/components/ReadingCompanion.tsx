@@ -51,6 +51,9 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
   const [historyLoaded, setHistoryLoaded] = useState(!readerId)
   const [error, setError] = useState('')
   const log = useRef<HTMLDivElement>(null)
+  const newestResponse = useRef<HTMLLIElement>(null)
+  const previousMessageCount = useRef(0)
+  const wasOpen = useRef(false)
   const savedHistory = useRef('[]')
 
   useEffect(() => {
@@ -121,7 +124,28 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
   }, [open])
 
   useEffect(() => {
-    log.current?.scrollTo({top: log.current.scrollHeight})
+    const container = log.current
+    if (!open || !container) {
+      wasOpen.current = open
+      return
+    }
+
+    const isMobile = window.matchMedia('(max-width: 639px)').matches
+    const openedNow = !wasOpen.current
+    const newestMessage = messages.at(-1)
+    const assistantJustStarted =
+      messages.length > previousMessageCount.current && newestMessage?.role === 'assistant'
+
+    if (isMobile && (openedNow || assistantJustStarted) && newestResponse.current) {
+      const responseTop = newestResponse.current.getBoundingClientRect().top
+      const containerTop = container.getBoundingClientRect().top
+      container.scrollTo({top: container.scrollTop + responseTop - containerTop})
+    } else if (!isMobile || newestMessage?.role === 'user') {
+      container.scrollTo({top: container.scrollHeight})
+    }
+
+    previousMessageCount.current = messages.length
+    wasOpen.current = open
   }, [messages, open])
 
   async function send(text: string) {
@@ -211,8 +235,16 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
           <div ref={log} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:min-h-48 sm:px-5 sm:py-5">
             {messages.length ? (
               <ul className="space-y-4">
-                {messages.map((item, index) => (
-                  <li key={`${item.role}-${index}`} className={item.role === 'user' ? 'text-right' : ''}>
+                {messages.map((item, index) => {
+                  const isNewestResponse =
+                    item.role === 'assistant' &&
+                    !messages.slice(index + 1).some((message) => message.role === 'assistant')
+                  return (
+                  <li
+                    key={`${item.role}-${index}`}
+                    ref={isNewestResponse ? newestResponse : undefined}
+                    className={item.role === 'user' ? 'text-right' : ''}
+                  >
                     <p
                       className={`inline-block max-w-[95%] whitespace-pre-wrap wrap-break-word px-3 py-2 text-left text-sm leading-6 ${
                         item.role === 'user' ? 'bg-ink text-white' : 'border bg-paper border-[#eadfd3]!'
@@ -221,7 +253,8 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
                       {item.role === 'assistant' ? <CompanionMessageText text={item.text} /> : item.text}
                     </p>
                   </li>
-                ))}
+                  )
+                })}
                 {pending ? <li className="text-sm text-muted">Thinking…</li> : null}
               </ul>
             ) : (

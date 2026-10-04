@@ -60,11 +60,11 @@ export default async function RootLayout({children}: {children: React.ReactNode}
         style={{fontFamily: 'var(--font-inter), ui-sans-serif, system-ui'}}
       >
         <ClerkProvider>
-          <div className="mx-auto w-full max-w-7xl">
-            <Header auth={<AuthControl avatarSrc={reader?.avatarSrc} />} signedIn={Boolean(reader)} />
+          <Header auth={<AuthControl avatarSrc={reader?.avatarSrc} />} signedIn={Boolean(reader)} />
+          <main className="mx-auto w-full max-w-7xl">
             {children}
-            <Footer />
-          </div>
+          </main>
+          <Footer signedIn={Boolean(reader)} />
           <ReadingCompanion key={reader?.readerId || 'guest'} readerId={reader?.readerId} />
         </ClerkProvider>
       </body>

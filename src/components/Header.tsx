@@ -17,7 +17,7 @@ export default function Header({auth, signedIn}: {auth: React.ReactNode; signedI
 
   return (
     <header className="sticky top-0 z-30 border-b border-(--line) bg-paper">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto] lg:gap-x-4">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto] lg:gap-x-4">
         <Link href="/" className="col-start-1 row-start-1 flex min-w-0 items-center gap-2" aria-label="Everlogue">
           <Image
             src="/images/everlogue-logo.png"
@@ -27,7 +27,7 @@ export default function Header({auth, signedIn}: {auth: React.ReactNode; signedI
             className="h-8 w-auto shrink-0 sm:h-9"
             priority
           />
-          <span className="truncate font-wordmark text-[1.35rem] leading-none tracking-normal sm:text-[1.48rem]">
+          <span className="font-wordmark text-[1.35rem] leading-[1.35] tracking-normal sm:text-[1.48rem]">
             Everlogue
           </span>
         </Link>

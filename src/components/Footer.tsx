@@ -1,50 +1,73 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-export default function Footer() {
+const LINKS = [
+  {href: '/discover', label: 'Discover'},
+  {href: '/genres', label: 'Genres'},
+]
+
+const READER_LINKS = [
+  {href: '/my-books', label: 'My books'},
+  {href: '/profile', label: 'My profile'},
+  {href: '/settings', label: 'Settings'},
+]
+
+export default function Footer({signedIn}: {signedIn: boolean}) {
+  const links = signedIn ? [...LINKS, ...READER_LINKS] : LINKS
   return (
-    <footer className="relative mt-6 border-t border-ink/18 px-5 pt-14 pb-8 shadow-[inset_0_20px_32px_-28px_color-mix(in_srgb,#3a4570_20%,transparent)] min-[875px]:mt-8 min-[875px]:px-9 min-[875px]:pt-16 min-[875px]:pb-10">
-      <span className="pointer-events-none absolute inset-x-0 top-1.25 h-px bg-(--line)" aria-hidden="true" />
-      <div className="grid items-end gap-10 min-[875px]:grid-cols-2 min-[875px]:gap-x-12 xl:gap-x-16">
-        <div>
-          <p className="text-[0.62rem] font-medium tracking-[0.2em] text-muted uppercase">
-            A little room to wander
-          </p>
-          <h2 className="mt-3 max-w-xl font-display text-[clamp(2rem,6vw,3.5rem)] leading-[0.92] font-black tracking-[-0.06em]">
-            Reading is a good
-            <span className="block">way to get lost.</span>
-          </h2>
-        </div>
-        <div className="min-[875px]:pb-1">
-          <div className="border-t border-(--line) pt-6">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between xl:gap-10">
-              <p className="max-w-md text-[0.92rem] leading-relaxed text-muted">
-                Your shelves keep the receipts. Your people leave the breadcrumbs. The next book is somewhere in between.
-              </p>
-              <Link
-                href="/my-books"
-                className="inline-flex shrink-0 items-center gap-4 self-start text-[0.68rem] font-medium tracking-[0.16em] text-ink uppercase xl:self-auto"
-              >
-                See what you&apos;ve been reading
-                <span className="grid size-10 place-items-center border border-ink" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" className="size-3.5" fill="none">
-                    <path d="M3 8h9" stroke="currentColor" strokeWidth="1.4" />
-                    <path d="M8 4l5 4-5 4" stroke="currentColor" strokeWidth="1.4" />
-                  </svg>
-                </span>
-              </Link>
-            </div>
+    <footer className="mt-6 bg-[#f3efe6] text-ink min-[875px]:mt-8">
+      <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:px-9 lg:py-12">
+        <div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-16">
+          <div>
+            <p className="flex items-center gap-2 font-mono text-[0.62rem] font-medium tracking-[0.18em] text-[#ad4f3c] uppercase">
+              <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden="true">
+                <path d="M3 3.2c1.8-.3 3.4.1 5 1.2v7.3c-1.6-1.1-3.2-1.5-5-1.2V3.2Z" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M13 3.2c-1.8-.3-3.4.1-5 1.2v7.3c1.6-1.1 3.2-1.5 5-1.2V3.2Z" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+              A reader&apos;s place
+            </p>
+            <Link href="/" className="mt-4 inline-flex items-center gap-3" aria-label="Everlogue">
+              <Image
+                src="/images/everlogue-logo.png"
+                alt=""
+                width={180}
+                height={176}
+                className="h-10 w-auto sm:h-12"
+              />
+              <span className="font-wordmark text-[2.4rem] leading-none tracking-normal sm:text-[3rem]">
+                Everlogue
+              </span>
+            </Link>
+            <p className="mt-4 font-accent text-[1.55rem] leading-none text-[#8d5a4d] italic sm:text-[1.85rem]">
+              Read widely. Think freely.
+            </p>
           </div>
+
+          <nav aria-label="Footer navigation" className="lg:pb-1">
+            <p className="font-mono text-[0.62rem] font-medium tracking-[0.18em] text-muted uppercase">
+              Find your next thread
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-x-10 gap-y-4">
+              {links.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="inline-flex items-center gap-2 border-b border-ink/15 pb-2 text-[0.95rem] hover:border-ink"
+                >
+                  {item.label}
+                  <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden="true">
+                    <path d="M4 12 12 4" stroke="currentColor" strokeWidth="1.3" />
+                    <path d="M6 4h6v6" stroke="currentColor" strokeWidth="1.3" />
+                  </svg>
+                </Link>
+              ))}
+            </div>
+          </nav>
         </div>
-      </div>
-      <div className="mt-16 border-t border-(--line) pt-6 text-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-ink" aria-label="Everlogue">
-          <Image src="/images/everlogue-logo.png" alt="" width={180} height={176} className="h-5 w-auto" />
-          <span className="font-wordmark text-[1.2rem] leading-none tracking-normal">Everlogue</span>
-        </Link>
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[0.62rem] font-medium tracking-[0.16em] text-muted uppercase">
-          <p>Read widely. Think freely.</p>
-          <p>A reader&apos;s place</p>
+
+        <div className="mt-10 flex flex-col gap-3 border-t border-ink/15 pt-5 pr-44 font-mono text-[0.62rem] font-medium tracking-[0.16em] text-muted uppercase sm:flex-row sm:items-center sm:gap-10">
+          <p>Everlogue — A reader&apos;s place</p>
+          <p>A little room for big ideas</p>
         </div>
       </div>
     </footer>

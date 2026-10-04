@@ -151,7 +151,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
 
       <div
         ref={scrollerRef}
-        className="collection-rail mt-8 flex gap-8 overflow-x-auto pb-2"
+        className="collection-rail mt-8 flex gap-3 overflow-x-auto pb-2 sm:gap-8"
         tabIndex={0}
         aria-label={`${collection.title} books`}
       >
@@ -161,14 +161,14 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
             <Link
               key={`${collection._id}-${entry.selectionNumber}-${book._id}`}
               href={bookHref(book, collection.slug)}
-              className="group w-44 shrink-0 sm:w-42"
+              className="group w-32 shrink-0 sm:w-42"
             >
               <BookCover
                 cover={catalogCover(book)}
                 title={book.title}
                 imageWidth={480}
                 className="aspect-2/3 w-full rounded-none"
-                sizes="(max-width: 640px) 11rem, 12rem"
+                sizes="(max-width: 640px) 8rem, 10.5rem"
               />
               <p className="mt-3 line-clamp-2 text-[0.95rem] font-medium leading-snug tracking-[-0.01em]">
                 {book.title}
@@ -182,7 +182,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
         {href ? (
           <Link
             href={href}
-            className="flex h-66 w-36 shrink-0 flex-col justify-center gap-3 self-start border border-dashed px-5 text-center border-[#d6d6d6]! sm:h-[18rem] sm:w-40"
+            className="flex h-48 w-32 shrink-0 flex-col justify-center gap-3 self-start border border-dashed px-4 text-center border-[#d6d6d6]! sm:h-72 sm:w-40 sm:px-5"
           >
             <span className="text-[0.68rem] font-medium leading-snug tracking-[0.12em] uppercase">
               More from

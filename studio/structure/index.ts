@@ -97,7 +97,7 @@ export const structure: StructureResolver = (S, context) =>
                     .getClient({apiVersion: '2026-02-01'})
                     .withConfig({perspective: 'drafts'})
                   const filter =
-                    '_type == "book" && defined(coverOverride.asset) && catalogReviewStatus != "reviewed"'
+                    '_type == "book" && (defined(coverOverride.asset) || defined(knowledgeSources[0])) && catalogReviewStatus != "reviewed"'
                   const count = await client.fetch<number>(
                     `count(*[${filter}])`,
                   )
