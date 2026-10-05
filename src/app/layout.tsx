@@ -48,13 +48,46 @@ const mono = DM_Mono({
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
+export const metadata = {
+  metadataBase: new URL("https://everlogue.app"),
+
   title: {
     default: 'Everlogue',
     template: '%s · Everlogue',
   },
-  description: 'A home for everything you read.',
-}
+
+  description:
+    "Everlogue is a home for readers to discover books, organize their shelves, and explore their favorite book clubs.",
+
+  alternates: {
+    canonical: "/",
+  },
+
+
+  openGraph: {
+    title: "Everlogue",
+    description:
+      "Everlogue is a home for readers to discover books, organize their shelves, and explore their favorite book clubs.",
+    url: "https://everlogue.app",
+    siteName: "Everlogue",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Everlogue",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Everlogue",
+    description:
+      "Everlogue is a home for readers to discover books, organize their shelves, and explore their favorite book clubs.",
+    images: ["/og-image.jpg"],
+  },
+};
 
 function isImportExportPath(pathname: string) {
   return pathname === '/settings/library/import-export' || pathname === '/settings/library/import-export/'

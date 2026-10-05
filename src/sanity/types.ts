@@ -1809,7 +1809,7 @@ export type COMMUNITY_CLUB_BY_SLUG_QUERY_RESULT = {
 
 // Source: ../src/sanity/queries.ts
 // Variable: SHELF_PICKS_QUERY
-// Query: {  "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{    "slug": slug.current,    "books": books[defined(@->coverOverride.asset)][0...40]->{     _id,  title,  "slug": coalesce(slug.current, _id),  publishedDate,  description,  ratingStats,  "authors": authors,  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },  "cover": {  ...coalesce(    (^.featuredEditions[]->)[book._ref == ^._id][0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    edition->{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    select(defined(cover.url) || defined(coverUrl) => @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}),    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}  ),  ...select(defined(coverOverride.asset) => {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  })},  pageCount }  },  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...40]{     _id,  title,  "slug": coalesce(slug.current, _id),  publishedDate,  description,  ratingStats,  "authors": authors,  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },  "cover": {  ...coalesce(    (^.featuredEditions[]->)[book._ref == ^._id][0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    edition->{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    select(defined(cover.url) || defined(coverUrl) => @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}),    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}  ),  ...select(defined(coverOverride.asset) => {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  })},  pageCount },  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...40]{     _id,  title,  "slug": coalesce(slug.current, _id),  publishedDate,  description,  ratingStats,  "authors": authors,  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },  "cover": {  ...coalesce(    (^.featuredEditions[]->)[book._ref == ^._id][0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    edition->{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    select(defined(cover.url) || defined(coverUrl) => @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}),    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}  ),  ...select(defined(coverOverride.asset) => {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  })},  pageCount },  "short": *[_type == "book" && defined(coverOverride.asset) && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...40]{     _id,  title,  "slug": coalesce(slug.current, _id),  publishedDate,  description,  ratingStats,  "authors": authors,  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },  "cover": {  ...coalesce(    (^.featuredEditions[]->)[book._ref == ^._id][0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    edition->{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    select(defined(cover.url) || defined(coverUrl) => @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}),    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}  ),  ...select(defined(coverOverride.asset) => {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  })},  pageCount }}
+// Query: {  "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{    "slug": slug.current,    "books": books[defined(@->coverOverride.asset)][0...10]->{   _id,  title,  "slug": coalesce(slug.current, _id),  authors,  ratingStats,  pageCount,  "genres": genres[]->{ title },  "cover": {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  } }  },  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...10]{   _id,  title,  "slug": coalesce(slug.current, _id),  authors,  ratingStats,  pageCount,  "genres": genres[]->{ title },  "cover": {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  } },  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...10]{   _id,  title,  "slug": coalesce(slug.current, _id),  authors,  ratingStats,  pageCount,  "genres": genres[]->{ title },  "cover": {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  } },  "short": *[_type == "book" && defined(coverOverride.asset) && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...10]{   _id,  title,  "slug": coalesce(slug.current, _id),  authors,  ratingStats,  pageCount,  "genres": genres[]->{ title },  "cover": {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  } }}
 export type SHELF_PICKS_QUERY_RESULT = {
   collections: Array<{
     slug: string;
@@ -1817,296 +1817,131 @@ export type SHELF_PICKS_QUERY_RESULT = {
       _id: string;
       title: string;
       slug: string;
-      publishedDate: string | null;
-      description: string | null;
-      ratingStats: RatingStats | null;
       authors: Array<string> | null;
-      genres: Array<{
-        _id: string;
-        title: string;
-        slug: string;
-        parentSlug: string | null;
-      }> | null;
-      cover:
-        | {
-            _id: string;
-            isbn10: null;
-            isbn13: string | null;
-            cover: null;
-            coverUrl: null;
-            coverOpenLibraryId: null;
-            needsCover: null;
-            coverOverride: {
-              asset: {
-                _id: string;
-                url: string;
-              };
-              alt: string | null;
-              hotspot: SanityImageHotspot | null;
-              crop: SanityImageCrop | null;
-            };
-          }
-        | {
-            _id: string;
-            isbn10: string | null;
-            isbn13: string | null;
-            cover: {
-              url?: string;
-              source?: "google" | "manual" | "openLibrary";
-            } | null;
-            coverUrl: string | null;
-            coverOpenLibraryId: string | null;
-            needsCover: boolean | null;
-            coverOverride: {
-              asset: {
-                _id: string;
-                url: string;
-              };
-              alt: string | null;
-              hotspot: SanityImageHotspot | null;
-              crop: SanityImageCrop | null;
-            };
-          };
+      ratingStats: RatingStats | null;
       pageCount: number | null;
+      genres: Array<{
+        title: string;
+      }> | null;
+      cover: {
+        coverOverride: {
+          asset: {
+            _id: string;
+            url: string;
+          } | null;
+          alt: string | null;
+          hotspot: SanityImageHotspot | null;
+          crop: SanityImageCrop | null;
+        } | null;
+      };
     }> | null;
   }>;
   strange: Array<{
     _id: string;
     title: string;
     slug: string;
-    publishedDate: string | null;
-    description: string | null;
-    ratingStats: RatingStats | null;
     authors: Array<string> | null;
-    genres: Array<{
-      _id: string;
-      title: string;
-      slug: string;
-      parentSlug: string | null;
-    }> | null;
-    cover:
-      | {
-          _id: string;
-          isbn10: null;
-          isbn13: string | null;
-          cover: null;
-          coverUrl: null;
-          coverOpenLibraryId: null;
-          needsCover: null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        }
-      | {
-          _id: string;
-          isbn10: string | null;
-          isbn13: string | null;
-          cover: {
-            url?: string;
-            source?: "google" | "manual" | "openLibrary";
-          } | null;
-          coverUrl: string | null;
-          coverOpenLibraryId: string | null;
-          needsCover: boolean | null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        };
+    ratingStats: RatingStats | null;
     pageCount: number | null;
+    genres: Array<{
+      title: string;
+    }> | null;
+    cover: {
+      coverOverride: {
+        asset: {
+          _id: string;
+          url: string;
+        } | null;
+        alt: string | null;
+        hotspot: SanityImageHotspot | null;
+        crop: SanityImageCrop | null;
+      } | null;
+    };
   }>;
   feelings: Array<{
     _id: string;
     title: string;
     slug: string;
-    publishedDate: string | null;
-    description: string | null;
-    ratingStats: RatingStats | null;
     authors: Array<string> | null;
-    genres: Array<{
-      _id: string;
-      title: string;
-      slug: string;
-      parentSlug: string | null;
-    }> | null;
-    cover:
-      | {
-          _id: string;
-          isbn10: null;
-          isbn13: string | null;
-          cover: null;
-          coverUrl: null;
-          coverOpenLibraryId: null;
-          needsCover: null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        }
-      | {
-          _id: string;
-          isbn10: string | null;
-          isbn13: string | null;
-          cover: {
-            url?: string;
-            source?: "google" | "manual" | "openLibrary";
-          } | null;
-          coverUrl: string | null;
-          coverOpenLibraryId: string | null;
-          needsCover: boolean | null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        };
+    ratingStats: RatingStats | null;
     pageCount: number | null;
+    genres: Array<{
+      title: string;
+    }> | null;
+    cover: {
+      coverOverride: {
+        asset: {
+          _id: string;
+          url: string;
+        } | null;
+        alt: string | null;
+        hotspot: SanityImageHotspot | null;
+        crop: SanityImageCrop | null;
+      } | null;
+    };
   }>;
   short: Array<{
     _id: string;
     title: string;
     slug: string;
-    publishedDate: string | null;
-    description: string | null;
-    ratingStats: RatingStats | null;
     authors: Array<string> | null;
-    genres: Array<{
-      _id: string;
-      title: string;
-      slug: string;
-      parentSlug: string | null;
-    }> | null;
-    cover:
-      | {
-          _id: string;
-          isbn10: null;
-          isbn13: string | null;
-          cover: null;
-          coverUrl: null;
-          coverOpenLibraryId: null;
-          needsCover: null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        }
-      | {
-          _id: string;
-          isbn10: string | null;
-          isbn13: string | null;
-          cover: {
-            url?: string;
-            source?: "google" | "manual" | "openLibrary";
-          } | null;
-          coverUrl: string | null;
-          coverOpenLibraryId: string | null;
-          needsCover: boolean | null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        };
+    ratingStats: RatingStats | null;
     pageCount: number | null;
+    genres: Array<{
+      title: string;
+    }> | null;
+    cover: {
+      coverOverride: {
+        asset: {
+          _id: string;
+          url: string;
+        } | null;
+        alt: string | null;
+        hotspot: SanityImageHotspot | null;
+        crop: SanityImageCrop | null;
+      } | null;
+    };
   }>;
 };
 
 // Source: ../src/sanity/queries.ts
-// Variable: FOR_YOU_BOOKS_QUERY
-// Query: {  "hasLibrary": count(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]) > 0,  "taste": {    "genres": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title),    "lovedGenres": array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title),    "authors": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])  },  "books": *[    _type == "book" &&    defined(coverOverride.asset) &&    !(_id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref) &&    (      count((genres[]->title)[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title)]) > 0 ||      count(authors[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])]) > 0    )  ] | order(    count((genres[]->title)[@ in array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title)]) desc,    count((genres[]->title)[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title)]) desc,    count(authors[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])]) desc,    coalesce(ratingStats.count, 0) desc  )[0...40]{     _id,  title,  "slug": coalesce(slug.current, _id),  publishedDate,  description,  ratingStats,  "authors": authors,  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },  "cover": {  ...coalesce(    (^.featuredEditions[]->)[book._ref == ^._id][0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    edition->{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    select(defined(cover.url) || defined(coverUrl) => @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}),    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}},    @{  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,  coverOverride{asset->{_id, url}, alt, hotspot, crop}}  ),  ...select(defined(coverOverride.asset) => {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  })},  pageCount }}
-export type FOR_YOU_BOOKS_QUERY_RESULT = {
+// Variable: FOR_YOU_TASTE_QUERY
+// Query: {  "hasLibrary": count(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]) > 0,  "excludeIds": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref),  "taste": {    "genres": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title),    "lovedGenres": array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title),    "authors": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])  }}
+export type FOR_YOU_TASTE_QUERY_RESULT = {
   hasLibrary: boolean;
+  excludeIds: Array<string>;
   taste: {
     genres: Array<string | null>;
     lovedGenres: Array<string | null>;
     authors: Array<string | null>;
   };
-  books: Array<{
-    _id: string;
-    title: string;
-    slug: string;
-    publishedDate: string | null;
-    description: string | null;
-    ratingStats: RatingStats | null;
-    authors: Array<string> | null;
-    genres: Array<{
-      _id: string;
-      title: string;
-      slug: string;
-      parentSlug: string | null;
-    }> | null;
-    cover:
-      | {
-          _id: string;
-          isbn10: null;
-          isbn13: string | null;
-          cover: null;
-          coverUrl: null;
-          coverOpenLibraryId: null;
-          needsCover: null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        }
-      | {
-          _id: string;
-          isbn10: string | null;
-          isbn13: string | null;
-          cover: {
-            url?: string;
-            source?: "google" | "manual" | "openLibrary";
-          } | null;
-          coverUrl: string | null;
-          coverOpenLibraryId: string | null;
-          needsCover: boolean | null;
-          coverOverride: {
-            asset: {
-              _id: string;
-              url: string;
-            };
-            alt: string | null;
-            hotspot: SanityImageHotspot | null;
-            crop: SanityImageCrop | null;
-          };
-        };
-    pageCount: number | null;
-  }>;
 };
+
+// Source: ../src/sanity/queries.ts
+// Variable: FOR_YOU_CANDIDATES_QUERY
+// Query: *[  _type == "book" &&  defined(coverOverride.asset) &&  !(_id in $excludeIds) &&  (    count((genres[]->title)[@ in $genres]) > 0 ||    count(authors[@ in $authors]) > 0  )] | order(coalesce(ratingStats.count, 0) desc)[0...40]{   _id,  title,  "slug": coalesce(slug.current, _id),  authors,  ratingStats,  pageCount,  "genres": genres[]->{ title },  "cover": {    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}  } }
+export type FOR_YOU_CANDIDATES_QUERY_RESULT = Array<{
+  _id: string;
+  title: string;
+  slug: string;
+  authors: Array<string> | null;
+  ratingStats: RatingStats | null;
+  pageCount: number | null;
+  genres: Array<{
+    title: string;
+  }> | null;
+  cover: {
+    coverOverride: {
+      asset: {
+        _id: string;
+        url: string;
+      } | null;
+      alt: string | null;
+      hotspot: SanityImageHotspot | null;
+      crop: SanityImageCrop | null;
+    } | null;
+  };
+}>;
 
 // Source: ../src/sanity/queries.ts
 // Variable: PICK_SHELF_STATUSES_QUERY
@@ -2182,8 +2017,9 @@ declare global {
     '\n  *[_type == "celebrityClub" && slug.current == $slug][0]{\n    _id,\n    name,\n    "slug": slug.current,\n    officialUrl,\n    disclaimer,\n    "selections": *[_type == "celebritySelection" && club._ref == ^._id && workflowStatus == "approved"] | order(year desc, month desc){\n      _id,\n      year,\n      month,\n      sourceUrl,\n      verifiedAt,\n      emptyReason,\n      "books": books[]->{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n }\n    }\n  }\n': CELEBRITY_CLUB_BY_SLUG_QUERY_RESULT;
     '\n  *[_type == "communityClub" && visibility == "public"] | order(name asc){\n    _id,\n    name,\n    "slug": slug.current,\n    description,\n    isDemoClub,\n    "currentRead": currentRead->{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n }\n  }\n': COMMUNITY_CLUBS_QUERY_RESULT;
     '\n  *[_type == "communityClub" && slug.current == $slug][0]{\n    _id,\n    name,\n    "slug": slug.current,\n    description,\n    visibility,\n    isDemoClub,\n    "currentRead": currentRead->{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n }\n  }\n': COMMUNITY_CLUB_BY_SLUG_QUERY_RESULT;
-    '{\n  "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{\n    "slug": slug.current,\n    "books": books[defined(@->coverOverride.asset)][0...40]->{ \n  \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n,\n  pageCount\n }\n  },\n  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...40]{ \n  \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n,\n  pageCount\n },\n  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...40]{ \n  \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n,\n  pageCount\n },\n  "short": *[_type == "book" && defined(coverOverride.asset) && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...40]{ \n  \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n,\n  pageCount\n }\n}': SHELF_PICKS_QUERY_RESULT;
-    '{\n  "hasLibrary": count(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]) > 0,\n  "taste": {\n    "genres": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title),\n    "lovedGenres": array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title),\n    "authors": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])\n  },\n  "books": *[\n    _type == "book" &&\n    defined(coverOverride.asset) &&\n    !(_id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref) &&\n    (\n      count((genres[]->title)[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title)]) > 0 ||\n      count(authors[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])]) > 0\n    )\n  ] | order(\n    count((genres[]->title)[@ in array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title)]) desc,\n    count((genres[]->title)[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title)]) desc,\n    count(authors[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])]) desc,\n    coalesce(ratingStats.count, 0) desc\n  )[0...40]{ \n  \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  publishedDate,\n  description,\n  ratingStats,\n  "authors": authors,\n  "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },\n  "cover": {\n  ...coalesce(\n    (^.featuredEditions[]->)[book._ref == ^._id][0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    edition->{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    select(defined(cover.url) || defined(coverUrl) => @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}),\n    *[_type == "edition" && book._ref == ^._id] | order(defined(coverOverride.asset) desc, defined(cover.url) desc, defined(coverUrl) desc, onSaleDate desc)[0]{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n},\n    @{\n  _id, isbn10, isbn13, cover, coverUrl, coverOpenLibraryId, needsCover,\n  coverOverride{asset->{_id, url}, alt, hotspot, crop}\n}\n  ),\n  ...select(defined(coverOverride.asset) => {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  })\n}\n,\n  pageCount\n }\n}': FOR_YOU_BOOKS_QUERY_RESULT;
+    '{\n  "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{\n    "slug": slug.current,\n    "books": books[defined(@->coverOverride.asset)][0...10]->{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  authors,\n  ratingStats,\n  pageCount,\n  "genres": genres[]->{ title },\n  "cover": {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  }\n }\n  },\n  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...10]{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  authors,\n  ratingStats,\n  pageCount,\n  "genres": genres[]->{ title },\n  "cover": {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  }\n },\n  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...10]{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  authors,\n  ratingStats,\n  pageCount,\n  "genres": genres[]->{ title },\n  "cover": {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  }\n },\n  "short": *[_type == "book" && defined(coverOverride.asset) && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...10]{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  authors,\n  ratingStats,\n  pageCount,\n  "genres": genres[]->{ title },\n  "cover": {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  }\n }\n}': SHELF_PICKS_QUERY_RESULT;
+    '{\n  "hasLibrary": count(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]) > 0,\n  "excludeIds": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref),\n  "taste": {\n    "genres": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title),\n    "lovedGenres": array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title),\n    "authors": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])\n  }\n}': FOR_YOU_TASTE_QUERY_RESULT;
+    '*[\n  _type == "book" &&\n  defined(coverOverride.asset) &&\n  !(_id in $excludeIds) &&\n  (\n    count((genres[]->title)[@ in $genres]) > 0 ||\n    count(authors[@ in $authors]) > 0\n  )\n] | order(coalesce(ratingStats.count, 0) desc)[0...40]{ \n  _id,\n  title,\n  "slug": coalesce(slug.current, _id),\n  authors,\n  ratingStats,\n  pageCount,\n  "genres": genres[]->{ title },\n  "cover": {\n    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}\n  }\n }': FOR_YOU_CANDIDATES_QUERY_RESULT;
     '\n  *[_type == "shelfEntry" && shelf->owner._ref == $readerId && book._ref in $bookIds && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]{\n    "bookId": book._ref,\n    "status": shelf->kind\n  }\n': PICK_SHELF_STATUSES_QUERY_RESULT;
     '{\n  "clubCount": count(*[_type == "communityClub" && visibility == "public"]),\n  "reviews": *[_type == "review" && visibility == "public" && moderationStatus == "visible"] | order(_createdAt desc)[0...12]{\n    _id,\n    _createdAt,\n    title,\n    body,\n    "name": reader->displayName,\n    "spaceColor": reader->spaceColor,\n    "bookTitle": book->title,\n    "bookSlug": coalesce(book->slug.current, book->_id)\n  },\n  "posts": *[_type == "discussionPost" && moderationStatus == "visible" && thread->club->visibility == "public"] | order(_createdAt desc)[0...12]{\n    _id,\n    _createdAt,\n    body,\n    isDemoActivity,\n    "name": author->displayName,\n    "spaceColor": author->spaceColor,\n    "clubName": thread->club->name,\n    "clubSlug": thread->club->slug.current,\n    "bookTitle": thread->club->currentRead->title,\n    "bookSlug": coalesce(thread->club->currentRead->slug.current, thread->club->currentRead->_id)\n  }\n}': TASTE_TRAVELS_QUERY_RESULT;
   }
