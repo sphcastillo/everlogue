@@ -1,4 +1,4 @@
-import {rankForYouBooks, type ForYouTaste} from './for-you-picks'
+import {rankForYouBooks, type ForYouCandidate, type ForYouTaste} from './for-you-picks'
 
 export type ForYouTastePayload = {
   hasLibrary: boolean
@@ -11,7 +11,7 @@ function uniqueStrings(values?: (string | null)[] | null) {
 }
 
 /** Taste first, then a parametrized candidate query. Skip candidates when there is no shelf taste. */
-export async function loadForYouShelf<T>(
+export async function loadForYouShelf<T extends ForYouCandidate>(
   loadTaste: () => Promise<ForYouTastePayload>,
   loadCandidates: (params: {
     excludeIds: string[]
@@ -32,7 +32,7 @@ export async function loadForYouShelf<T>(
     authors,
   })
   return {
-    books: rankForYouBooks(books ?? [], personal.taste ?? {}),
+    books: rankForYouBooks<T>(books ?? [], personal.taste ?? {}),
     hasLibrary: true,
   }
 }
