@@ -667,6 +667,13 @@ export type AuthorReference = {
   [internalGroqTypeReferenceTo]?: "author";
 };
 
+export type BookSeriesReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "bookSeries";
+};
+
 export type Book = {
   _id: string;
   _type: "book";
@@ -727,7 +734,8 @@ export type Book = {
   pageCount?: number;
   isStandalone: boolean;
   series?: {
-    name: string;
+    bookSeries?: BookSeriesReference;
+    name?: string;
     position: number;
   };
   categories?: Array<string>;
@@ -758,6 +766,17 @@ export type Book = {
     providerId?: string;
     importedAt?: string;
   };
+};
+
+export type BookSeries = {
+  _id: string;
+  _type: "bookSeries";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  title: string;
+  slug: Slug;
+  booksInSeries?: string;
 };
 
 export type ReaderProfile = {
@@ -932,7 +951,9 @@ export type AllSanitySchemaTypes =
   | BookClubWatchRun
   | BookClubDiscovery
   | AuthorReference
+  | BookSeriesReference
   | Book
+  | BookSeries
   | ReaderProfile
   | SanityImagePaletteSwatch
   | SanityImagePalette

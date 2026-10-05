@@ -11,7 +11,7 @@ test('For you prefers books that share loved genres, then shelf genres, then aut
       {_id: 'loved-genre', genres: [{title: 'Literary Fiction'}, {title: 'Family Saga'}], ratingStats: {count: 1}},
     ],
     {
-      genres: ['Family Saga', 'Coming-Of-Age Fiction'],
+      genres: ['Family Saga', 'Coming-of-age'],
       lovedGenres: ['Literary Fiction'],
       authors: ['Toni Morrison'],
     },

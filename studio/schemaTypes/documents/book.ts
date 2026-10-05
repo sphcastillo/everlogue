@@ -145,14 +145,56 @@ export const book = defineType({
       name: 'series',
       title: 'Series',
       type: 'object',
-      description: 'Series information for books that are not standalone.',
+      description: 'Search an existing series or create a new one, then set this book’s place in it.',
       hidden: ({document}) => document?.isStandalone !== false,
       fields: [
-        defineField({name: 'name', type: 'string', validation: (rule) => rule.required()}),
+        defineField({
+          name: 'bookSeries',
+          title: 'Series',
+          type: 'reference',
+          to: [{type: 'bookSeries'}],
+          options: {disableNew: false},
+          validation: (rule) =>
+            rule.custom((value, context) => {
+              const parent = context.parent as {name?: string} | undefined
+              return value || parent?.name?.trim() ? true : 'Choose a series'
+            }),
+        }),
+        defineField({
+          name: 'name',
+          title: 'Series name',
+          type: 'string',
+          deprecated: {
+            reason: 'Use the Series lookup. This name stays on older books until they are linked.',
+          },
+          readOnly: true,
+          hidden: ({parent}) => Boolean(parent?.bookSeries) || !parent?.name,
+        }),
         defineField({
           name: 'position',
           type: 'number',
-          validation: (rule) => rule.required().integer().min(1),
+          description: 'Place in the series. Use halves for prequels and in-between books — 0.5, 1, 1.5, 2.',
+          validation: (rule) =>
+            rule.required().min(0.5).custom(async (value, context) => {
+              if (typeof value !== 'number' || !Number.isFinite(value)) return 'Required'
+              if (Math.round(value * 2) !== value * 2) {
+                return 'Use a whole or half position, like 0.5, 1, or 1.5'
+              }
+              const parent = context.parent as {bookSeries?: {_ref?: string}; name?: string} | undefined
+              const seriesId = parent?.bookSeries?._ref
+              const seriesName = parent?.name?.trim() || ''
+              if (!seriesId && !seriesName) return true
+              const bookId = String(context.document?._id || '').replace(/^drafts\./, '')
+              const client = context.getClient({apiVersion: '2026-02-01'})
+              const taken = await client.fetch<number>(
+                `count(*[_type == "book" && !(_id in path("drafts.**")) && _id != $bookId && series.position == $position && (
+                  ($seriesId != "" && series.bookSeries._ref == $seriesId) ||
+                  ($seriesId == "" && defined($seriesName) && !defined(series.bookSeries) && lower(series.name) == lower($seriesName))
+                )])`,
+                {bookId, position: value, seriesId: seriesId || '', seriesName},
+              )
+              return taken === 0 || `Position ${value} is already used in this series`
+            }),
         }),
       ],
     }),

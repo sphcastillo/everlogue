@@ -15,6 +15,7 @@ import {discussionPost} from './documents/discussionPost'
 import {discussionThread} from './documents/discussionThread'
 import {edition} from './documents/edition'
 import {editorialCollection} from './documents/editorialCollection'
+import {bookSeries} from './documents/bookSeries'
 import {genre} from './documents/genre'
 import {poll} from './documents/poll'
 import {rating} from './documents/rating'
@@ -39,6 +40,7 @@ export const schemaTypes = [
   book,
   curatedCollection,
   author,
+  bookSeries,
   genre,
   editorialCollection,
   celebrityClub,

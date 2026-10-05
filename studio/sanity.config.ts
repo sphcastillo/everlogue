@@ -1,4 +1,5 @@
 import {BookClubDiscoveryShowcase} from './components/BookClubDiscoveryShowcase'
+import {BookRatingsView} from './components/BookRatingsView'
 import {bookClubWatchActions} from './actions/bookClubWatchActions'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
@@ -19,7 +20,21 @@ export default defineConfig({
   dataset,
 
   plugins: [
-    structureTool({structure, defaultDocumentNode: (S, {schemaType}) => schemaType === 'bookClubDiscovery' ? S.document().views([S.view.component(BookClubDiscoveryShowcase).title('Discovery')]) : S.document().views([S.view.form()])}),
+    structureTool({
+      structure,
+      defaultDocumentNode: (S, {schemaType}) => {
+        if (schemaType === 'bookClubDiscovery') {
+          return S.document().views([S.view.component(BookClubDiscoveryShowcase).title('Discovery')])
+        }
+        if (schemaType === 'book') {
+          return S.document().views([
+            S.view.form(),
+            S.view.component(BookRatingsView).title('Ratings'),
+          ])
+        }
+        return S.document().views([S.view.form()])
+      },
+    }),
     visionTool(),
   ],
 

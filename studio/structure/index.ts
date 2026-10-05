@@ -76,6 +76,7 @@ export const structure: StructureResolver = (S, context) =>
                   .filter('_type == "edition" && needsCover == true && !defined(coverOverride.asset)'),
               ),
               S.documentTypeListItem('author').title('Authors').icon(UserIcon),
+              S.documentTypeListItem('bookSeries').title('Series'),
               S.listItem()
                 .id('genres')
                 .title('Genres')
@@ -163,6 +164,15 @@ export const structure: StructureResolver = (S, context) =>
               S.documentTypeListItem('readerProfile').title('Reader profiles'),
               S.divider(),
               S.listItem()
+                .id('reader-ratings')
+                .title('Reader ratings')
+                .icon(StarIcon)
+                .child(
+                  S.documentTypeList('rating')
+                    .title('Reader ratings')
+                    .defaultOrdering([{field: '_updatedAt', direction: 'desc'}]),
+                ),
+              S.listItem()
                 .id('reader-reviews')
                 .title('Reader reviews')
                 .icon(DocumentsIcon)
@@ -211,6 +221,7 @@ export const structure: StructureResolver = (S, context) =>
             'book',
             'edition',
             'author',
+            'bookSeries',
             'genre',
             'editorialCollection',
             'curatedCollection',

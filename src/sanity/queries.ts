@@ -260,7 +260,7 @@ export const SHELF_PICK_GENRES = {
     'Family Fiction',
     'Family Saga',
     'Relationship Fiction',
-    'Coming-Of-Age Fiction',
+    'Coming-of-age',
     'Coming-Of-Age Story',
     'Romantic Drama',
     'Sad-Girl Fiction',

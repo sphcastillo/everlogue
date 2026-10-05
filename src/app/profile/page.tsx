@@ -52,7 +52,7 @@ export default async function ProfilePage() {
             )}
           </span>
           <h1 className="col-start-2 row-start-2 min-w-0 font-display text-[clamp(2.4rem,6vw,4.2rem)] leading-[0.88] font-black tracking-[-0.07em]">
-            {name}.
+            {name}<span className="text-[#b8b8b8]" aria-hidden="true">.</span>
           </h1>
           <p className="col-start-2 row-start-3 mt-3 max-w-md text-[1.02rem] leading-7 text-muted">
             Your ratings, reviews, and reading companion recommendations live here.

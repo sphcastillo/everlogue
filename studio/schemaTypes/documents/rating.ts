@@ -33,9 +33,9 @@ export const rating = defineType({
     }),
   ],
   preview: {
-    select: {value: 'value', book: 'book.title'},
-    prepare({value, book}) {
-      return {title: `${value ?? '—'} ★`, subtitle: book}
+    select: {value: 'value', book: 'book.title', reader: 'reader.displayName'},
+    prepare({value, book, reader}) {
+      return {title: `${value ?? '—'} ★ · ${book || 'Untitled book'}`, subtitle: reader || 'Reader'}
     },
   },
 })
