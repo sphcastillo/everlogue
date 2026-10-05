@@ -278,43 +278,49 @@ export const SHELF_PICK_GENRES = {
   ],
 } as const
 
+/** Homepage cards only show studio covers — skip the per-book edition coalesce. */
 const shelfPickBookFields = /* groq */ `
-  ${bookCardFields},
-  pageCount
+  _id,
+  title,
+  "slug": coalesce(slug.current, _id),
+  authors,
+  ratingStats,
+  pageCount,
+  "genres": genres[]->{ title },
+  "cover": {
+    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}
+  }
 `
 
 export const SHELF_PICKS_QUERY = defineQuery(`{
   "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{
     "slug": slug.current,
-    "books": books[defined(@->coverOverride.asset)][0...40]->{ ${shelfPickBookFields} }
+    "books": books[defined(@->coverOverride.asset)][0...10]->{ ${shelfPickBookFields} }
   },
-  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...40]{ ${shelfPickBookFields} },
-  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...40]{ ${shelfPickBookFields} },
-  "short": *[_type == "book" && defined(coverOverride.asset) && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...40]{ ${shelfPickBookFields} }
+  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...10]{ ${shelfPickBookFields} },
+  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...10]{ ${shelfPickBookFields} },
+  "short": *[_type == "book" && defined(coverOverride.asset) && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...10]{ ${shelfPickBookFields} }
 }`)
 
-export const FOR_YOU_BOOKS_QUERY = defineQuery(`{
+export const FOR_YOU_TASTE_QUERY = defineQuery(`{
   "hasLibrary": count(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]) > 0,
+  "excludeIds": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref),
   "taste": {
     "genres": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title),
     "lovedGenres": array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title),
     "authors": array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])
-  },
-  "books": *[
-    _type == "book" &&
-    defined(coverOverride.asset) &&
-    !(_id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId].book._ref) &&
-    (
-      count((genres[]->title)[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title)]) > 0 ||
-      count(authors[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])]) > 0
-    )
-  ] | order(
-    count((genres[]->title)[@ in array::unique(*[_type == "rating" && reader._ref == $readerId && value >= 4].book->genres[]->title)]) desc,
-    count((genres[]->title)[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->genres[]->title)]) desc,
-    count(authors[@ in array::unique(*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]].book->authors[])]) desc,
-    coalesce(ratingStats.count, 0) desc
-  )[0...40]{ ${shelfPickBookFields} }
+  }
 }`)
+
+export const FOR_YOU_CANDIDATES_QUERY = defineQuery(`*[
+  _type == "book" &&
+  defined(coverOverride.asset) &&
+  !(_id in $excludeIds) &&
+  (
+    count((genres[]->title)[@ in $genres]) > 0 ||
+    count(authors[@ in $authors]) > 0
+  )
+] | order(coalesce(ratingStats.count, 0) desc)[0...40]{ ${shelfPickBookFields} }`)
 
 export const PICK_SHELF_STATUSES_QUERY = defineQuery(`
   *[_type == "shelfEntry" && shelf->owner._ref == $readerId && book._ref in $bookIds && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]{

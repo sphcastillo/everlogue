@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {loadHomeShelfData} from '../src/lib/home-shelf-data'
+import {loadForYouShelf, loadHomeShelfData} from '../src/lib/home-shelf-data'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -44,6 +44,45 @@ test('guests never run a personal query and each request loads fresh data', asyn
   )
   assert.deepEqual(await load(), {picks: 1, reader: null, books: [], hasLibrary: false})
   assert.deepEqual(await load(), {picks: 2, reader: null, books: [], hasLibrary: false})
+})
+
+test('For You skips the candidate query when the library is empty or has no taste', async () => {
+  const empty = await loadForYouShelf(
+    async () => ({hasLibrary: false, taste: {genres: ['Mystery']}, excludeIds: ['x']}),
+    async () => { throw new Error('Must not query candidates without a library') },
+  )
+  assert.deepEqual(empty, {books: [], hasLibrary: false})
+
+  const noTaste = await loadForYouShelf(
+    async () => ({hasLibrary: true, taste: {genres: [], authors: []}, excludeIds: []}),
+    async () => { throw new Error('Must not query candidates without taste') },
+  )
+  assert.deepEqual(noTaste, {books: [], hasLibrary: true})
+})
+
+test('For You ranks parametrized candidates after a cheap taste fetch', async () => {
+  let candidateParams: unknown
+  const result = await loadForYouShelf(
+    async () => ({
+      hasLibrary: true,
+      excludeIds: ['on-shelf'],
+      taste: {genres: ['Mystery'], lovedGenres: ['Literary Fiction'], authors: ['Toni Morrison']},
+    }),
+    async (params) => {
+      candidateParams = params
+      return [
+        {_id: 'popular', ratingStats: {count: 90}, genres: [{title: 'History'}]},
+        {_id: 'loved', ratingStats: {count: 1}, genres: [{title: 'Literary Fiction'}]},
+      ]
+    },
+  )
+  assert.deepEqual(candidateParams, {
+    excludeIds: ['on-shelf'],
+    genres: ['Mystery'],
+    authors: ['Toni Morrison'],
+  })
+  assert.equal(result.hasLibrary, true)
+  assert.deepEqual(result.books.map((book) => book._id), ['loved', 'popular'])
 })
 
 test('failed reader setup is not silently treated as an empty personal library', async () => {

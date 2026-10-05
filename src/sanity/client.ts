@@ -49,3 +49,7 @@ export const catalogRevalidate = {
   cache: 'no-store' as const,
   next: {revalidate: 0, tags: ['catalog'] as string[]},
 }
+/** Public homepage shelf rows can be a couple of minutes stale. */
+export const catalogCached = {
+  next: {revalidate: 120, tags: ['catalog'] as string[]},
+}
