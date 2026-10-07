@@ -14,6 +14,7 @@ export function BookCover({
   className = '',
   sizes = '(max-width: 768px) 45vw, 240px',
   imageWidth = 640,
+  quality = 90,
 }: {
   cover?: CoverSource | null
   title: string
@@ -21,10 +22,11 @@ export function BookCover({
   className?: string
   sizes?: string
   imageWidth?: number
+  quality?: number
 }) {
   const alt = cover?.coverOverride?.alt || `Cover of ${title}`
-  const sanitySrc = sanityImageSrc(cover?.coverOverride, imageWidth, Math.round(imageWidth * 1.5), 90)
-  const urls = coverUrls(cover, {width: imageWidth, quality: 90})
+  const sanitySrc = sanityImageSrc(cover?.coverOverride, imageWidth, Math.round(imageWidth * 1.5), quality)
+  const urls = coverUrls(cover, {width: imageWidth, quality})
   return (
     <div className={`cover-frame relative overflow-hidden bg-(--accent-soft) ${className} rounded-none!`}>
       {sanitySrc ? (
@@ -36,11 +38,11 @@ export function BookCover({
           height={Math.round(imageWidth * 1.5)}
           sizes={sizes}
           priority={priority}
-          quality={90}
+          quality={quality}
           className="rounded-none object-cover"
         />
       ) : (
-        <RemoteCover key={urls.join('|')} urls={urls} title={title} alt={alt} priority={priority} sizes={sizes} />
+        <RemoteCover key={urls.join('|')} urls={urls} title={title} alt={alt} priority={priority} sizes={sizes} quality={quality} />
       )}
     </div>
   )
@@ -52,12 +54,14 @@ function RemoteCover({
   alt,
   priority,
   sizes,
+  quality,
 }: {
   urls: string[]
   title: string
   alt: string
   priority: boolean
   sizes: string
+  quality: number
 }) {
   const [index, setIndex] = useState(0)
   const src = urls[index]
@@ -68,7 +72,7 @@ function RemoteCover({
         alt={alt || `Placeholder cover for ${title}`}
         fill
         sizes={sizes}
-        quality={90}
+        quality={quality}
         className="rounded-none object-cover"
         priority={priority}
       />
@@ -81,7 +85,7 @@ function RemoteCover({
       alt={alt || `Cover of ${title}`}
       fill
       sizes={sizes}
-      quality={90}
+      quality={quality}
       className="rounded-none object-cover"
       priority={priority}
       unoptimized={remote}

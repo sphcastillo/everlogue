@@ -1,4 +1,5 @@
 import 'server-only'
+import {cache} from 'react'
 import {revalidatePath} from 'next/cache'
 import {privateClient, writeClient} from '@/sanity/client'
 import {bookCoverProjection, editionCoverFields} from '@/sanity/queries'
@@ -91,7 +92,7 @@ const emptyReaderBookState: ReaderBookState = {
   csv: null,
 }
 
-export async function getReaderBookState(bookId: string): Promise<ReaderBookState> {
+export const getReaderBookState = cache(async function getReaderBookState(bookId: string): Promise<ReaderBookState> {
   const reader = await getOptionalReader()
   if (!reader) return emptyReaderBookState
 
@@ -131,8 +132,8 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
         goodreadsBookId,
         publishedDate,
         "authors": authors,
-        "isbn10": coalesce(isbn10, *[_type == "edition" && book._ref == ^._id && defined(isbn10)][0].isbn10),
-        "isbn13": coalesce(isbn13, *[_type == "edition" && book._ref == ^._id && defined(isbn13)][0].isbn13)
+        isbn10,
+        isbn13
       }
     }`,
     {readerId: reader.readerId, bookId},
@@ -181,7 +182,7 @@ export async function getReaderBookState(bookId: string): Promise<ReaderBookStat
       importSource,
     },
   }
-}
+})
 
 export async function getMyBooks() {
   const reader = await requireReader()

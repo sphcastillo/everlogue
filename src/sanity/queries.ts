@@ -121,29 +121,18 @@ export const COLLECTION_BY_SLUG_QUERY = defineQuery(`
 
 export const BOOK_BY_SLUG_QUERY = defineQuery(`
   *[_type == "book" && (slug.current == $slug || _id == $slug || $slug in slugAliases || $slug in legacyWorkIds)][0]{
-    ${bookCardFields},
-    subtitle,
-    openLibraryWorkKey,
-    provenance,
-    "editions": *[_type == "edition" && book._ref == ^._id] | order(onSaleDate desc){
-      _id,
-      title,
-      isbn13,
-      format,
-      market,
-      publisher,
-      onSaleDate,
-      isReprint,
-      firstPublicationOfBook,
-      ${editionCoverFields}
+    _id,
+    title,
+    description,
+    "authors": authors,
+    "genres": genres[]->{ _id, title, "slug": slug.current },
+    "cover": {
+      "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}
     },
     "clubs": *[_type == "curatedCollection" && references(^._id)] | order(lastSyncedAt desc){
       title,
       "slug": slug.current,
-      "href": "/collections/" + slug.current,
-      curator,
-      description,
-      "selectionNumber": books[book._ref == ^.^._id][0].selectionNumber
+      "href": "/collections/" + slug.current
     },
     "celebrityClubs": *[_type == "celebritySelection" && references(^._id)] | order(year desc, month desc){
       "title": club->name,

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
-import {fetchCatalog} from '@/sanity/fetch'
+import {Suspense} from 'react'
+import {fetchCachedCatalog} from '@/sanity/fetch'
 import {BOOK_BY_SLUG_QUERY} from '@/sanity/queries'
 import {BackButton} from '@/components/BackButton'
 import {BookCover} from '@/components/BookCover'
@@ -26,21 +27,21 @@ export default async function BookPage({
 }) {
   const {slug} = await params
   const {club: clubSlug} = await searchParams
-  const book = await fetchCatalog<{
-    _id: string
-    title: string
-    description?: string
-    authors?: string[]
-    genres?: Array<{_id?: string; title?: string | null; slug?: string | null}>
-    cover?: Parameters<typeof BookCover>[0]['cover']
-    clubs?: BookClubRef[]
-    celebrityClubs?: BookClubRef[]
-  } | null>(BOOK_BY_SLUG_QUERY, {slug})
+  const [book, reader] = await Promise.all([
+    fetchCachedCatalog<{
+      _id: string
+      title: string
+      description?: string
+      authors?: string[]
+      genres?: Array<{_id?: string; title?: string | null; slug?: string | null}>
+      cover?: Parameters<typeof BookCover>[0]['cover']
+      clubs?: BookClubRef[]
+      celebrityClubs?: BookClubRef[]
+    } | null>(BOOK_BY_SLUG_QUERY, {slug}),
+    getOptionalReader().catch(() => null),
+  ])
 
   if (!book) notFound()
-
-  const reader = await getOptionalReader().catch(() => null)
-  const state = await getReaderBookState(book._id)
   const bookClubs = [...(book.clubs || []), ...(book.celebrityClubs || [])]
   const club = bookClubs.find((item) => item.slug && item.slug === clubSlug) || null
   const displayClub = club || bookClubs[0] || null
@@ -73,7 +74,8 @@ export default async function BookPage({
               cover={book.cover}
               title={book.title}
               priority
-              imageWidth={1200}
+              imageWidth={720}
+              quality={75}
               className="aspect-2/3 w-full max-w-72 shadow-[0_24px_50px_rgba(17,17,17,0.18)]"
               sizes="(max-width: 1024px) 70vw, 22rem"
             />
@@ -141,13 +143,9 @@ export default async function BookPage({
               </p>
             </div>
             <div className="mt-5">
-              <BookLibraryActions
-                bookId={book._id}
-                signedIn={Boolean(reader)}
-                status={state.status}
-                rating={state.rating}
-                review={state.review}
-              />
+              <Suspense fallback={<p className="text-sm text-muted">Loading your shelf…</p>}>
+                <BookPageLibrary bookId={book._id} signedIn={Boolean(reader)} />
+              </Suspense>
             </div>
           </div>
         </section>
@@ -167,7 +165,27 @@ export default async function BookPage({
         </p>
       </div>
 
-      <LibraryCsvLog data={state.csv} />
+      <Suspense fallback={null}>
+        <BookPageCsvLog bookId={book._id} />
+      </Suspense>
     </article>
   )
+}
+
+async function BookPageLibrary({bookId, signedIn}: {bookId: string; signedIn: boolean}) {
+  const state = await getReaderBookState(bookId)
+  return (
+    <BookLibraryActions
+      bookId={bookId}
+      signedIn={signedIn}
+      status={state.status}
+      rating={state.rating}
+      review={state.review}
+    />
+  )
+}
+
+async function BookPageCsvLog({bookId}: {bookId: string}) {
+  const state = await getReaderBookState(bookId)
+  return <LibraryCsvLog data={state.csv} />
 }
