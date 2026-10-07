@@ -70,11 +70,6 @@ export const structure: StructureResolver = (S, context) =>
                   )
                   return S.documentTypeList('book').title(`Books · ${count}`)
                 }),
-              S.documentTypeListItem('edition').title('Editions'),
-              S.listItem().title('Editions needing covers').child(
-                S.documentTypeList('edition').title('Editions needing covers')
-                  .filter('_type == "edition" && needsCover == true && !defined(coverOverride.asset)'),
-              ),
               S.documentTypeListItem('author').title('Authors').icon(UserIcon),
               S.documentTypeListItem('bookSeries').title('Series'),
               S.listItem()
