@@ -138,63 +138,84 @@ export const book = defineType({
       title: 'Standalone book',
       type: 'boolean',
       initialValue: true,
-      description: 'Books default to standalone. Turn this off to add series information.',
+      description: 'Books default to standalone. Turn this off to add one or more series.',
       validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'series',
       title: 'Series',
-      type: 'object',
-      description: 'Search an existing series or create a new one, then set this book’s place in it.',
+      type: 'array',
+      description: 'A book can belong to more than one series. Add each series and this book’s place in it.',
       hidden: ({document}) => document?.isStandalone !== false,
-      fields: [
-        defineField({
-          name: 'bookSeries',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'seriesMembership',
           title: 'Series',
-          type: 'reference',
-          to: [{type: 'bookSeries'}],
-          options: {disableNew: false},
-          validation: (rule) =>
-            rule.custom((value, context) => {
-              const parent = context.parent as {name?: string} | undefined
-              return value || parent?.name?.trim() ? true : 'Choose a series'
+          fields: [
+            defineField({
+              name: 'bookSeries',
+              title: 'Series',
+              type: 'reference',
+              to: [{type: 'bookSeries'}],
+              options: {disableNew: false},
+              validation: (rule) =>
+                rule.custom((value, context) => {
+                  const parent = context.parent as {name?: string} | undefined
+                  return value || parent?.name?.trim() ? true : 'Choose a series'
+                }),
             }),
-        }),
-        defineField({
-          name: 'name',
-          title: 'Series name',
-          type: 'string',
-          deprecated: {
-            reason: 'Use the Series lookup. This name stays on older books until they are linked.',
-          },
-          readOnly: true,
-          hidden: ({parent}) => Boolean(parent?.bookSeries) || !parent?.name,
-        }),
-        defineField({
-          name: 'position',
-          type: 'number',
-          description: 'Place in the series. Use halves for prequels and in-between books — 0.5, 1, 1.5, 2.',
-          validation: (rule) =>
-            rule.required().min(0.5).custom(async (value, context) => {
-              if (typeof value !== 'number' || !Number.isFinite(value)) return 'Required'
-              if (Math.round(value * 2) !== value * 2) {
-                return 'Use a whole or half position, like 0.5, 1, or 1.5'
+            defineField({
+              name: 'name',
+              title: 'Series name',
+              type: 'string',
+              deprecated: {
+                reason: 'Use the Series lookup. This name stays on older books until they are linked.',
+              },
+              readOnly: true,
+              hidden: ({parent}) => Boolean(parent?.bookSeries) || !parent?.name,
+            }),
+            defineField({
+              name: 'position',
+              type: 'number',
+              description: 'Place in the series. Use halves for prequels and in-between books — 0.5, 1, 1.5, 2.',
+              validation: (rule) =>
+                rule.required().min(0.5).custom(async (value, context) => {
+                  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Required'
+                  if (Math.round(value * 2) !== value * 2) {
+                    return 'Use a whole or half position, like 0.5, 1, or 1.5'
+                  }
+                  const parent = context.parent as {bookSeries?: {_ref?: string}; name?: string; _key?: string} | undefined
+                  const seriesId = parent?.bookSeries?._ref
+                  const seriesName = parent?.name?.trim() || ''
+                  if (!seriesId && !seriesName) return true
+                  const memberships = (context.document as {series?: Array<{_key?: string; bookSeries?: {_ref?: string}}> | undefined})?.series
+                  const sameOnThisBook = Array.isArray(memberships)
+                    ? memberships.filter((item) => item._key !== parent?._key && item.bookSeries?._ref && item.bookSeries._ref === seriesId).length
+                    : 0
+                  if (sameOnThisBook > 0) return 'This series is already listed on this book'
+                  const bookId = String(context.document?._id || '').replace(/^drafts\./, '')
+                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const taken = await client.fetch<number>(
+                    `count(*[_type == "book" && !(_id in path("drafts.**")) && _id != $bookId && (
+                      $position in series[bookSeries._ref == $seriesId].position ||
+                      ($seriesId == "" && defined($seriesName) && $position in series[!defined(bookSeries) && lower(name) == lower($seriesName)].position)
+                    )])`,
+                    {bookId, position: value, seriesId: seriesId || '', seriesName},
+                  )
+                  return taken === 0 || `Position ${value} is already used in this series`
+                }),
+            }),
+          ],
+          preview: {
+            select: {title: 'bookSeries.title', name: 'name', position: 'position'},
+            prepare({title, name, position}) {
+              return {
+                title: title || name || 'Series',
+                subtitle: typeof position === 'number' ? `Position ${position}` : 'Add a position',
               }
-              const parent = context.parent as {bookSeries?: {_ref?: string}; name?: string} | undefined
-              const seriesId = parent?.bookSeries?._ref
-              const seriesName = parent?.name?.trim() || ''
-              if (!seriesId && !seriesName) return true
-              const bookId = String(context.document?._id || '').replace(/^drafts\./, '')
-              const client = context.getClient({apiVersion: '2026-02-01'})
-              const taken = await client.fetch<number>(
-                `count(*[_type == "book" && !(_id in path("drafts.**")) && _id != $bookId && series.position == $position && (
-                  ($seriesId != "" && series.bookSeries._ref == $seriesId) ||
-                  ($seriesId == "" && defined($seriesName) && !defined(series.bookSeries) && lower(series.name) == lower($seriesName))
-                )])`,
-                {bookId, position: value, seriesId: seriesId || '', seriesName},
-              )
-              return taken === 0 || `Position ${value} is already used in this series`
-            }),
+            },
+          },
         }),
       ],
     }),

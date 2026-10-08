@@ -1,8 +1,8 @@
 'use client'
 
-import Image from 'next/image'
 import {useActionState, useRef} from 'react'
 import {clearProfileAvatarAction, saveProfileAvatarAction} from '@/lib/server-actions'
+import {ReaderPortrait} from './ReaderPortrait'
 
 export function ProfileAvatarForm({
   src,
@@ -25,13 +25,7 @@ export function ProfileAvatarForm({
       <div className="mt-4 flex items-center justify-between gap-6 border-y border-(--line) py-6">
         <div className="flex min-w-0 items-center gap-4">
           <span className="relative size-16 shrink-0 overflow-hidden rounded-full bg-ink">
-            {src ? (
-              <Image src={src} alt="" fill sizes="64px" className="object-cover" unoptimized={/^https?:/i.test(src)} />
-            ) : (
-              <span className="grid size-full place-items-center text-sm font-medium tracking-wide text-white uppercase">
-                {initials}
-              </span>
-            )}
+            <ReaderPortrait src={src} hasCustomAvatar={hasCustomAvatar} initials={initials} sizes="64px" />
           </span>
           <div className="min-w-0">
             <h2 className="font-display text-[1.35rem] leading-none font-black tracking-[-0.04em]">Profile image</h2>

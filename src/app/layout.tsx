@@ -91,7 +91,13 @@ function isImportExportPath(pathname: string) {
 
 async function ReaderAuthControl({signedIn}: {signedIn: boolean}) {
   const reader = await getOptionalReader().catch(() => null)
-  return <AuthControl avatarSrc={reader?.avatarSrc} signedIn={signedIn} />
+  return (
+    <AuthControl
+      avatarSrc={reader?.avatarSrc}
+      hasCustomAvatar={Boolean(reader?.hasCustomAvatar)}
+      signedIn={signedIn}
+    />
+  )
 }
 
 async function ReaderContent({children}: {children: React.ReactNode}) {

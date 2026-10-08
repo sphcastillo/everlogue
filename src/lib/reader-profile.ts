@@ -42,19 +42,17 @@ function clerkEmail(user: ClerkIdentity) {
 
 export const PROFILE_QUERY = `*[_type == "readerProfile" && clerkUserId == $clerkUserId && !(_id in path("drafts.**"))] | order(_createdAt asc)[0]{_id, clerkUserId, displayName, email, spaceColor, avatarUrl, avatar{asset->{_id, url}, alt, hotspot, crop}, "systemShelves": ${systemShelvesProjection}}`
 
-/** Uploaded Sanity image first, then the Clerk avatar URL. */
+/** Uploaded Sanity image only. Clerk avatars are read live from the session. */
 export function profileAvatarSrc(profile?: Pick<ReaderProfile, 'avatar' | 'avatarUrl'> | null) {
   const asset = profile?.avatar?.asset
   const ref = asset?._ref || asset?._id
-  if (ref) {
-    return urlFor({
-      _type: 'image',
-      asset: {_ref: ref},
-      hotspot: profile?.avatar?.hotspot,
-      crop: profile?.avatar?.crop,
-    } as Parameters<typeof urlFor>[0]).width(96).height(96).fit('crop').auto('format').url()
-  }
-  return profile?.avatarUrl || null
+  if (!ref) return null
+  return urlFor({
+    _type: 'image',
+    asset: {_ref: ref},
+    hotspot: profile?.avatar?.hotspot,
+    crop: profile?.avatar?.crop,
+  } as Parameters<typeof urlFor>[0]).width(96).height(96).fit('crop').auto('format').url()
 }
 
 // An internal uniqueness guard, not the profile ID. Sanity generates profile IDs.

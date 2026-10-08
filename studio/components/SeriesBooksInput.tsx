@@ -24,12 +24,18 @@ export function SeriesBooksInput(_props: StringInputProps) {
     client
       .fetch<SeriesBook[]>(
         `*[_type == "book" && !(_id in path("drafts.**")) && (
-          series.bookSeries._ref == $seriesId ||
-          (!defined(series.bookSeries) && defined($title) && lower(series.name) == lower($title))
-        )] | order(series.position asc, title asc){
+          $seriesId in series[].bookSeries._ref ||
+          (defined($title) && lower($title) in series[!defined(bookSeries)].name)
+        )] | order(coalesce(
+          series[bookSeries._ref == $seriesId][0].position,
+          series[!defined(bookSeries) && lower(name) == lower($title)][0].position
+        ) asc, title asc){
           _id,
           title,
-          "position": series.position,
+          "position": coalesce(
+            series[bookSeries._ref == $seriesId][0].position,
+            series[!defined(bookSeries) && lower(name) == lower($title)][0].position
+          ),
           "authors": array::unique(coalesce(authors, []) + coalesce(authorReferences[]->name, [])),
           "coverUrl": coalesce(
             coverOverride.asset->url,

@@ -1,11 +1,17 @@
 'use client'
 
 import {useClerk, useUser} from '@clerk/nextjs'
-import Image from 'next/image'
 import Link from 'next/link'
+import {ReaderPortrait} from './ReaderPortrait'
 import {useEffect, useId, useRef, useState, type KeyboardEvent} from 'react'
 
-export function AccountMenu({avatarSrc}: {avatarSrc?: string | null}) {
+export function AccountMenu({
+  avatarSrc,
+  hasCustomAvatar = false,
+}: {
+  avatarSrc?: string | null
+  hasCustomAvatar?: boolean
+}) {
   const {user} = useUser()
   const {signOut} = useClerk()
   const [open, setOpen] = useState(false)
@@ -19,7 +25,6 @@ export function AccountMenu({avatarSrc}: {avatarSrc?: string | null}) {
   const name = user?.fullName || user?.username || 'Your account'
   const email = user?.primaryEmailAddress?.emailAddress
   const initials = [user?.firstName, user?.lastName].filter(Boolean).map((part) => part![0]).join('') || name[0]
-  const portrait = avatarSrc || user?.imageUrl
 
   useEffect(() => {
     if (!open) return
@@ -86,11 +91,7 @@ export function AccountMenu({avatarSrc}: {avatarSrc?: string | null}) {
           }
         }}
       >
-        {portrait ? (
-          <Image src={portrait} alt="" fill sizes="32px" className="object-cover" unoptimized={/^https?:/i.test(portrait)} />
-        ) : (
-          <span aria-hidden="true">{initials}</span>
-        )}
+        <ReaderPortrait src={avatarSrc} hasCustomAvatar={hasCustomAvatar} initials={initials} sizes="32px" />
       </button>
       {open ? (
         <div className="account-dropdown">

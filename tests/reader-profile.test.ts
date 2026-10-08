@@ -209,12 +209,12 @@ test('unnamed accounts use a neutral display name', async () => {
   assert.equal(profile.displayName, 'Reader')
 })
 
-test('header avatars prefer an uploaded image over the Clerk URL', () => {
-  assert.equal(profileAvatarSrc({avatarUrl: 'https://example.com/avatar.png'}), 'https://example.com/avatar.png')
+test('header avatars use an uploaded image and ignore a stored Clerk URL', () => {
+  assert.equal(profileAvatarSrc({avatarUrl: 'https://img.clerk.com/stale'}), null)
   const src = profileAvatarSrc({
     avatar: {asset: {_id: 'image-abc123-200x200-jpg'}},
-    avatarUrl: 'https://example.com/avatar.png',
+    avatarUrl: 'https://img.clerk.com/stale',
   })
   assert.match(src || '', /cdn\.sanity\.io/)
-  assert.doesNotMatch(src || '', /example\.com/)
+  assert.doesNotMatch(src || '', /clerk\.com/)
 })

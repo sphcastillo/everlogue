@@ -21,9 +21,9 @@ export type CatalogMatch = {
   slug?: string; onWantToRead?: boolean; isStandalone?: boolean
   series?: {name?: string; position?: number}; earlierSeriesPositionsRead?: number[]
 }
-const seriesName = 'coalesce(series.bookSeries->title, series.name)'
+const seriesName = 'coalesce(series[0].bookSeries->title, series[0].name)'
 const fields = `_id, title, authors, description, isStandalone, "slug": slug.current,
-  "series": {"name": ${seriesName}, "position": series.position},
+  "series": {"name": ${seriesName}, "position": series[0].position},
   "genres": array::unique(coalesce(genres[]->title, []) + coalesce(categories, []))`
 
 export type RecommendationLimits = {
@@ -82,7 +82,7 @@ export async function searchRecommendationCatalog(client: SanityClient, terms: s
     (!$standaloneOnly || (isStandalone == true && !defined(${seriesName}))) &&
     !(_id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["finished", "currentlyReading"]].book._ref)
   ]{${fields},
-    "earlierSeriesPositionsRead": *[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind == "finished" && defined(coalesce(^.series.bookSeries->title, ^.series.name)) && coalesce(book->series.bookSeries->title, book->series.name) == coalesce(^.series.bookSeries->title, ^.series.name)].book->series.position,
+    "earlierSeriesPositionsRead": *[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind == "finished" && defined(${seriesName}) && coalesce(book->series[0].bookSeries->title, book->series[0].name) == ${seriesName}].book->series[0].position,
     "onWantToRead": _id in *[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind == "wantToRead"].book._ref
   } [
     !(${genreExclusions}) && !(${contentExclusions})

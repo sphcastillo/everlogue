@@ -1,8 +1,52 @@
 import type {SanityClient} from '@sanity/client'
-import {CLUBS, reference, type Discovery} from './model'
+import {slugify} from '../validation'
+import {CLUBS, reference, type Discovery, type Metadata} from './model'
 
 type CatalogDiscovery = Discovery & {catalogBook?: {_ref: string}; catalogBaselineRevision?: string}
 const fresh = {perspective: 'raw' as const, useCdn: false}
+
+function defined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== '')) as T
+}
+
+async function coverOverrideFromUrl(client: SanityClient, url: string | undefined, alt: string) {
+  if (!url || !client.assets?.upload) return undefined
+  try {
+    const response = await fetch(url)
+    if (!response.ok) return undefined
+    const blob = await response.blob()
+    const asset = await client.assets.upload('image', blob, {
+      filename: 'cover.jpg',
+      contentType: blob.type.startsWith('image/') ? blob.type : 'image/jpeg',
+    })
+    return {_type: 'image' as const, asset: {_type: 'reference' as const, _ref: asset._id}, alt}
+  } catch {
+    return undefined
+  }
+}
+
+function catalogFields(doc: CatalogDiscovery, metadata: Metadata, coverOverride?: {_type: 'image'; asset: {_type: 'reference'; _ref: string}; alt: string}) {
+  const title = doc.discoveredTitle
+  const authors = doc.discoveredAuthors
+  return defined({
+    title,
+    authors,
+    description: metadata.description,
+    isbn13: metadata.isbn13 || doc.isbn13,
+    publisher: metadata.publisher,
+    publishedDate: metadata.publishedDate,
+    pageCount: metadata.pageCount,
+    language: metadata.language,
+    googleBooksId: metadata.googleBooksId,
+    slug: {_type: 'slug' as const, current: slugify(title) || crypto.randomUUID()},
+    isStandalone: true,
+    catalogSource: 'bookClubImport' as const,
+    catalogReviewStatus: 'needsReview' as const,
+    watchDiscovery: reference(doc._id),
+    knowledgeSources: [{_key: crypto.randomUUID(), _type: 'knowledgeSource', label: doc.sourceName, url: doc.sourceUrl}],
+    ...(coverOverride ? {coverOverride} : {}),
+  })
+}
 
 // Only an editor opening the catalog import creates a draft. Discovery itself stays read-only.
 export async function openCatalogImport(client: SanityClient, discoveryId: string) {
@@ -13,7 +57,8 @@ export async function openCatalogImport(client: SanityClient, discoveryId: strin
     const existing = doc.matchedBook?._ref && await client.fetch<{_id: string; _rev: string; _type: string}>('*[_type == "book" && _id == $id][0]', {id: doc.matchedBook._ref}, fresh)
     const id = existing ? existing._id : crypto.randomUUID()
     const metadata = doc.proposedMetadata || {title: doc.discoveredTitle, authors: doc.discoveredAuthors}
-    const {coverUrl, ...fields} = metadata
+    const authors = (doc.discoveredAuthors || []).filter(Boolean).join(', ')
+    const coverOverride = existing ? undefined : await coverOverrideFromUrl(client, metadata.coverUrl, `${doc.discoveredTitle}${authors ? ` by ${authors}` : ''}`)
     const tx = client.transaction().patch(doc._id, p => p.ifRevisionId(doc._rev).set({catalogBook: {...reference(id), _weak: true}, ...(existing ? {catalogBaselineRevision: existing._rev} : {})}))
     if (existing) {
       const draft = await client.fetch<{_rev: string} | null>('*[_id == $id][0]', {id: `drafts.${id}`}, fresh)
@@ -24,11 +69,7 @@ export async function openCatalogImport(client: SanityClient, discoveryId: strin
         tx.create({...fields, _id: `drafts.${id}`, watchDiscovery: reference(doc._id)})
       }
     }
-    if (!existing) tx.create({_id: `drafts.${id}`, _type: 'book', ...fields,
-      title: doc.discoveredTitle, authors: doc.discoveredAuthors, catalogSource: 'bookClubImport', catalogReviewStatus: 'needsReview',
-      watchDiscovery: reference(doc._id), ...(coverUrl ? {cover: {url: coverUrl, source: 'googleBooks'}} : {}),
-      knowledgeSources: [{_key: crypto.randomUUID(), _type: 'knowledgeSource', label: doc.sourceName, url: doc.sourceUrl}],
-    })
+    if (!existing) tx.create({_id: `drafts.${id}`, _type: 'book', ...catalogFields(doc, metadata, coverOverride)})
     try { await tx.commit({visibility: 'sync'}); return id }
     catch (error) { if ((error as {statusCode?: number}).statusCode !== 409 || attempt === 3) throw error }
   }

@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import Link from 'next/link'
+import {ReaderPortrait} from '@/components/ReaderPortrait'
 import {auth} from '@clerk/nextjs/server'
 import {BookCover} from '@/components/BookCover'
 import {ProfileCompanionHistory} from '@/components/ProfileCompanionHistory'
@@ -36,20 +36,12 @@ export default async function ProfilePage() {
             Your profile
           </p>
           <span className="relative col-start-1 row-start-2 size-16 overflow-hidden rounded-full bg-ink">
-            {reader?.avatarSrc ? (
-              <Image
-                src={reader.avatarSrc}
-                alt=""
-                fill
-                sizes="64px"
-                className="object-cover"
-                unoptimized={/^https?:/i.test(reader.avatarSrc)}
-              />
-            ) : (
-              <span className="grid size-full place-items-center text-lg font-medium tracking-wide text-white uppercase">
-                {initials}
-              </span>
-            )}
+            <ReaderPortrait
+              src={reader?.avatarSrc}
+              hasCustomAvatar={Boolean(reader?.hasCustomAvatar)}
+              initials={initials}
+              sizes="64px"
+            />
           </span>
           <h1 className="col-start-2 row-start-2 min-w-0 font-display text-[clamp(2.4rem,6vw,4.2rem)] leading-[0.88] font-black tracking-[-0.07em]">
             {name}<span className="text-[#b8b8b8]" aria-hidden="true">.</span>

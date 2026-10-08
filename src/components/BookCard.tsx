@@ -20,12 +20,14 @@ export function BookCard({
   fill = false,
   compact = false,
   resolveMissingCover = false,
+  coverClassName = '',
 }: {
   book: BookCardData
   large?: boolean
   fill?: boolean
   compact?: boolean
   resolveMissingCover?: boolean
+  coverClassName?: string
 }) {
   const href = book.slug ? `/books/${book.slug}` : '#'
   const width = fill
@@ -42,14 +44,14 @@ export function BookCard({
           bookId={book._id}
           cover={book.cover}
           title={book.title}
-          className="aspect-[2/3] w-full"
+          className={`aspect-[2/3] w-full ${coverClassName}`}
           imageWidth={compact ? 224 : large ? 400 : 336}
         />
       ) : (
         <BookCover
           cover={book.cover}
           title={book.title}
-          className="aspect-[2/3] w-full"
+          className={`aspect-[2/3] w-full ${coverClassName}`}
           imageWidth={compact ? 224 : large ? 400 : 336}
           sizes={compact ? '(max-width: 639px) 84px, 112px' : large ? '(max-width: 639px) 132px, 196px' : '(max-width: 639px) 112px, 168px'}
         />

@@ -1,5 +1,6 @@
 import {BookClubDiscoveryShowcase} from '../components/BookClubDiscoveryShowcase'
 import type { StructureResolver } from 'sanity/structure'
+import {openCatalogImport} from '../../src/lib/book-club-watch/catalog-review'
 import {
   BookIcon,
   CogIcon,
@@ -37,8 +38,24 @@ export const structure: StructureResolver = (S, context) =>
         .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
       S.listItem().title('Book Club Watch').icon(BookIcon).child(
         S.list().title('Book Club Watch').items([
+          S.listItem().title('Review queue').child(
+            S.documentTypeList('bookClubDiscovery').title('Review queue')
+              .filter('_type == "bookClubDiscovery" && status in ["discovered", "needs_review"]')
+              .defaultOrdering([{field: 'discoveredAt', direction: 'desc'}])
+              .child(async (discoveryId) => {
+                const client = context.getClient({apiVersion: '2026-09-01'})
+                try {
+                  const bookId = await openCatalogImport(client, discoveryId)
+                  return S.document().documentId(bookId).schemaType('book')
+                } catch {
+                  return S.document()
+                    .documentId(discoveryId)
+                    .schemaType('bookClubDiscovery')
+                    .views([S.view.component(BookClubDiscoveryShowcase).title('Discovery')])
+                }
+              }),
+          ),
           ...[
-            {title: 'Review queue', filter: 'status in ["discovered", "needs_review"]'},
             {title: 'Approved', filter: 'status == "approved"'},
             {title: 'Published history', filter: 'status == "published"'},
             {title: 'Rejected discoveries', filter: 'status == "rejected"'},

@@ -128,7 +128,7 @@ export default async function GenrePage({
           </div>
           <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:gap-x-6">
             {books.map((book) => (
-              <BookCard key={book._id} book={book} fill />
+              <BookCard key={book._id} book={book} fill coverClassName="max-h-[300px] max-w-[min(100%,200px)]" />
             ))}
           </div>
         </section>

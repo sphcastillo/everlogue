@@ -733,11 +733,13 @@ export type Book = {
   publishedDate?: string;
   pageCount?: number;
   isStandalone: boolean;
-  series?: {
+  series?: Array<{
     bookSeries?: BookSeriesReference;
     name?: string;
     position: number;
-  };
+    _type: "seriesMembership";
+    _key: string;
+  }>;
   categories?: Array<string>;
   language?: string;
   googleBooksId?: string;

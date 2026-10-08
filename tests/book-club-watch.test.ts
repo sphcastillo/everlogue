@@ -237,6 +237,12 @@ test('catalog imports create only one draft; Publish files Watch as approved and
   assert.equal(discoveries(db)[0].status, 'needs_review')
   await assert.rejects(completeCatalogReview(db.client, ids[0], 'editor'), /Publish the catalog book/)
   const draft = db.docs.get(`drafts.${ids[0]}`)!
+  assert.equal(draft.isStandalone, true)
+  assert.deepEqual(draft.slug, {_type: 'slug', current: 'a-new-book'})
+  assert.equal(draft.catalogSource, 'bookClubImport')
+  assert.equal((draft.knowledgeSources as {url?: string}[])[0]?.url, CLUBS.gma.sourceUrl)
+  assert.equal(draft.cover, undefined)
+  assert.equal(draft.coverUrl, undefined)
   db.save({...draft, _id: ids[0], title: 'Editor corrected title'})
   db.docs.delete(draft._id)
   await Promise.all([completeCatalogReview(db.client, ids[0], 'editor'), completeCatalogReview(db.client, ids[0], 'editor')])
