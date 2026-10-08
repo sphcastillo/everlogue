@@ -13,7 +13,7 @@ export default async function SettingsPage() {
       <header className="pt-8 pb-10">
         <p className="font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Your account</p>
         <h1 className="mt-4 font-display text-[clamp(2.8rem,6vw,4.6rem)] leading-[0.88] font-black tracking-[-0.07em]">
-          Settings.
+          Settings<span className="text-[#b8b8b8]" aria-hidden="true">.</span>
         </h1>
         <p className="mt-4 max-w-md text-[1.02rem] leading-7 text-muted">
           Make yourself at home. Manage your library and how you read here.

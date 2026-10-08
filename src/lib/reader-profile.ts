@@ -14,6 +14,7 @@ export type ReaderProfile = {
   _id: string
   clerkUserId: string
   displayName: string
+  email?: string | null
   spaceColor?: string | null
   avatar?: ReaderAvatar
   avatarUrl?: string | null
@@ -29,9 +30,17 @@ export type ClerkIdentity = {
   firstName: string | null
   username: string | null
   imageUrl: string
+  primaryEmailAddress?: {emailAddress?: string | null} | null
+  emailAddresses?: Array<{emailAddress?: string | null}> | null
 }
 
-export const PROFILE_QUERY = `*[_type == "readerProfile" && clerkUserId == $clerkUserId && !(_id in path("drafts.**"))] | order(_createdAt asc)[0]{_id, clerkUserId, displayName, spaceColor, avatarUrl, avatar{asset->{_id, url}, alt, hotspot, crop}, "systemShelves": ${systemShelvesProjection}}`
+function clerkEmail(user: ClerkIdentity) {
+  return user.primaryEmailAddress?.emailAddress?.trim()
+    || user.emailAddresses?.find((address) => address.emailAddress?.trim())?.emailAddress?.trim()
+    || undefined
+}
+
+export const PROFILE_QUERY = `*[_type == "readerProfile" && clerkUserId == $clerkUserId && !(_id in path("drafts.**"))] | order(_createdAt asc)[0]{_id, clerkUserId, displayName, email, spaceColor, avatarUrl, avatar{asset->{_id, url}, alt, hotspot, crop}, "systemShelves": ${systemShelvesProjection}}`
 
 /** Uploaded Sanity image first, then the Clerk avatar URL. */
 export function profileAvatarSrc(profile?: Pick<ReaderProfile, 'avatar' | 'avatarUrl'> | null) {
@@ -57,9 +66,11 @@ export async function syncReaderProfile(client: SanityClient, user: ClerkIdentit
     // A fresh signal opts out so a retry cannot replay the pre-creation null.
     PROFILE_QUERY, {clerkUserId: user.id}, {cache: 'no-store', signal: new AbortController().signal},
   )
+  const email = clerkEmail(user)
   const fields = {
     displayName: user.firstName || user.username || 'Reader',
     avatarUrl: user.imageUrl,
+    ...(email ? {email} : {}),
   }
   let profile = await findProfile()
   if (!profile) {

@@ -495,17 +495,30 @@ export async function setSpaceColor(color: string) {
   revalidatePath('/', 'layout')
 }
 
-const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-const AVATAR_MAX_BYTES = 4 * 1024 * 1024
+const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'])
+const AVATAR_MAX_BYTES = 8 * 1024 * 1024
 
-export async function setProfileAvatar(file: File) {
+function avatarContentType(file: Blob & {name?: string}) {
+  if (AVATAR_TYPES.has(file.type)) return file.type
+  const name = file.name?.toLowerCase() || ''
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg'
+  if (name.endsWith('.png')) return 'image/png'
+  if (name.endsWith('.webp')) return 'image/webp'
+  if (name.endsWith('.gif')) return 'image/gif'
+  if (name.endsWith('.heic')) return 'image/heic'
+  if (name.endsWith('.heif')) return 'image/heif'
+  return ''
+}
+
+export async function setProfileAvatar(file: Blob & {name?: string}) {
   const reader = await requireReader()
-  if (!AVATAR_TYPES.has(file.type)) throw new Error('Choose a JPEG, PNG, WebP, or GIF image.')
-  if (file.size > AVATAR_MAX_BYTES) throw new Error('Please choose an image smaller than 4 MB.')
+  const contentType = avatarContentType(file)
+  if (!contentType) throw new Error('Choose a JPEG, PNG, WebP, or GIF image.')
+  if (file.size > AVATAR_MAX_BYTES) throw new Error('Please choose an image smaller than 8 MB.')
   const client = writeClient()
   const asset = await client.assets.upload('image', Buffer.from(await file.arrayBuffer()), {
-    filename: file.name.replace(/[^\w.-]+/g, '-').slice(0, 80) || 'avatar.jpg',
-    contentType: file.type,
+    filename: (file.name || 'avatar.jpg').replace(/[^\w.-]+/g, '-').slice(0, 80) || 'avatar.jpg',
+    contentType,
   })
   await client.patch(reader.readerId).set({
     avatar: {

@@ -23,7 +23,7 @@ export default async function ImportExportPage() {
       <header className="pt-8 pb-8">
         <p className="font-mono text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Library</p>
         <h1 className="mt-4 font-display text-[clamp(2.8rem,6vw,4.6rem)] leading-[0.88] font-black tracking-[-0.07em]">
-          Import &amp; Export.
+          Import &amp; Export<span className="text-[#b8b8b8]" aria-hidden="true">.</span>
         </h1>
         <p className="mt-4 max-w-md text-[1.02rem] leading-7 text-muted">
           Your reading story belongs with you. Bring your books into Everlogue, or take a copy of your shelves with you.

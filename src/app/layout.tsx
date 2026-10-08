@@ -13,6 +13,7 @@ import Footer from '@/components/Footer'
 import {ReadingCompanion} from '@/components/ReadingCompanion'
 import {ReaderSetupRecovery} from '@/components/ReaderSetupRecovery'
 import Loading from './loading'
+import {Analytics} from '@vercel/analytics/next'
 
 const display = DM_Sans({
   subsets: ['latin'],
@@ -114,6 +115,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
       <html lang="en">
         <body className="bg-paper">
           <SignedOutRedirect href={signInHref} />
+          <Analytics />
         </body>
       </html>
     )
@@ -143,6 +145,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
             <ReaderCompanion signedIn={isAuthenticated} />
           </Suspense>
         </ClerkProvider>
+        <Analytics />
       </body>
     </html>
   )

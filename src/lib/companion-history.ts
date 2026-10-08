@@ -4,7 +4,7 @@ import {privateClient, writeClient} from '@/sanity/client'
 import type {CoverSource} from '@/lib/book-covers'
 import {linkRecommendationTitles, plainRecommendationTitles} from '@/lib/companion-links'
 import {stableId} from '@/lib/validation'
-import {bookCoverProjection} from '@/sanity/queries'
+import {bookCoverProjection} from '../sanity/queries'
 
 export type CompanionHistoryMessage = {
   _key?: string

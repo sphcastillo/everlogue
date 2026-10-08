@@ -39,14 +39,19 @@ async function getOrCreateReader(clerkUserId: string): Promise<ReaderSession> {
     PROFILE_QUERY, {clerkUserId}, {cache: 'no-store', signal: new AbortController().signal},
   )
   if (existing?._id) {
-    await ensureSystemShelves(writeClient(), existing._id, existing.systemShelves)
+    let profile = existing
+    if (!existing.email) {
+      const user = await currentUser()
+      if (user && user.id === clerkUserId) profile = await syncReaderProfile(writeClient(), user)
+    }
+    await ensureSystemShelves(writeClient(), profile._id, profile.systemShelves)
     return {
-      readerId: existing._id,
+      readerId: profile._id,
       clerkUserId,
-      displayName: existing.displayName || 'Reader',
-      spaceColor: existing.spaceColor,
-      avatarSrc: profileAvatarSrc(existing),
-      hasCustomAvatar: Boolean(existing.avatar?.asset?._id || existing.avatar?.asset?._ref),
+      displayName: profile.displayName || 'Reader',
+      spaceColor: profile.spaceColor,
+      avatarSrc: profileAvatarSrc(profile),
+      hasCustomAvatar: Boolean(profile.avatar?.asset?._id || profile.avatar?.asset?._ref),
     }
   }
 

@@ -44,12 +44,24 @@ export async function saveSpaceColorAction(color: string) {
   await setSpaceColor(color)
 }
 
-export async function saveProfileAvatarAction(formData: FormData) {
-  const file = formData.get('avatar')
-  if (!(file instanceof File) || file.size === 0) throw new Error('Choose an image to upload.')
-  await setProfileAvatar(file)
+type AvatarActionState = {error?: string}
+
+export async function saveProfileAvatarAction(_prev: AvatarActionState, formData: FormData): Promise<AvatarActionState> {
+  try {
+    const file = formData.get('avatar')
+    if (!(file instanceof Blob) || file.size === 0) return {error: 'Choose an image to upload.'}
+    await setProfileAvatar(file)
+    return {}
+  } catch (caught) {
+    return {error: caught instanceof Error ? caught.message : 'Could not upload that image.'}
+  }
 }
 
-export async function clearProfileAvatarAction() {
-  await clearProfileAvatar()
+export async function clearProfileAvatarAction(_prev: AvatarActionState, _formData: FormData): Promise<AvatarActionState> {
+  try {
+    await clearProfileAvatar()
+    return {}
+  } catch {
+    return {error: 'Could not remove the image.'}
+  }
 }

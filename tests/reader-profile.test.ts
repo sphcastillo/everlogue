@@ -5,7 +5,13 @@ import {ensureSystemShelves, profileAvatarSrc, syncReaderProfile} from '../src/l
 import {ReaderProfilePendingError, retryReaderSetup} from '../src/lib/reader-setup-retry'
 
 type Document = Record<string, unknown> & {_id: string}
-const user = {id: 'user_test', firstName: 'Avery', username: null, imageUrl: 'https://example.com/avatar.png'}
+const user = {
+  id: 'user_test',
+  firstName: 'Avery',
+  username: null,
+  imageUrl: 'https://example.com/avatar.png',
+  primaryEmailAddress: {emailAddress: 'avery@example.com'},
+}
 
 function database(initial: Document[] = [], hiddenProfileReads = 0) {
   const docs = new Map(initial.map((doc) => [doc._id, {...doc}]))
@@ -179,6 +185,7 @@ test('updates reuse an existing profile and preserve reader preferences', async 
   await syncReaderProfile(client, user)
   await syncReaderProfile(client, {...user, firstName: 'New name'})
   assert.equal(docs.get('existing-profile')?.displayName, 'New name')
+  assert.equal(docs.get('existing-profile')?.email, 'avery@example.com')
   assert.equal(docs.get('existing-profile')?.bio, 'My bio')
   assert.equal(docs.get('existing-profile')?.spaceColor, 'mint')
   assert.equal(docs.get('existing-profile')?.profileVisibility, 'publicName')

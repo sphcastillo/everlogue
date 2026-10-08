@@ -19,6 +19,13 @@ export const readerProfile = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: 'email',
+      title: 'Email',
+      type: 'string',
+      readOnly: true,
+      description: 'Primary email on the attached Clerk account.',
+    }),
+    defineField({
       name: 'avatar',
       title: 'Profile image',
       type: 'image',
@@ -72,6 +79,9 @@ export const readerProfile = defineType({
     }),
   ],
   preview: {
-    select: {title: 'displayName', subtitle: 'clerkUserId', media: 'avatar'},
+    select: {title: 'displayName', email: 'email', clerkUserId: 'clerkUserId', media: 'avatar'},
+    prepare({title, email, clerkUserId, media}) {
+      return {title, subtitle: email || clerkUserId, media}
+    },
   },
 })
