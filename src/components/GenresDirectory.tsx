@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useMemo, useState} from 'react'
+import {useMemo, useState, type ReactNode} from 'react'
 
 export type DirectoryGenre = {
   _id: string
@@ -31,7 +31,19 @@ function letterFor(title: string) {
   return /[A-Z]/.test(letter) ? letter : '#'
 }
 
-function buildFamilies(genres: DirectoryGenre[]) {
+function groupByLetter<T extends {title: string}>(items: T[]) {
+  const grouped = new Map<string, T[]>()
+  for (const item of items) {
+    const letter = letterFor(item.title)
+    grouped.set(letter, [...(grouped.get(letter) || []), item])
+  }
+  return LETTERS.filter((letter) => grouped.has(letter)).map((letter) => ({
+    letter,
+    items: grouped.get(letter) || [],
+  }))
+}
+
+function buildFamilies(genres: DirectoryGenre[]): Family[] {
   const families = new Map<string, Family>()
 
   function family(key: string, title: string, slug?: string | null, head?: DirectoryGenre | null) {
@@ -57,6 +69,22 @@ function buildFamilies(genres: DirectoryGenre[]) {
       children: [...group.children].sort((left, right) => left.title.localeCompare(right.title)),
     }))
     .sort((left, right) => left.title.localeCompare(right.title))
+}
+
+function LetterSection({letter, children}: {letter: string; children: ReactNode}) {
+  return (
+    <section
+      id={`genre-${letter === '#' ? 'other' : letter}`}
+      className="scroll-mt-52 border-t border-(--line) py-6 lg:scroll-mt-44"
+    >
+      <h2 className="font-display text-3xl leading-none font-black tracking-[-0.06em] text-muted">
+        {letter}
+      </h2>
+      <div className="mt-3 columns-1 sm:columns-2 lg:columns-3 sm:gap-x-8">
+        {children}
+      </div>
+    </section>
+  )
 }
 
 function GenreRow({genre, nested = false}: {genre: DirectoryGenre; nested?: boolean}) {
@@ -93,18 +121,9 @@ export function GenresDirectory({genres}: {genres: DirectoryGenre[]}) {
   }, [genres, search])
 
   const families = useMemo(() => buildFamilies(filteredGenres), [filteredGenres])
-  const sections = useMemo(() => {
-    const items = search ? filteredGenres : families
-    const grouped = new Map<string, typeof items>()
-    for (const item of items) {
-      const letter = letterFor(item.title)
-      grouped.set(letter, [...(grouped.get(letter) || []), item])
-    }
-    return LETTERS.filter((letter) => grouped.has(letter)).map((letter) => ({
-      letter,
-      items: grouped.get(letter) || [],
-    }))
-  }, [families, filteredGenres, search])
+  const searchSections = useMemo(() => (search ? groupByLetter(filteredGenres) : []), [filteredGenres, search])
+  const familySections = useMemo(() => (search ? [] : groupByLetter(families)), [families, search])
+  const sections = search ? searchSections : familySections
   const activeLetters = new Set(sections.map((section) => section.letter))
 
   return (
@@ -168,26 +187,19 @@ export function GenresDirectory({genres}: {genres: DirectoryGenre[]}) {
 
       {sections.length ? (
         <div className="mt-2">
-          {sections.map((section) => (
-            <section
-              key={section.letter}
-              id={`genre-${section.letter === '#' ? 'other' : section.letter}`}
-              className="scroll-mt-52 border-t border-(--line) py-6 lg:scroll-mt-44"
-            >
-              <h2 className="font-display text-3xl leading-none font-black tracking-[-0.06em] text-muted">
-                {section.letter}
-              </h2>
-              {search ? (
-                <div className="mt-3 columns-1 sm:columns-2 lg:columns-3 sm:gap-x-8">
-                  {(section.items as DirectoryGenre[]).map((genre) => (
+          {search
+            ? searchSections.map((section) => (
+                <LetterSection key={section.letter} letter={section.letter}>
+                  {section.items.map((genre) => (
                     <div key={genre._id} className="break-inside-avoid">
                       <GenreRow genre={genre} />
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="mt-3 columns-1 sm:columns-2 lg:columns-3 sm:gap-x-8">
-                  {(section.items as Family[]).map((family) => (
+                </LetterSection>
+              ))
+            : familySections.map((section) => (
+                <LetterSection key={section.letter} letter={section.letter}>
+                  {section.items.map((family) => (
                     <div key={family.key} className="break-inside-avoid pb-4">
                       {family.head ? <GenreRow genre={family.head} /> : (
                         <p className="border-t border-(--line) pt-3 font-display text-[1.15rem] leading-none font-black tracking-tight">
@@ -203,10 +215,8 @@ export function GenresDirectory({genres}: {genres: DirectoryGenre[]}) {
                       ) : null}
                     </div>
                   ))}
-                </div>
-              )}
-            </section>
-          ))}
+                </LetterSection>
+              ))}
         </div>
       ) : (
         <div className="border-b border-(--line) py-14 text-center">
