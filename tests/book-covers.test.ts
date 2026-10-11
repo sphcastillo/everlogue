@@ -44,7 +44,7 @@ test('drops blank provider covers and Open Library when a cover is known missing
 })
 
 test('manual override precedes provider URLs and ISBN fallback; numeric cover IDs use the correct endpoint', () => {
-  assert.deepEqual(coverCandidates({cover: {url: 'https://books.google.com/cover.jpg'}, coverOverride: {asset: {url: 'https://cdn.sanity.io/manual.jpg'}}, isbn13: input.isbn13}), ['https://cdn.sanity.io/manual.jpg', 'https://books.google.com/cover.jpg', openLibraryCover(input.isbn13)])
+  assert.deepEqual(coverCandidates({cover: {url: 'https://books.google.com/cover.jpg'}, coverOverride: {asset: {url: 'https://cdn.sanity.io/manual.jpg'}}, isbn13: input.isbn13}), ['https://cdn.sanity.io/manual.jpg', 'https://books.google.com/cover.jpg?zoom=3', openLibraryCover(input.isbn13)])
   assert.equal(coverCandidates({coverOpenLibraryId: '1234'})[0], 'https://covers.openlibrary.org/b/id/1234-L.jpg?default=false')
   assert.deepEqual(coverCandidates({cover: {url: 'same'}, coverUrl: 'same'}), ['same'])
 })
@@ -56,7 +56,7 @@ test('matches exact ISBNs and refuses ambiguous or incorrect editions', () => {
   assert.equal(matchGoogleEdition({title: input.title, author: input.author}, [volume, {...volume, id: 'another-edition'}]), volume)
 })
 
-test('uses a verified Google cover without requesting Open Library', async () => {
+test('keeps a verified Google cover while requesting missing Open Library metadata', async () => {
   const urls: string[] = []
   const fetcher = (async (url: string) => {
     urls.push(url)
@@ -66,7 +66,8 @@ test('uses a verified Google cover without requesting Open Library', async () =>
   assert.equal(result.cover?.source, 'google')
   assert.equal(result.publisher, 'Publisher')
   assert.equal(result.needsCover, false)
-  assert.equal(urls.length, 2)
+  assert.equal(urls.length, 3)
+  assert.ok(urls.includes('https://openlibrary.org/isbn/9780306406157.json'))
 })
 
 test('falls back to Open Library on Google errors and marks missing covers for review', async () => {

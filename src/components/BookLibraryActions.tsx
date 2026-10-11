@@ -4,6 +4,8 @@ import {SignInButton} from '@clerk/nextjs'
 import {useState} from 'react'
 import {BookReviewForm, type BookReviewValue} from './BookReviewForm'
 import {ShelfButtons} from './ShelfButtons'
+import {BookEditions} from './BookEditions'
+import type {BookEdition} from '@/lib/book-editions'
 import {StarRating} from './StarRating'
 
 export function BookLibraryActions({
@@ -12,8 +14,12 @@ export function BookLibraryActions({
   status,
   rating,
   review,
+  editions = [],
+  editionId = null,
 }: {
   bookId: string
+  editions?: BookEdition[]
+  editionId?: string | null
   signedIn: boolean
   status: string | null
   rating: number | null
@@ -53,6 +59,7 @@ export function BookLibraryActions({
           </SignInButton>
         </div>
       ) : null}
+      <BookEditions key={editionId || 'unselected'} bookId={bookId} editions={editions} selectedId={editionId} canSelect={signedIn && Boolean(shelf)} />
       {canRate ? (
         <div className="mt-8">
           <StarRating bookId={bookId} value={rating} signedIn />

@@ -1,6 +1,8 @@
+import type {SanityClient} from '@sanity/client'
 import {BookClubDiscoveryShowcase} from '../components/BookClubDiscoveryShowcase'
 import type { StructureResolver } from 'sanity/structure'
 import {openCatalogImport} from '../../src/lib/book-club-watch/catalog-review'
+import {editionTitleAuthorMismatch} from '../../src/lib/edition-title-mismatch'
 import {
   BookIcon,
   CogIcon,
@@ -19,6 +21,8 @@ import {
   PENDING_CATALOG_REVIEW,
 } from '../lib/catalog-request-filters'
 
+const NEEDS_REVIEW_FILTER = `_type == "book" && ${PENDING_CATALOG_REVIEW} && (${FROM_READER_SEARCH} || ${FROM_GOODREADS} || ${FROM_BOOK_CLUB})`
+
 const SINGLETONS = ['siteSettings']
 const SPOTLIGHT_CLUBS = [
   { title: 'GMA Book Club', documentId: 'curatedCollection.gma-book-club' },
@@ -27,8 +31,13 @@ const SPOTLIGHT_CLUBS = [
   { title: "Reese's Book Club", documentId: 'curatedCollection.reeses-book-club' },
 ]
 
-export const structure: StructureResolver = (S, context) =>
-  S.list()
+export const structure: StructureResolver = async (S, context) => {
+  const catalogRequestCount = await context.getClient({apiVersion: '2026-02-01'}).fetch<number>(
+    `count(*[${NEEDS_REVIEW_FILTER} && !(_id in path("drafts.**"))])`,
+  )
+  const catalogRequestsTitle = `Everlogue Catalog Requests · ${catalogRequestCount}`
+
+  return S.list()
     .title('Everlogue')
     .items([
       S.documentTypeListItem('companionUsage').title('Companion usage'),
@@ -45,7 +54,7 @@ export const structure: StructureResolver = (S, context) =>
               .child(async (discoveryId) => {
                 const client = context.getClient({apiVersion: '2026-09-01'})
                 try {
-                  const bookId = await openCatalogImport(client, discoveryId)
+                  const bookId = await openCatalogImport(client as unknown as SanityClient, discoveryId)
                   return S.document().documentId(bookId).schemaType('book')
                 } catch {
                   return S.document()
@@ -70,11 +79,11 @@ export const structure: StructureResolver = (S, context) =>
       ),
       S.divider(),
       S.listItem()
-        .title('Book Archive')
+        .title('Everlogue Shelf')
         .icon(BookIcon)
         .child(
           S.list()
-            .title('Book Archive')
+            .title('Everlogue Shelf')
             .items([
               S.listItem()
                 .id('books')
@@ -86,6 +95,59 @@ export const structure: StructureResolver = (S, context) =>
                     `count(*[_type == "book" && !(_id in path("drafts.**"))])`,
                   )
                   return S.documentTypeList('book').title(`Books · ${count}`)
+                }),
+              S.listItem()
+                .id('editions')
+                .title('Editions')
+                .icon(DocumentsIcon)
+                .child(async () => {
+                  const client = context.getClient({apiVersion: '2026-02-01'})
+                  const rows = await client.fetch<{
+                    _id: string
+                    title?: string
+                    providerTitle?: string
+                    providerAuthors?: string[]
+                    providerTitleMismatch?: boolean
+                    bookTitle?: string
+                    bookAuthors?: string[] | null
+                  }[]>(
+                    `*[_type == "edition" && !(_id in path("drafts.**"))]{
+                      _id, title, providerTitle, providerAuthors, providerTitleMismatch,
+                      "bookTitle": book->title, "bookAuthors": book->authors
+                    }`,
+                  )
+                  const mismatchIds = rows
+                    .filter((row) =>
+                      row.providerTitleMismatch
+                      || editionTitleAuthorMismatch(row.providerTitle || row.title, row.providerAuthors, row.bookTitle, row.bookAuthors),
+                    )
+                    .map((row) => row._id)
+                  const count = rows.length
+                  const mismatchTitle = `Title/author mismatches · ${mismatchIds.length}`
+                  return S.list()
+                    .title(`Editions · ${count}`)
+                    .items([
+                      S.listItem()
+                        .id('editions-all')
+                        .title(`All editions · ${count}`)
+                        .icon(DocumentsIcon)
+                        .child(
+                          S.documentTypeList('edition')
+                            .title(`All editions · ${count}`)
+                            .defaultOrdering([{field: '_createdAt', direction: 'desc'}]),
+                        ),
+                      S.listItem()
+                        .id('editions-mismatches')
+                        .title(mismatchTitle)
+                        .icon(DocumentsIcon)
+                        .child(
+                          S.documentTypeList('edition')
+                            .title(mismatchTitle)
+                            .filter('_type == "edition" && _id in $ids')
+                            .params({ids: mismatchIds.length ? mismatchIds : ['__none__']})
+                            .defaultOrdering([{field: '_createdAt', direction: 'desc'}]),
+                        ),
+                    ])
                 }),
               S.documentTypeListItem('author').title('Authors').icon(UserIcon),
               S.documentTypeListItem('bookSeries').title('Series'),
@@ -263,16 +325,17 @@ export const structure: StructureResolver = (S, context) =>
       }),
       S.divider(),
       S.listItem()
-        .title('Everlogue Catalog Requests')
+        .id('everlogue-catalog-requests')
+        .title(catalogRequestsTitle)
         .icon(DocumentsIcon)
         .child(
           S.list()
-            .title('Everlogue Catalog Requests')
+            .title(catalogRequestsTitle)
             .items([
               catalogRequestList(S, context, {
                 id: 'catalog-requests-all',
                 title: 'Needs review',
-                filter: `_type == "book" && ${PENDING_CATALOG_REVIEW} && (${FROM_READER_SEARCH} || ${FROM_GOODREADS} || ${FROM_BOOK_CLUB})`,
+                filter: NEEDS_REVIEW_FILTER,
               }),
               catalogRequestList(S, context, {
                 id: 'catalog-requests-search',
@@ -306,6 +369,7 @@ export const structure: StructureResolver = (S, context) =>
             ]),
         ),
     ])
+}
 
 function catalogRequestList(
   S: Parameters<StructureResolver>[0],

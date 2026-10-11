@@ -1,13 +1,14 @@
 import {useEffect, useState} from 'react'
 import {Box, Card, Stack, Text} from '@sanity/ui'
 import {useClient, useFormValue, type StringInputProps} from 'sanity'
-import {CATALOG_SOURCE_LABELS, inferCatalogSource, publishedDocumentId} from '../lib/catalog-origin'
-
-type ClubTitles = {clubs?: string[] | null; celebrity?: string[] | null}
-
-function uniqueNames(values: unknown[]) {
-  return [...new Set(values.filter((value): value is string => Boolean(value && String(value).trim())))]
-}
+import {
+  CATALOG_CLUBS_QUERY,
+  CATALOG_SOURCE_LABELS,
+  catalogClubNames,
+  inferCatalogSource,
+  publishedDocumentId,
+  type CatalogClubLookup,
+} from '../lib/catalog-origin'
 
 export function CatalogOriginInput(_props: StringInputProps) {
   const client = useClient({apiVersion: '2026-02-01'})
@@ -20,15 +21,9 @@ export function CatalogOriginInput(_props: StringInputProps) {
     if (!documentId) return
     let cancelled = false
     client
-      .fetch<ClubTitles>(
-        `{
-          "clubs": *[_type == "curatedCollection" && count(books[book._ref == $bookId]) > 0].title,
-          "celebrity": *[_type == "celebritySelection" && count(books[_ref == $bookId]) > 0].club->title
-        }`,
-        {bookId: documentId},
-      )
+      .fetch<CatalogClubLookup>(CATALOG_CLUBS_QUERY, {bookId: documentId})
       .then((result) => {
-        if (!cancelled) setClubs(uniqueNames([...(result?.clubs || []), ...(result?.celebrity || [])]))
+        if (!cancelled) setClubs(catalogClubNames(result))
       })
       .catch(() => {
         if (!cancelled) setClubs([])

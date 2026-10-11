@@ -39,6 +39,11 @@ export function catalogWorkKey(title: string, author?: string | null) {
 }
 
 export function findMatchingCatalogBook(request: CatalogMatchRequest, books: CatalogMatchCandidate[]) {
+  const exact = books.find((book) =>
+    (request.isbn13 && book.isbn13 === request.isbn13) ||
+    (request.isbn10 && book.isbn10 === request.isbn10) ||
+    (request.goodreadsId && book.goodreadsBookId === request.goodreadsId))
+  if (exact) return exact
   const requestKey = catalogWorkKey(request.title, request.author)
   for (const book of books) {
     if (request.goodreadsId && book.goodreadsBookId === request.goodreadsId) return book

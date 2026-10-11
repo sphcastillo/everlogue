@@ -248,12 +248,32 @@ test('catalog imports create only one draft; Publish files Watch as approved and
   await Promise.all([completeCatalogReview(db.client, ids[0], 'editor'), completeCatalogReview(db.client, ids[0], 'editor')])
   assert.equal(discoveries(db)[0].status, 'approved')
   assert.equal(db.docs.get(ids[0])?.title, 'Editor corrected title')
+  assert.equal(db.docs.get(ids[0])?.catalogReviewStatus, 'reviewed')
   const entries = db.docs.get(collection._id)?.books as {_key: string; selectionNumber: number}[]
   assert.equal(entries.length, 2)
   assert.equal(entries[0]._key, 'old')
   assert.equal(entries[1].selectionNumber, 9)
   await publishDiscovery(db.client, doc._id)
   assert.equal(discoveries(db)[0].status, 'approved')
+  db.save({...db.docs.get(ids[0])!, catalogReviewStatus: 'needsReview'})
+  await completeCatalogReview(db.client, ids[0], 'editor')
+  assert.equal(db.docs.get(ids[0])?.catalogReviewStatus, 'reviewed')
+})
+
+test('catalog review files the club list after Needs review publish', async () => {
+  const {openCatalogImport, completeCatalogReview} = await import('../src/lib/book-club-watch/catalog-review')
+  const db = database([collection])
+  await runWatch(db.client, 'gma', options)
+  const doc = discoveries(db)[0]
+  const id = await openCatalogImport(db.client, doc._id)
+  const draft = db.docs.get(`drafts.${id}`)!
+  db.save({...draft, _id: id, catalogReviewStatus: 'reviewed'})
+  db.docs.delete(draft._id)
+  db.save({...discoveries(db)[0], catalogBook: undefined})
+  await completeCatalogReview(db.client, id, 'editor')
+  assert.equal(discoveries(db)[0].status, 'approved')
+  const entries = db.docs.get(collection._id)?.books as {book?: {_ref?: string}}[]
+  assert.equal(entries.some((entry) => entry.book?._ref === id), true)
 })
 
 test('catalog review reuses existing metadata and recovers after collection update fails', async () => {
@@ -274,6 +294,7 @@ test('catalog review reuses existing metadata and recovers after collection upda
   await completeCatalogReview(db.client, 'existing', 'editor')
   assert.equal(discoveries(db)[0].status, 'approved')
   assert.equal(db.docs.get('existing')?.description, 'Editorial copy')
+  assert.equal(db.docs.get('existing')?.catalogReviewStatus, 'reviewed')
 })
 
 test('first catalog publication creates the missing club collection atomically under concurrent retries', async () => {

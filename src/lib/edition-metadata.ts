@@ -1,14 +1,18 @@
 import {coverSrc, type GoogleBook, type GoogleSearchResponse} from './google-books'
+import {normalizeIsbn} from './isbn'
 import {openLibraryCover} from './book-covers'
 
 export type EditionInput = {title: string; author: string; isbn10?: string; isbn13?: string; goodreadsId?: string}
 export type EditionMetadata = {
   isbn10?: string; isbn13?: string; googleBooksId?: string; publisher?: string; publicationDate?: string
+  title?: string; authors?: string[]; pageCount?: number; language?: string; format?: string
+  translators?: string[]; editionStatement?: string; openLibraryEditionKey?: string; openLibraryWorkKey?: string
   cover?: {url: string; source: 'google' | 'openLibrary'}
   needsCover: boolean
 }
 const normalize = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
 export function isbn13For(isbn: string) {
+  isbn = isbn.replace(/[\s-]/g, '').toUpperCase()
   if (isbn.length !== 10) return isbn
   const body = `978${isbn.slice(0, 9)}`
   const sum = [...body].reduce((total, digit, index) => total + Number(digit) * (index % 2 ? 3 : 1), 0)
@@ -39,6 +43,7 @@ export async function resolveEditionMetadata(
   input: EditionInput,
   options: {fetcher?: typeof fetch; googleKey?: string; pace?: () => Promise<void>} = {},
 ): Promise<EditionMetadata> {
+  input = {...input, isbn13: input.isbn13 ? isbn13For(input.isbn13) : undefined, isbn10: input.isbn10?.replace(/[\s-]/g, '').toUpperCase()}
   const fetcher = options.fetcher || fetch
   const result: EditionMetadata = {isbn10: input.isbn10, isbn13: input.isbn13 || (input.isbn10 ? isbn13For(input.isbn10) : undefined), needsCover: true}
   const googleKey = options.googleKey ?? process.env.GOOGLE_BOOKS_API_KEY
@@ -58,9 +63,53 @@ export async function resolveEditionMetadata(
     const ids = info.industryIdentifiers || []
     result.isbn10 ||= ids.find((id) => id.type === 'ISBN_10' && /^\d{9}[\dX]$/.test(id.identifier || ''))?.identifier
     result.isbn13 ||= ids.find((id) => id.type === 'ISBN_13' && /^\d{13}$/.test(id.identifier || ''))?.identifier
+    result.title = info.title
+    result.authors = info.authors
+    result.pageCount = info.pageCount
+    result.language = info.language
+    if (google.saleInfo?.isEbook) result.format = 'ebook'
     result.googleBooksId = google.id
     result.publisher = info.publisher
     result.publicationDate = info.publishedDate
+  }
+  const isbn = result.isbn13 && normalizeIsbn(result.isbn13)
+  if (isbn && (!result.publisher || !result.language || !result.pageCount || !result.format)) {
+    try {
+      await (options.pace || paceOpenLibrary)()
+      const response = await fetcher(`https://openlibrary.org/isbn/${isbn}.json`, {
+        next: {revalidate: 86400}, signal: AbortSignal.timeout(5000),
+      })
+      if (response.ok) {
+        const edition = await response.json() as {
+          key?: string; title?: string; isbn_13?: string[]; isbn_10?: string[]; publishers?: string[]
+          publish_date?: string; number_of_pages?: number; physical_format?: string; edition_name?: string
+          authors?: {key?: string}[]; languages?: {key?: string}[]; works?: {key?: string}[]; contributions?: {role?: string; name?: string}[]
+        }
+        if ([...(edition.isbn_13 || []), ...(edition.isbn_10 || [])].some((id) => normalizeIsbn(id) === isbn)) {
+          result.title ||= edition.title
+          result.publisher ||= edition.publishers?.join(', ')
+          result.publicationDate ||= edition.publish_date
+          result.pageCount ||= edition.number_of_pages
+          result.language ||= edition.languages?.[0]?.key?.split('/').pop()
+          result.openLibraryEditionKey = edition.key?.split('/').pop()
+          result.openLibraryWorkKey = edition.works?.[0]?.key?.split('/').pop()
+          result.editionStatement = edition.edition_name
+          const format = edition.physical_format?.toLowerCase() || ''
+          result.format ||= /paperback|softcover/.test(format) ? 'paperback' : /hardcover|hardback/.test(format) ? 'hardcover' : /ebook|e-book/.test(format) ? 'ebook' : /audio/.test(format) ? 'audiobook' : undefined
+          const translators = edition.contributions?.filter((credit) => /translat/i.test(credit.role || '')).map((credit) => credit.name).filter((name): name is string => Boolean(name))
+          if (translators?.length) result.translators = translators
+          const authorKey = edition.authors?.[0]?.key
+          if (!result.authors?.length && authorKey && /^\/authors\/OL[0-9]+A$/.test(authorKey)) {
+            await (options.pace || paceOpenLibrary)()
+            const authorResponse = await fetcher(`https://openlibrary.org${authorKey}.json`, {next: {revalidate: 86400}, signal: AbortSignal.timeout(5000)})
+            if (authorResponse.ok) {
+              const author = await authorResponse.json() as {name?: string}
+              if (author.name) result.authors = [author.name]
+            }
+          }
+        }
+      }
+    } catch { /* Keep verified Google metadata when Open Library is unavailable. */ }
   }
   async function available(url: string) {
     try {

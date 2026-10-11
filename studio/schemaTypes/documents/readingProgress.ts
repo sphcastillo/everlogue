@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {selectedEdition} from '../fields/selectedEdition'
 import {DocumentIcon} from '@sanity/icons'
 
 export const readingProgress = defineType({
@@ -19,11 +20,7 @@ export const readingProgress = defineType({
       to: [{type: 'book'}],
       validation: (rule) => rule.required(),
     }),
-    defineField({
-      name: 'edition',
-      type: 'reference',
-      to: [{type: 'edition'}],
-    }),
+    selectedEdition,
     defineField({
       name: 'status',
       type: 'string',

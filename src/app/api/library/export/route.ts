@@ -12,7 +12,7 @@ export async function GET() {
       `*[_type == "shelfEntry" && shelf->owner._ref == $readerId && shelf->kind in ["finished", "wantToRead", "currentlyReading"]] | order(addedAt desc){
         "title": book->title, "author": book->authors[0], "kind": shelf->kind, addedAt,
         "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^.book._ref][0].value,
-        "isbn10": coalesce(edition->isbn10, book->isbn10), "isbn13": coalesce(edition->isbn13, book->isbn13),
+        "isbn10": select(defined(edition) => edition->isbn10, book->isbn10), "isbn13": select(defined(edition) => edition->isbn13, book->isbn13),
         "finishedAt": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^.book._ref][0].finishedAt,
         "readCount": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^.book._ref][0].readCount
       }`, {readerId: reader.readerId}, {cache: 'no-store'},

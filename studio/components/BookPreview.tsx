@@ -1,6 +1,13 @@
 import {useEffect, useState} from 'react'
 import {useClient, type PreviewProps} from 'sanity'
-import {CATALOG_SOURCE_LABELS, inferCatalogSource, publishedDocumentId} from '../lib/catalog-origin'
+import {
+  CATALOG_CLUBS_QUERY,
+  CATALOG_SOURCE_LABELS,
+  catalogClubNames,
+  inferCatalogSource,
+  publishedDocumentId,
+  type CatalogClubLookup,
+} from '../lib/catalog-origin'
 
 type PreviewValues = PreviewProps & {
   bookId?: string
@@ -9,10 +16,6 @@ type PreviewValues = PreviewProps & {
   catalogReviewStatus?: string
   catalogSource?: string
   importKey?: string
-}
-
-function uniqueNames(values: unknown[]) {
-  return [...new Set(values.filter((value): value is string => Boolean(value && String(value).trim())))]
 }
 
 export function BookPreview(props: PreviewProps) {
@@ -25,15 +28,9 @@ export function BookPreview(props: PreviewProps) {
     if (!bookId) return
     let cancelled = false
     client
-      .fetch<{clubs?: string[]; celebrity?: string[]}>(
-        `{
-          "clubs": *[_type == "curatedCollection" && count(books[book._ref == $bookId]) > 0].title,
-          "celebrity": *[_type == "celebritySelection" && count(books[_ref == $bookId]) > 0].club->title
-        }`,
-        {bookId},
-      )
+      .fetch<CatalogClubLookup>(CATALOG_CLUBS_QUERY, {bookId})
       .then((result) => {
-        if (!cancelled) setClubs(uniqueNames([...(result?.clubs || []), ...(result?.celebrity || [])]))
+        if (!cancelled) setClubs(catalogClubNames(result))
       })
       .catch(() => {
         if (!cancelled) setClubs([])

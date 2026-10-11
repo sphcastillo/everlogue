@@ -21,6 +21,9 @@ function database(initial: Doc[] = []) {
         ))
       }
       if (query.startsWith('coalesce')) return all.find((doc) => doc._type === 'book' && (doc.importKey === params.importKey || String(doc.title).toLowerCase() === params.title))?._id || null
+      if (query.includes('_type == "author"') && query.includes('slug.current')) {
+        return all.filter((doc) => doc._type === 'author').map((doc) => (doc.slug as {current?: string} | undefined)?.current).filter(Boolean)
+      }
       if (query.includes('_type == "author"')) return all.find((doc) => doc._type === 'author')?._id || null
       if (query.includes('_type == "rating"')) {
         const ratings = all.filter((doc) => doc._type === 'rating' && ref(doc.book) === params.bookId && (!params.readerId || ref(doc.reader) === params.readerId))

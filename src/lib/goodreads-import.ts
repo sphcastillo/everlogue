@@ -2,6 +2,7 @@ import type {SanityClient} from '@sanity/client'
 import type {GoodreadsBook} from './goodreads-csv'
 import {lookupCatalogBook} from './catalog-book-match'
 import {catalogImportKey} from './catalog-import-failure'
+import {uniqueAuthorSlug} from './author-slug'
 import {slugify, stableId} from './validation'
 import {ensureImportEdition} from './import-edition'
 import {isbn13For, type EditionInput, type EditionMetadata} from './edition-metadata'
@@ -31,9 +32,14 @@ export async function ensureGoodreadsCatalogBook(client: SanityClient, book: Goo
     {name: book.author.toLowerCase()}, {cache: 'no-store'},
   )
   if (!authorId) {
+    const taken = await client.fetch<string[]>(
+      `*[_type == "author" && !(_id in path("drafts.**")) && defined(slug.current)].slug.current`,
+      {},
+      {cache: 'no-store'},
+    )
     const author = await client.create({
       _type: 'author', name: book.author,
-      slug: {_type: 'slug', current: `${slugify(book.author).slice(0, 70)}-${importKey.slice(0, 12)}`},
+      slug: {_type: 'slug', current: uniqueAuthorSlug(book.author, taken)},
     }, {visibility: 'sync'})
     authorId = author._id
   }

@@ -8,6 +8,8 @@ import {BookCover} from '@/components/BookCover'
 import {BookLibraryActions} from '@/components/BookLibraryActions'
 import {LibraryCsvLog} from '@/components/LibraryCsvLog'
 import {getOptionalReader} from '@/lib/reader'
+import {getBookEditions} from '@/lib/book-editions'
+import {privateClient} from '@/sanity/client'
 import {getReaderBookState} from '@/lib/actions'
 
 type BookClubRef = {
@@ -173,7 +175,7 @@ export default async function BookPage({
 }
 
 async function BookPageLibrary({bookId, signedIn}: {bookId: string; signedIn: boolean}) {
-  const state = await getReaderBookState(bookId)
+  const [state, editions] = await Promise.all([getReaderBookState(bookId), getBookEditions(privateClient, bookId)])
   return (
     <BookLibraryActions
       bookId={bookId}
@@ -181,6 +183,8 @@ async function BookPageLibrary({bookId, signedIn}: {bookId: string; signedIn: bo
       status={state.status}
       rating={state.rating}
       review={state.review}
+      editions={editions}
+      editionId={state.editionId}
     />
   )
 }

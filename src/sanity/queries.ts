@@ -19,13 +19,27 @@ export const bookCoverProjection = /* groq */ `{
   })
 }`
 
+/** Evaluated inside a shelf entry's dereferenced book. */
+export const shelfBookCoverProjection = /* groq */ `coalesce(
+  select(^.edition->book._ref == _id && (
+    defined(^.edition->coverOverride.asset) || defined(^.edition->cover.url) ||
+    defined(^.edition->coverUrl) || defined(^.edition->coverOpenLibraryId)
+  ) => ^.edition->{${editionCoverFields}}),
+  ${bookCoverProjection}
+)`
+
+export const liveRatingStats = /* groq */ `{
+  "count": count(*[_type == "rating" && !(_id in path("drafts.**")) && book._ref == ^._id && value > 0 && value <= 5]),
+  "average": math::avg(*[_type == "rating" && !(_id in path("drafts.**")) && book._ref == ^._id && value > 0 && value <= 5].value)
+}`
+
 export const bookCardFields = /* groq */ `
   _id,
   title,
   "slug": coalesce(slug.current, _id),
   publishedDate,
   description,
-  ratingStats,
+  "ratingStats": ${liveRatingStats},
   "authors": authors,
   "genres": genres[]->{ _id, title, "slug": slug.current, "parentSlug": parent->slug.current },
   "cover": ${bookCoverProjection}
@@ -126,9 +140,7 @@ export const BOOK_BY_SLUG_QUERY = defineQuery(`
     description,
     "authors": authors,
     "genres": genres[]->{ _id, title, "slug": slug.current },
-    "cover": {
-      "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}
-    },
+    "cover": ${bookCoverProjection},
     "clubs": *[_type == "curatedCollection" && references(^._id)] | order(lastSyncedAt desc){
       title,
       "slug": slug.current,
@@ -267,7 +279,7 @@ export const SHELF_PICK_GENRES = {
   ],
 } as const
 
-/** Homepage cards only show studio covers — skip the per-book edition coalesce. */
+/** Catalog cards keep the curated cover, with an imported edition as fallback. */
 const shelfPickBookFields = /* groq */ `
   _id,
   title,
@@ -276,19 +288,17 @@ const shelfPickBookFields = /* groq */ `
   ratingStats,
   pageCount,
   "genres": genres[]->{ title },
-  "cover": {
-    "coverOverride": coverOverride{asset->{_id, url}, alt, hotspot, crop}
-  }
+  "cover": ${bookCoverProjection}
 `
 
 export const SHELF_PICKS_QUERY = defineQuery(`{
   "collections": *[_type == "editorialCollection" && workflowStatus == "approved" && slug.current in ["a-little-strange", "big-feelings", "short-and-sharp"]]{
     "slug": slug.current,
-    "books": books[defined(@->coverOverride.asset)][0...10]->{ ${shelfPickBookFields} }
+    "books": books[0...10]->{ ${shelfPickBookFields} }
   },
-  "strange": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...10]{ ${shelfPickBookFields} },
-  "feelings": *[_type == "book" && defined(coverOverride.asset) && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...10]{ ${shelfPickBookFields} },
-  "short": *[_type == "book" && defined(coverOverride.asset) && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...10]{ ${shelfPickBookFields} }
+  "strange": *[_type == "book" && count((genres[]->title)[@ in $strangeGenres]) > 0] | order(_updatedAt desc)[0...10]{ ${shelfPickBookFields} },
+  "feelings": *[_type == "book" && count((genres[]->title)[@ in $feelingsGenres]) > 0] | order(_updatedAt desc)[0...10]{ ${shelfPickBookFields} },
+  "short": *[_type == "book" && pageCount > 0 && pageCount <= 250 && count((genres[]->title)[@ in $shortGenres]) > 0] | order(pageCount asc)[0...10]{ ${shelfPickBookFields} }
 }`)
 
 export const FOR_YOU_TASTE_QUERY = defineQuery(`{
@@ -303,7 +313,6 @@ export const FOR_YOU_TASTE_QUERY = defineQuery(`{
 
 export const FOR_YOU_CANDIDATES_QUERY = defineQuery(`*[
   _type == "book" &&
-  defined(coverOverride.asset) &&
   !(_id in $excludeIds) &&
   (
     count((genres[]->title)[@ in $genres]) > 0 ||

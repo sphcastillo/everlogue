@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {selectedEdition} from '../fields/selectedEdition'
 import {DocumentIcon} from '@sanity/icons'
 
 export const shelfEntry = defineType({
@@ -7,7 +8,7 @@ export const shelfEntry = defineType({
   type: 'document',
   icon: DocumentIcon,
   fields: [
-    defineField({name: 'edition', type: 'reference', to: [{type: 'edition'}]}),
+    selectedEdition,
     defineField({
       name: 'shelf',
       type: 'reference',

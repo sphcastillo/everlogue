@@ -41,6 +41,36 @@ Open [http://localhost:3333](http://localhost:3333). If that URL shows another p
 
 Signed-in visits create a Sanity `readerProfile` from the Clerk user. Webhooks are only needed to keep names and avatars in sync on a public URL; local sign-in works without them.
 
+## Tests
+
+After you change catalog, Watch, imports, companion, shelves, or related library code:
+
+```sh
+pnpm test
+```
+
+That runs every file in `tests/` with Node’s test runner. They stay in memory (fake Sanity + fixtures). They do not open Studio or write to a live dataset.
+
+One area only:
+
+```sh
+pnpm exec tsx --test tests/book-club-watch.test.ts
+```
+
+Watch also has `pnpm watch:test`. There is no CI job for these yet.
+
+| File | What it locks in |
+| --- | --- |
+| `book-club-watch.test.ts` | Watch discovery, Review queue publish, catalog review status |
+| `goodreads-*.test.ts`, `catalog-*.test.ts`, `search-book.test.ts` | Imports, matching, failed imports, catalog lookup |
+| `companion-*.test.ts` | Companion catalog, links, usage, preferences |
+| `for-you-picks.test.ts`, `home-shelf-data.test.ts`, `book-covers.test.ts` | Homepage / For You / covers |
+| `reader-profile.test.ts`, `library-book.test.ts` | Profiles and shelves |
+| `club-*.test.ts`, `jenna-*.test.ts` | Club lists and Jenna matching/import helpers |
+| `book-migration.test.ts`, `import-edition.test.ts` | Older catalog/edition import rules |
+
+Drop a file only if you delete the feature it tests.
+
 ## Other commands
 
 ```sh

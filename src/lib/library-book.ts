@@ -3,6 +3,28 @@ import {ratingValueSchema, readingStatusSchema, reviewBodySchema, reviewTitleSch
 
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 
+export async function saveBookEdition(client: SanityClient, readerId: string, bookId: string, editionId: string | null) {
+  await requireBook(client, bookId)
+  if (editionId !== null) {
+    if (typeof editionId !== 'string' || !editionId.trim()) throw new Error('Choose an edition.')
+    const valid = await client.fetch<boolean>(
+      `count(*[_type == "edition" && _id == $editionId && !(_id in path("drafts.**")) && book._ref == $bookId]) == 1`,
+      {editionId, bookId}, {cache: 'no-store'},
+    )
+    if (!valid) throw new Error('This edition does not belong to this book.')
+  }
+  const [progress, entries] = await Promise.all([
+    client.fetch<{_id: string} | null>(`*[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0]{_id}`, {readerId, bookId}, {cache: 'no-store'}),
+    client.fetch<{_id: string}[]>(`*[_type == "shelfEntry" && shelf->owner._ref == $readerId && book._ref == $bookId]{_id}`, {readerId, bookId}, {cache: 'no-store'}),
+  ])
+  if (!progress) throw new Error('Add this book to a reading shelf before choosing an edition.')
+  const tx = client.transaction()
+  for (const doc of [progress, ...entries]) {
+    tx.patch(doc._id, (patch) => editionId ? patch.set({edition: reference(editionId)}) : patch.unset(['edition']))
+  }
+  await tx.commit({visibility: 'sync'})
+}
+
 async function requireBook(client: SanityClient, bookId: string) {
   if (typeof bookId !== 'string' || !bookId.trim()) {
     throw new Error('A catalog book ID is required. Reload the book and try again.')

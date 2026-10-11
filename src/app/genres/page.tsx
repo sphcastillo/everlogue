@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Genres',
-  description: 'Browse every genre in the Everlogue book archive.',
+  description: 'Browse every genre in the Everlogue Shelf.',
 }
 
 export default async function GenresPage() {

@@ -1,5 +1,6 @@
 import 'server-only'
 import type {GoogleBook, GoogleSearchResponse} from './google-books'
+import {normalizeIsbn} from './isbn'
 import {GOOGLE_VOLUME_ID} from './google-books'
 
 function apiKey() {
@@ -16,7 +17,8 @@ async function googleFetch(path: string) {
 }
 
 export async function searchGoogleBooks(query: string) {
-  const response = await googleFetch(`volumes?q=${encodeURIComponent(query)}&maxResults=20`)
+  const isbn = normalizeIsbn(query.replace(/^isbn:\s*/i, ''))
+  const response = await googleFetch(`volumes?q=${encodeURIComponent(isbn ? `isbn:${isbn}` : query)}&maxResults=20`)
   if (!response.ok) {
     const error = new Error('Google Books request failed')
     ;(error as Error & {status: number}).status = response.status

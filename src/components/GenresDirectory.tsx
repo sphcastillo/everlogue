@@ -12,88 +12,200 @@ export type DirectoryGenre = {
   parent?: {title?: string | null; slug?: string | null} | null
 }
 
+const LETTERS = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')]
+
+type Family = {
+  key: string
+  title: string
+  slug?: string | null
+  head?: DirectoryGenre | null
+  children: DirectoryGenre[]
+}
+
+function letterFor(title: string) {
+  const letter = title
+    .normalize('NFKD')
+    .replace(/[^\p{L}\p{N}]/gu, '')
+    .charAt(0)
+    .toUpperCase()
+  return /[A-Z]/.test(letter) ? letter : '#'
+}
+
+function buildFamilies(genres: DirectoryGenre[]) {
+  const families = new Map<string, Family>()
+
+  function family(key: string, title: string, slug?: string | null, head?: DirectoryGenre | null) {
+    const current = families.get(key) || {key, title, slug: slug || null, head: null, children: []}
+    if (head) current.head = head
+    current.title = current.head?.title || current.title || title
+    current.slug = current.head?.slug || current.slug || slug || null
+    families.set(key, current)
+    return current
+  }
+
+  for (const genre of genres) {
+    if (!genre.parent?.slug) family(genre.slug || genre._id, genre.title, genre.slug, genre)
+  }
+  for (const genre of genres) {
+    if (!genre.parent?.slug) continue
+    family(genre.parent.slug, genre.parent.title || genre.parent.slug, genre.parent.slug).children.push(genre)
+  }
+
+  return [...families.values()]
+    .map((group) => ({
+      ...group,
+      children: [...group.children].sort((left, right) => left.title.localeCompare(right.title)),
+    }))
+    .sort((left, right) => left.title.localeCompare(right.title))
+}
+
+function GenreRow({genre, nested = false}: {genre: DirectoryGenre; nested?: boolean}) {
+  return (
+    <Link
+      href={`/browse/${genre.slug}`}
+      className={`group flex items-baseline justify-between gap-3 border-(--line) py-2.5 hover:text-ink ${nested ? 'border-l pl-3 text-sm' : 'border-t pt-3'}`}
+    >
+      <span className="min-w-0">
+        <span className={nested ? 'font-medium' : 'font-display text-[1.15rem] leading-none font-black tracking-tight'}>
+          {genre.title}
+        </span>
+        {genre.parent?.title && nested ? (
+          <span className="sr-only"> in {genre.parent.title}</span>
+        ) : null}
+      </span>
+      <span className="shrink-0 font-mono text-[10px] font-medium tracking-[0.12em] text-muted uppercase">
+        {genre.bookCount || 0}
+      </span>
+    </Link>
+  )
+}
+
 export function GenresDirectory({genres}: {genres: DirectoryGenre[]}) {
   const [query, setQuery] = useState('')
+  const search = query.trim().toLocaleLowerCase()
   const filteredGenres = useMemo(() => {
-    const search = query.trim().toLocaleLowerCase()
     if (!search) return genres
-
     return genres.filter((genre) =>
       [genre.title, genre.description, genre.parent?.title]
         .filter(Boolean)
         .some((value) => value?.toLocaleLowerCase().includes(search)),
     )
-  }, [genres, query])
+  }, [genres, search])
+
+  const families = useMemo(() => buildFamilies(filteredGenres), [filteredGenres])
+  const sections = useMemo(() => {
+    const items = search ? filteredGenres : families
+    const grouped = new Map<string, typeof items>()
+    for (const item of items) {
+      const letter = letterFor(item.title)
+      grouped.set(letter, [...(grouped.get(letter) || []), item])
+    }
+    return LETTERS.filter((letter) => grouped.has(letter)).map((letter) => ({
+      letter,
+      items: grouped.get(letter) || [],
+    }))
+  }, [families, filteredGenres, search])
+  const activeLetters = new Set(sections.map((section) => section.letter))
 
   return (
     <section className="mt-10">
-      <div className="flex flex-col gap-4 border-b border-(--line) pb-7 sm:flex-row sm:items-end sm:justify-between">
-        <div className="w-full max-w-xl">
-          <label
-            htmlFor="genre-search"
-            className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase"
-          >
-            Find a genre
-          </label>
-          <div className="mt-3 flex h-12 items-center rounded-sm border border-ink bg-paper px-4">
-            <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-muted" fill="none" aria-hidden="true">
-              <circle cx="7" cy="7" r="4.2" stroke="currentColor" strokeWidth="1.4" />
-              <path d="m10.2 10.2 3 3" stroke="currentColor" strokeWidth="1.4" />
-            </svg>
-            <input
-              id="genre-search"
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search genres…"
-              autoComplete="off"
-              className="min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-ink outline-none placeholder:text-muted"
-            />
-            {query ? (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                className="font-mono text-[10px] font-medium tracking-[0.12em] text-muted uppercase hover:text-ink"
-              >
-                Clear
-              </button>
-            ) : null}
+      <div className="sticky top-28 z-20 border-b border-(--line) bg-paper py-4 lg:top-20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="w-full max-w-xl">
+            <label
+              htmlFor="genre-search"
+              className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase"
+            >
+              Find a genre
+            </label>
+            <div className="mt-3 flex h-12 items-center rounded-sm border border-ink bg-paper px-4">
+              <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-muted" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.2" stroke="currentColor" strokeWidth="1.4" />
+                <path d="m10.2 10.2 3 3" stroke="currentColor" strokeWidth="1.4" />
+              </svg>
+              <input
+                id="genre-search"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Mystery, memoir, romantasy…"
+                autoComplete="off"
+                className="min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-ink outline-none placeholder:text-muted"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  className="font-mono text-[10px] font-medium tracking-[0.12em] text-muted uppercase hover:text-ink"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
           </div>
+          <p className="shrink-0 font-mono text-[10px] font-medium tracking-[0.14em] text-muted uppercase">
+            {filteredGenres.length} {filteredGenres.length === 1 ? 'genre' : 'genres'}
+          </p>
         </div>
-        <p className="shrink-0 font-mono text-[10px] font-medium tracking-[0.14em] text-muted uppercase">
-          {filteredGenres.length} {filteredGenres.length === 1 ? 'genre' : 'genres'}
-        </p>
+        <nav className="mt-4 flex flex-wrap gap-x-1.5 gap-y-1" aria-label="Jump to a letter">
+          {LETTERS.filter((letter) => letter !== '#' || activeLetters.has('#')).map((letter) =>
+            activeLetters.has(letter) ? (
+              <a
+                key={letter}
+                href={`#genre-${letter === '#' ? 'other' : letter}`}
+                className="min-w-6 px-0.5 text-center font-mono text-[11px] font-medium text-ink underline-offset-4 hover:underline"
+              >
+                {letter}
+              </a>
+            ) : (
+              <span key={letter} className="min-w-6 px-0.5 text-center font-mono text-[11px] text-muted/45">
+                {letter}
+              </span>
+            ),
+          )}
+        </nav>
       </div>
 
-      {filteredGenres.length ? (
-        <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-8 lg:grid-cols-3">
-          {filteredGenres.map((genre) => (
-            <Link
-              key={genre._id}
-              href={`/browse/${genre.slug}`}
-              className="group flex min-h-44 min-w-0 flex-col border-t border-(--line) pt-5 sm:min-h-48"
+      {sections.length ? (
+        <div className="mt-2">
+          {sections.map((section) => (
+            <section
+              key={section.letter}
+              id={`genre-${section.letter === '#' ? 'other' : section.letter}`}
+              className="scroll-mt-52 border-t border-(--line) py-6 lg:scroll-mt-44"
             >
-              <p className="truncate font-mono text-[9px] font-medium tracking-[0.14em] text-muted uppercase sm:text-[10px] sm:tracking-[0.16em]">
-                {genre.parent?.title || 'Genre'}
-              </p>
-              <h2 className="mt-3 font-display text-[1.35rem] leading-none font-black tracking-tighter wrap-break-word sm:text-[1.8rem]">
-                {genre.title}
-                <span className="text-[#b8b8b8]" aria-hidden="true">.</span>
+              <h2 className="font-display text-3xl leading-none font-black tracking-[-0.06em] text-muted">
+                {section.letter}
               </h2>
-              {genre.description ? (
-                <p className="mt-3 line-clamp-3 hidden text-sm leading-6 text-muted sm:block">
-                  {genre.description}
-                </p>
-              ) : null}
-              <div className="mt-auto flex items-center justify-between gap-2 pt-6 font-mono text-[9px] font-medium tracking-widest text-muted uppercase sm:gap-4 sm:text-[10px] sm:tracking-[0.14em]">
-                <span>
-                  {genre.bookCount || 0} {genre.bookCount === 1 ? 'book' : 'books'}
-                </span>
-                <span className="text-ink transition-transform group-hover:translate-x-1" aria-hidden="true">
-                  →
-                </span>
-              </div>
-            </Link>
+              {search ? (
+                <div className="mt-3 columns-1 sm:columns-2 lg:columns-3 sm:gap-x-8">
+                  {(section.items as DirectoryGenre[]).map((genre) => (
+                    <div key={genre._id} className="break-inside-avoid">
+                      <GenreRow genre={genre} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 columns-1 sm:columns-2 lg:columns-3 sm:gap-x-8">
+                  {(section.items as Family[]).map((family) => (
+                    <div key={family.key} className="break-inside-avoid pb-4">
+                      {family.head ? <GenreRow genre={family.head} /> : (
+                        <p className="border-t border-(--line) pt-3 font-display text-[1.15rem] leading-none font-black tracking-tight">
+                          {family.title}
+                        </p>
+                      )}
+                      {family.children.length ? (
+                        <div className="mt-1">
+                          {family.children.map((genre) => (
+                            <GenreRow key={genre._id} genre={genre} nested />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           ))}
         </div>
       ) : (

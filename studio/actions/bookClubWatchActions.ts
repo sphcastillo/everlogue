@@ -1,5 +1,5 @@
 import type {SanityClient} from '@sanity/client'
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useState} from 'react'
 import {useClient, useCurrentUser, type DocumentActionComponent, type DocumentActionsContext} from 'sanity'
 import {useToast} from '@sanity/ui/toast'
 import {completeCatalogReview} from '../../src/lib/book-club-watch/catalog-review'
@@ -27,18 +27,25 @@ function watchStatusAction(operation: 'reject' | 'reopen'): DocumentActionCompon
 function withWatchCompletion(PublishAction: DocumentActionComponent): DocumentActionComponent {
   const PublishWithWatch: DocumentActionComponent = props => {
     const client = useClient({apiVersion: '2026-09-01'}), user = useCurrentUser(), toast = useToast()
-    const pendingRevision = useRef<string | null>(null)
     const action = PublishAction(props)
+    const watchId = (props.published as {watchDiscovery?: {_ref?: string}} | null)?.watchDiscovery?._ref
     useEffect(() => {
-      if (pendingRevision.current === null || props.draft || !props.published || props.published._rev === pendingRevision.current) return
-      pendingRevision.current = null
+      if (props.draft || !props.published || !watchId) return
+      let cancelled = false
       void completeCatalogReview(client as unknown as SanityClient, props.id, user?.id || 'studio-editor')
-        .catch(error => toast.push({status: 'error', title: 'Book published; Watch review needs a retry', description: error instanceof Error ? error.message : 'Use Finish Watch review to retry.'}))
-    }, [props.published, props.draft, props.id, client, user?.id, toast])
-    return action && {...action, onHandle: () => {
-      pendingRevision.current = props.published?._rev || ''
-      action.onHandle?.()
-    }}
+        .catch(error => {
+          if (cancelled) return
+          toast.push({
+            status: 'error',
+            title: 'Watch review is still open',
+            description: error instanceof Error ? error.message : 'Use Finish Watch review to add this book to the club list.',
+          })
+        })
+      return () => {
+        cancelled = true
+      }
+    }, [props.draft, props.id, props.published?._rev, watchId, client, user?.id, toast])
+    return action
   }
   PublishWithWatch.action = PublishAction.action
   return PublishWithWatch

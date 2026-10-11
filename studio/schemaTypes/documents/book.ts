@@ -1,5 +1,6 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 import {BookIcon} from '@sanity/icons'
+import {BookEditionsInput} from '../../components/BookEditionsInput'
 import {BookPreview} from '../../components/BookPreview'
 import {CatalogOriginInput} from '../../components/CatalogOriginInput'
 
@@ -125,14 +126,27 @@ export const book = defineType({
       title: 'Manual cover',
       type: 'image',
       options: {hotspot: true},
-      description: 'When set, this image is used everywhere in the app. Provider and edition covers are ignored.',
+      description: 'Preferred catalog image for search, recommendations, and book pages. Falls back to an imported cover. A reader’s selected edition can use its own cover on their shelf.',
       fields: [defineField({name: 'alt', title: 'Alternative text', type: 'string'})],
     }),
 
-    defineField({name: 'isbn13', title: 'ISBN-13', type: 'string'}),
-    defineField({name: 'publisher', type: 'string'}),
-    defineField({name: 'publishedDate', type: 'string', description: 'Preserves year-only, year-month, or full-date precision.'}),
-    defineField({name: 'pageCount', type: 'number'}),
+    defineField({
+      name: 'availableEditions',
+      title: 'Editions',
+      type: 'string',
+      readOnly: true,
+      description: 'Available copies of this book. Open an edition to edit its ISBN, publication details, language, or page count.',
+      components: {input: BookEditionsInput},
+    }),
+    // Retain stored legacy values for compatibility, without showing them in the form.
+    ...(['isbn13', 'publisher', 'publishedDate', 'pageCount', 'language'] as const).map((name) =>
+      defineField({
+        name,
+        type: name === 'pageCount' ? 'number' : 'string',
+        hidden: true,
+        readOnly: true,
+      }),
+    ),
     defineField({
       name: 'isStandalone',
       title: 'Standalone book',
@@ -220,7 +234,6 @@ export const book = defineType({
       ],
     }),
     defineField({name: 'categories', type: 'array', of: [defineArrayMember({type: 'string'})]}),
-    defineField({name: 'language', type: 'string'}),
     defineField({name: 'googleBooksId', title: 'Google Books ID', type: 'string', readOnly: true, fieldset: 'import'}),
     defineField({name: 'goodreadsBookId', title: 'Goodreads book ID', type: 'string', readOnly: true, fieldset: 'import'}),
     defineField({name: 'openLibraryWorkKey', title: 'Open Library work key', type: 'string', readOnly: true, fieldset: 'import'}),

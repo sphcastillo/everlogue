@@ -2,12 +2,17 @@ import 'server-only'
 import {cache} from 'react'
 import {revalidatePath} from 'next/cache'
 import {privateClient, writeClient} from '@/sanity/client'
-import {bookCoverProjection, editionCoverFields} from '@/sanity/queries'
+import {bookCoverProjection, editionCoverFields, shelfBookCoverProjection} from '@/sanity/queries'
 import {getOptionalReader, requireReader} from './reader'
-import {saveBookRating, saveBookStatus, saveBookReview} from './library-book'
+import {saveBookRating, saveBookStatus, saveBookReview, saveBookEdition} from './library-book'
 import {fetchGoogleVolume} from './google-books-api'
 import {GOOGLE_VOLUME_ID} from './google-books'
 import {resolveSearchBook} from './search-book'
+import {ensureImportEdition} from './import-edition'
+import {resolveEditionMetadata} from './edition-metadata'
+import {normalizeIsbn} from './isbn'
+import {searchCatalogParams} from './search-catalog'
+import {findBookEdition, getBookEditions} from './book-editions'
 import {
   canTransition,
   readingStatusSchema,
@@ -51,13 +56,38 @@ export async function setSearchReadingStatus(volumeId: string, status: string | 
   if (!book || book.id !== volumeId) throw new Error('Book not found.')
   const client = writeClient()
   const bookId = await resolveSearchBook(client, book, parsed !== null)
-  if (bookId) await saveBookStatus(client, reader.readerId, bookId, parsed)
+  if (bookId) {
+    await saveBookStatus(client, reader.readerId, bookId, parsed)
+    if (parsed) {
+      const ids = searchCatalogParams(book)
+      const editionId = normalizeIsbn(ids.isbn13 || ids.isbn10) ? await ensureImportEdition(client, bookId, {
+        title: book.volumeInfo?.title || '', author: book.volumeInfo?.authors?.[0] || '',
+        isbn10: ids.isbn10 || undefined, isbn13: ids.isbn13 || undefined,
+      }, resolveEditionMetadata) : undefined
+      if (editionId) await saveBookEdition(client, reader.readerId, bookId, editionId)
+    }
+  }
   revalidatePath('/my-books')
   revalidatePath('/search/[id]', 'page')
   revalidatePath('/books/[slug]', 'page')
 }
 
+export async function setSelectedEdition(bookId: string, editionId: string | null) {
+  const reader = await requireReader()
+  await saveBookEdition(writeClient(), reader.readerId, bookId, editionId)
+  revalidatePath('/my-books')
+  revalidatePath('/books/[slug]', 'page')
+}
+
+export async function lookupBookEdition(bookId: string, isbn: string) {
+  await requireReader()
+  const client = writeClient()
+  const editionId = await findBookEdition(client, bookId, isbn)
+  return {editionId, editions: await getBookEditions(client, bookId)}
+}
+
 export type ReaderBookState = {
+  editionId: string | null
   rating: number | null
   status: string | null
   dateRead: string | null
@@ -82,6 +112,7 @@ export type ReaderBookState = {
 }
 
 const emptyReaderBookState: ReaderBookState = {
+  editionId: null,
   rating: null,
   status: null,
   dateRead: null,
@@ -105,6 +136,8 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
       visibility?: string | null
     } | null
     progress?: {
+      editionId?: string | null
+      edition?: {isbn10?: string; isbn13?: string; publicationDate?: string} | null
       status?: string | null
       finishedAt?: string | null
       readCount?: number | null
@@ -124,7 +157,7 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
       "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == $bookId][0].value,
       "review": *[_type == "review" && reader._ref == $readerId && book._ref == $bookId][0]{title, body, hasSpoilers, visibility},
       "progress": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0]{
-        status, finishedAt, readCount, importSource
+        status, finishedAt, readCount, importSource, "editionId": edition._ref, edition->{isbn10, isbn13, publicationDate}
       },
       "addedAt": *[_type == "shelfEntry" && book._ref == $bookId && shelf->owner._ref == $readerId] | order(addedAt desc)[0].addedAt,
       "book": *[_id == $bookId][0]{
@@ -155,9 +188,11 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
         visibility,
       }
     : null
-  const publicationYear = Number(data?.book?.publishedDate?.slice(0, 4))
+  const selected = data?.progress?.edition
+  const publicationYear = Number((selected ? selected.publicationDate : data?.book?.publishedDate)?.slice(0, 4))
 
   return {
+    editionId: data?.progress?.editionId ?? null,
     rating,
     status,
     dateRead,
@@ -169,8 +204,8 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
       goodreadsId: data?.book?.goodreadsBookId ?? null,
       title: data?.book?.title ?? null,
       authors: data?.book?.authors?.filter(Boolean) ?? [],
-      isbn10: data?.book?.isbn10 ?? null,
-      isbn13: data?.book?.isbn13 ?? null,
+      isbn10: (selected ? selected.isbn10 : data?.book?.isbn10) ?? null,
+      isbn13: (selected ? selected.isbn13 : data?.book?.isbn13) ?? null,
       status,
       rating,
       dateAdded,
@@ -203,11 +238,7 @@ export async function getMyBooks() {
             "myRating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^._id][0].value,
             "percent": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^._id][0].percent,
             "authors": authors,
-            "cover": coalesce(
-              select(defined(coverOverride.asset) => @{${editionCoverFields}}),
-              ^.edition->{${editionCoverFields}},
-              ${bookCoverProjection}
-            )
+            "cover": ${shelfBookCoverProjection}
           }
         }
       },

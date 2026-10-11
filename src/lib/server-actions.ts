@@ -1,6 +1,6 @@
 'use server'
 
-import {castVote, clearProfileAvatar, createDiscussionPost, joinClub, setBookReview, setProfileAvatar, setRating, setReadingStatus, setSearchReadingStatus, setSpaceColor} from './actions'
+import {lookupBookEdition, setSelectedEdition, castVote, clearProfileAvatar, createDiscussionPost, joinClub, setBookReview, setProfileAvatar, setRating, setReadingStatus, setSearchReadingStatus, setSpaceColor} from './actions'
 import {shelfBookSchema, type ReviewFields, type ShelfBook} from './validation'
 
 export async function saveShelfStatusAction(book: ShelfBook, status: string | null) {
@@ -63,5 +63,22 @@ export async function clearProfileAvatarAction(_prev: AvatarActionState, _formDa
     return {}
   } catch {
     return {error: 'Could not remove the image.'}
+  }
+}
+
+export async function saveEditionAction(bookId: string, editionId: string | null) {
+  try {
+    await setSelectedEdition(bookId, editionId)
+    return {ok: true as const}
+  } catch (error) {
+    return {error: error instanceof Error ? error.message : 'Could not save your edition.'}
+  }
+}
+
+export async function lookupEditionAction(bookId: string, isbn: string) {
+  try {
+    return await lookupBookEdition(bookId, isbn)
+  } catch (error) {
+    return {error: error instanceof Error ? error.message : 'Could not look up this ISBN.'}
   }
 }

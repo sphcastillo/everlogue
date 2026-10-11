@@ -32,7 +32,14 @@ test('reuses an ISBN edition on concurrent imports and keeps distinct editions o
   // Existing records have already been checked; no network lookup on a repeat upload.
   assert.equal(await ensureImportEdition(client, 'book', book, resolve), a)
   assert.equal(lookups, previous)
-  const other = await ensureImportEdition(client, 'book', {...book, isbn13: '9780000000000'}, resolve)
+  const other = await ensureImportEdition(client, 'book', {...book, isbn13: '9780140328721'}, resolve)
   assert.notEqual(a, other)
+  assert.equal(await ensureImportEdition(client, 'book', {...book, isbn13: '978-0-306-40615-7'}, resolve), a)
+  assert.equal(await ensureImportEdition(client, 'book', {...book, isbn13: undefined, isbn10: '0306406152'}, resolve), a)
+  const racing = await Promise.all([
+    ensureImportEdition(client, 'book', {...book, isbn13: '9780804429573'}, resolve),
+    ensureImportEdition(client, 'different-book', {...book, isbn13: '9780804429573'}, resolve),
+  ])
+  assert.equal(racing.filter(Boolean).length, 1)
   assert.equal(await ensureImportEdition(client, 'different-book', book, resolve), undefined)
 })

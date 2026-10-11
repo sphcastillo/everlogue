@@ -16,8 +16,9 @@ function database(initial: Doc[] = [], fail = false) {
   const docs = new Map(initial.map((doc) => [doc._id, {...doc}]))
   let sequence = 0
   const client = {
-    async fetch(_query: string, params: {id: string; isbn10: string; isbn13: string}) {
+    async fetch(_query: string, params: {id: string; isbn10: string; isbn13: string; title?: string; bareTitle?: string}) {
       const all = [...docs.values()].filter((doc) => !doc._id.startsWith('drafts.'))
+      if (params.title) return all.filter((doc) => doc._type === 'book' && (String(doc.title).toLowerCase() === params.title || doc.isbn13 === params.isbn13))
       const matches = (doc: Doc) => doc.googleBooksId === params.id || (params.isbn13 && doc.isbn13 === params.isbn13) || (params.isbn10 && doc.isbn10 === params.isbn10)
       const edition = all.find((doc) => doc._type === 'edition' && matches(doc))
       return all.find((doc) => doc._type === 'book' && (matches(doc) || doc._id === (edition?.book as {_ref?: string})?._ref))?._id || null
@@ -94,4 +95,12 @@ test('ISBN-10 search metadata also matches catalog ISBN-13 records', () => {
   assert.deepEqual(searchCatalogParams({id: 'volume', volumeInfo: {
     industryIdentifiers: [{type: 'ISBN_10', identifier: '0140328726'}],
   }}), {id: 'volume', isbn10: '0140328726', isbn13: '9780140328721'})
+})
+
+test('different ISBNs and simultaneous searches for the same title and author share one work', async () => {
+  const {client, docs} = database()
+  const other = {...book, id: 'other-edition', volumeInfo: {...book.volumeInfo, industryIdentifiers: [{type: 'ISBN_13', identifier: '9780306406157'}]}}
+  const ids = await Promise.all([resolveSearchBook(client, book, true), resolveSearchBook(client, other, true)])
+  assert.equal(ids[0], ids[1])
+  assert.equal([...docs.values()].filter((doc) => doc._type === 'book').length, 1)
 })

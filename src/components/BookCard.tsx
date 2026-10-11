@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import {BookCover, type CoverSource} from './BookCover'
 import {LibraryBookCover} from './LibraryBookCover'
+import {StarDisplay} from './StarDisplay'
 
 export type BookCardData = {
   _id: string
@@ -64,10 +65,14 @@ export function BookCard({
         <p className="mt-0.5 text-xs text-muted">{book.publishedDate.slice(0, 4)}</p>
       ) : null}
       {typeof book.myRating === 'number' ? <p className="mt-1 text-xs text-sage" aria-label={`Your rating: ${book.myRating} out of 5 stars`}>Your rating: {book.myRating} ★</p> : null}
-      {typeof book.ratingStats?.count === 'number' && book.ratingStats.count > 0 ? (
-        <p className="mt-1 text-xs text-sage">
-          {book.ratingStats.average} · {book.ratingStats.count} Read Everlogue{' '}
-          {book.ratingStats.count === 1 ? 'rating' : 'ratings'}
+      {typeof book.ratingStats?.count === 'number' &&
+      book.ratingStats.count > 0 &&
+      typeof book.ratingStats.average === 'number' ? (
+        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          <StarDisplay value={book.ratingStats.average} id={`book-card-${book._id}`} size="sm" />
+          <span>
+            {book.ratingStats.count} {book.ratingStats.count === 1 ? 'rating' : 'ratings'}
+          </span>
         </p>
       ) : null}
     </Link>

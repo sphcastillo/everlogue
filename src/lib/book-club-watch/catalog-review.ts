@@ -76,12 +76,30 @@ export async function openCatalogImport(client: SanityClient, discoveryId: strin
   throw new Error('Discovery changed. Please try again.')
 }
 
-// Called only after the regular book Publish has succeeded. Never creates or edits book metadata.
+async function markCatalogReviewed(client: SanityClient, bookId: string) {
+  await client.patch(bookId).set({catalogReviewStatus: 'reviewed'}).commit({visibility: 'sync'})
+}
+
+// Called only after the regular book Publish has succeeded. Does not overwrite editorial metadata.
 export async function completeCatalogReview(client: SanityClient, bookId: string, reviewer: string) {
   if (bookId.startsWith('drafts.')) return
   for (let attempt = 0; attempt < 4; attempt++) {
-    const discoveries = await client.fetch<CatalogDiscovery[]>('*[_type == "bookClubDiscovery" && catalogBook._ref == $id && status in ["needs_review", "discovered"] && !(_id in path("drafts.**"))]', {id: bookId}, fresh)
-    if (!discoveries.length) return
+    const linked = await client.fetch<{watchDiscovery?: {_ref?: string}; catalogReviewStatus?: string} | null>(
+      '*[_id == $id][0]{watchDiscovery, catalogReviewStatus}',
+      {id: bookId},
+      fresh,
+    )
+    const discoveries = await client.fetch<CatalogDiscovery[]>(
+      `*[_type == "bookClubDiscovery" && status in ["needs_review", "discovered"] && !(_id in path("drafts.**")) && (
+        catalogBook._ref == $id || publishedBook._ref == $id || ($watchId != "" && _id == $watchId)
+      )]`,
+      {id: bookId, watchId: linked?.watchDiscovery?._ref || ''},
+      fresh,
+    )
+    if (!discoveries.length) {
+      if (linked?.watchDiscovery && linked.catalogReviewStatus !== 'reviewed') await markCatalogReviewed(client, bookId)
+      return
+    }
     const book = await client.fetch<{_id: string; _rev: string} | null>('*[_type == "book" && _id == $id][0]{_id,_rev}', {id: bookId}, fresh)
     if (!book) throw new Error('Publish the catalog book before completing Watch review.')
     try {
@@ -112,6 +130,7 @@ export async function completeCatalogReview(client: SanityClient, bookId: string
         })
         await tx
           .patch(doc._id, p => p.ifRevisionId(doc._rev).set({status: 'approved', approvedAt: now, publishedAt: now, reviewedBy: reviewer, publishedBook: reference(bookId)}).unset(['processingError', 'approval']))
+          .patch(bookId, p => p.set({catalogReviewStatus: 'reviewed'}))
           .commit({visibility: 'sync'})
       }
       return
