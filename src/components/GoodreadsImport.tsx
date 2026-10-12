@@ -335,7 +335,7 @@ function ImportReport({
         </div>
       ) : null}
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/my-books" className="pill is-active px-5 py-2.5 text-sm">View My Books</Link>
+        <Link href="/my-shelves" className="pill is-active px-5 py-2.5 text-sm">View My Shelves</Link>
       </div>
     </article>
   )

@@ -80,7 +80,7 @@ export async function importGoodreadsBatch(input: unknown): Promise<ImportResult
       results.push({row: book.row, title: book.title, status: 'failed', message: 'Could not save this book. You can retry this title.'})
     }
   }
-  revalidatePath('/my-books')
+  revalidatePath('/my-shelves')
   revalidatePath('/books/[slug]', 'page')
   return results
 }

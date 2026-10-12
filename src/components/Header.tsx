@@ -8,12 +8,12 @@ const NAV = [
     { href: '/', label: 'Home' },
     { href: '/discover', label: 'Discover' },
     { href: '/genres', label: 'Genres' },
-    { href: '/my-books', label: 'My Books' },
+    { href: '/my-shelves', label: 'My Shelves' },
 ]
 
 export default function Header({auth, signedIn}: {auth: React.ReactNode; signedIn: boolean}) {
   const pathname = usePathname()
-  const nav = NAV.filter((item) => item.href !== '/my-books' || signedIn)
+  const nav = NAV.filter((item) => item.href !== '/my-shelves' || signedIn)
 
   return (
     <header className="sticky top-0 z-30 border-b border-(--line) bg-paper">
@@ -28,7 +28,7 @@ export default function Header({auth, signedIn}: {auth: React.ReactNode; signedI
             priority
           />
           <span className="font-wordmark text-[1.35rem] leading-[1.35] tracking-normal sm:text-[1.48rem]">
-            Everlogue
+            everlogue
           </span>
         </Link>
 

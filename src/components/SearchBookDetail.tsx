@@ -62,10 +62,10 @@ export function SearchBookDetail({
           Back to Discover
         </Link>
         <Link
-          href="/my-books"
+          href="/my-shelves"
           className="inline-flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.16em] uppercase"
         >
-          My books
+          My shelves
           <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden="true">
             <path d="M4 12 12 4" stroke="currentColor" strokeWidth="1.4" />
             <path d="M6 4h6v6" stroke="currentColor" strokeWidth="1.4" />
@@ -173,7 +173,7 @@ export function SearchBookDetail({
           A search can turn into a reading life. Save your place here, then make the book your own.
         </p>
         <Link
-          href="/my-books"
+          href="/my-shelves"
           className="font-mono text-[11px] font-medium tracking-[0.16em] text-(--palette-clay) uppercase"
         >
           Visit your shelves

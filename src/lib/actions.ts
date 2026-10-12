@@ -26,7 +26,7 @@ export async function setRating(bookId: string, value: number | null) {
   const reader = await requireReader()
   await saveBookRating(writeClient(), reader.readerId, bookId, value)
   revalidatePath('/books/[slug]', 'page')
-  revalidatePath('/my-books')
+  revalidatePath('/my-shelves')
 }
 
 export async function setBookReview(
@@ -43,7 +43,7 @@ export async function setBookReview(
 export async function setReadingStatus(bookId: string, status: string | null) {
   const reader = await requireReader()
   await saveBookStatus(writeClient(), reader.readerId, bookId, status)
-  revalidatePath('/my-books')
+  revalidatePath('/my-shelves')
   revalidatePath('/books/[slug]', 'page')
   revalidatePath('/search/[id]', 'page')
 }
@@ -67,7 +67,7 @@ export async function setSearchReadingStatus(volumeId: string, status: string | 
       if (editionId) await saveBookEdition(client, reader.readerId, bookId, editionId)
     }
   }
-  revalidatePath('/my-books')
+  revalidatePath('/my-shelves')
   revalidatePath('/search/[id]', 'page')
   revalidatePath('/books/[slug]', 'page')
 }
@@ -75,7 +75,7 @@ export async function setSearchReadingStatus(volumeId: string, status: string | 
 export async function setSelectedEdition(bookId: string, editionId: string | null) {
   const reader = await requireReader()
   await saveBookEdition(writeClient(), reader.readerId, bookId, editionId)
-  revalidatePath('/my-books')
+  revalidatePath('/my-shelves')
   revalidatePath('/books/[slug]', 'page')
 }
 

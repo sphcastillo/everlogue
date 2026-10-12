@@ -16,12 +16,12 @@ export default async function MyBooksPage() {
           A record of your reading life
         </p>
         <h1 className="mt-4 font-display text-[clamp(2.8rem,6vw,4.6rem)] leading-[0.88] font-black tracking-[-0.07em]">
-          My books<span className="text-[#b8b8b8]" aria-hidden="true">.</span>
+          My shelves<span className="text-[#b8b8b8]" aria-hidden="true">.</span>
         </h1>
         <div className="mt-10">
           <EmptyState
             title="Sign in to open your shelves"
-            body="My Books is private. Sign in to keep ratings and shelves with your account."
+            body="My Shelves is private. Sign in to keep ratings and shelves with your account."
           />
         </div>
       </div>

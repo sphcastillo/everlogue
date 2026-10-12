@@ -130,7 +130,7 @@ export function extractLookupTitle(message: string) {
 export function isCatalogTitleLookup(message: string) {
   const text = message.trim()
   if (!text || isNextReadOpening(text) || /recommend|similar to|read next/i.test(text)) return false
-  if (/\b(current(ly)? reads?|want to read|my shelves|my books|my library)\b/i.test(text)) return false
+  if (/\b(current(ly)? reads?|want to read|my shelves|my library)\b/i.test(text)) return false
   if (/\b(how long|since when|started|founded|been running)\b/i.test(text) && /\bclub\b/i.test(text)) return false
   const title = extractLookupTitle(text)
   if (title.length < 2 || title.split(/\s+/).length > 10) return false

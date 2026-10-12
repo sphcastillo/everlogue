@@ -51,10 +51,10 @@ export function HomeHero({
           </Link>
           {signedIn ? (
             <Link
-              href="/my-books"
+              href="/my-shelves"
               className="inline-flex min-h-12 items-center justify-center gap-4 rounded-xs border border-white bg-paper px-5.5 font-sans text-[0.68rem] font-medium tracking-[0.16em] text-ink uppercase min-[875px]:border-ink! [&_svg]:size-3.5 [&_svg]:shrink-0"
             >
-              Go to my books
+              Go to my shelves
               <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M3 8h9" stroke="currentColor" strokeWidth="1.4" />
                 <path d="M8 4l5 4-5 4" stroke="currentColor" strokeWidth="1.4" />

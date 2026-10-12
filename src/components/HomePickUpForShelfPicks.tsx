@@ -2,23 +2,9 @@
 
 import Link from 'next/link'
 import {useEffect, useRef, useState} from 'react'
-import type {BookCardData} from './BookCard'
+import type {ShelfPickBook, ShelfPickTab} from '@/lib/home-shelf-selection'
+export type {ShelfPickBook, ShelfPickTab} from '@/lib/home-shelf-selection'
 import {BookCover} from './BookCover'
-
-export type ShelfPickBook = BookCardData & {
-  pageCount?: number | null
-  genres?: {
-    _id?: string
-    title?: string | null
-    slug?: string | null
-  }[] | null
-}
-
-export type ShelfPickTab = {
-  id: string
-  label: string
-  books: ShelfPickBook[]
-}
 
 export function HomePickUpForShelfPicks({
   signedIn,
@@ -56,7 +42,7 @@ export function HomePickUpForShelfPicks({
         </div>
         {signedIn ? (
           <Link
-            href="/my-books"
+            href="/my-shelves"
             className="inline-flex items-center gap-2 text-[0.68rem] font-medium tracking-[0.16em] text-muted uppercase hover:text-ink"
           >
             See your shelves

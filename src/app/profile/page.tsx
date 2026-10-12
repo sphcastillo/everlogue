@@ -111,7 +111,7 @@ export default async function ProfilePage() {
         ) : (
           <p className="mt-6 text-sm text-muted">
             No ratings yet. Open a book you&apos;ve read and leave stars.{' '}
-            <Link href="/my-books" className="text-ink underline-offset-4 hover:underline">My books</Link>
+            <Link href="/my-shelves" className="text-ink underline-offset-4 hover:underline">My shelves</Link>
           </p>
         )}
       </section>
