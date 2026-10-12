@@ -67,7 +67,7 @@ export function BookEditionsInput(_props: StringInputProps) {
         {!bookId ? <Text size={1} muted>Save this book to see its editions.</Text>
           : current?.error ? <Text size={1}>{current.error}</Text>
           : !current?.editions ? <Text size={1} muted>Loading editions…</Text>
-          : !current.editions.length ? <Text size={1} muted>No editions are linked yet. Add one in Everlogue Shelf → Editions and select this book.</Text>
+          : !current.editions.length ? <Text size={1} muted>No editions are linked yet. Add one in Everlogue Catalog → Editions and select this book.</Text>
           : current.editions.map((edition) => (
             <Card key={edition._id} padding={3} radius={2} border>
               <Flex gap={3} align="flex-start">

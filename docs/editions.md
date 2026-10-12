@@ -2,7 +2,7 @@
 
 A `book` represents the shared work. Recommendations, ratings, reviews, and shelf membership continue to use its ID. Each `edition` references that book and carries its own ISBN, publisher, release date, page count, language, format, translator credits, edition statement, and cover.
 
-In Studio, open **Everlogue Shelf → Editions** to add or correct a version and link it to its book. ISBN validation checks the checksum and duplicate editions, including equivalent ISBN-10/ISBN-13 identifiers. The book form shows a live Editions section with links to each copy. Older book-level publication fields are hidden and retained only for data compatibility; copy-specific details belong on editions. An unchanged reprint with the same ISBN should reuse its edition.
+In Studio, open **Everlogue Catalog → Editions** to add or correct a version and link it to its book. ISBN validation checks the checksum and duplicate editions, including equivalent ISBN-10/ISBN-13 identifiers. The book form shows a live Editions section with links to each copy. Older book-level publication fields are hidden and retained only for data compatibility; copy-specific details belong on editions. An unchanged reprint with the same ISBN should reuse its edition.
 
 On a book page, readers can browse recorded editions. After adding the book to a reading shelf, they can find a copy by ISBN, review its details, select it, or clear their selection. Saving synchronizes the optional edition reference on their reading progress and shelf entries. It preserves their rating, status, dates, and the underlying book identity.
 

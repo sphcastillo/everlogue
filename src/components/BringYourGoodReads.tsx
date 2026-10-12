@@ -87,7 +87,7 @@ export default function BringYourGoodReads() {
             </span>
           </h2>
           <p className="mt-6 max-w-md text-[1.02rem] leading-7 text-ink/75">
-            Already have a bookshelf on Goodreads? Bring your titles and reading history along. Your Everlogue shelf can feel like yours from the very first page.
+            Already have a bookshelf on Goodreads? Bring your titles and reading history along. Your Everlogue shelves can feel like yours from the very first page.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
             <Link

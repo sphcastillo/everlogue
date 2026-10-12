@@ -3,7 +3,7 @@ import {Suspense} from 'react'
 import {ClerkProvider} from '@clerk/nextjs'
 import {auth} from '@clerk/nextjs/server'
 import {headers} from 'next/headers'
-import {DM_Mono, DM_Sans, Instrument_Serif, Inter, Playfair_Display} from 'next/font/google'
+import localFont from 'next/font/local'
 import {AuthControl} from '@/components/AuthControl'
 import {SignedOutRedirect} from '@/components/SignedOutRedirect'
 import {getOptionalReader} from '@/lib/reader'
@@ -15,35 +15,46 @@ import {ReaderSetupRecovery} from '@/components/ReaderSetupRecovery'
 import Loading from './loading'
 import {Analytics} from '@vercel/analytics/next'
 
-const display = DM_Sans({
-  subsets: ['latin'],
-  weight: ['700', '900'],
+// Keep font assets in the repository: production builds need no Google Fonts fetch.
+const display = localFont({
+  src: './fonts/DMSans[opsz,wght].ttf',
+  weight: '700 900',
+  style: 'normal',
+  display: 'swap',
   variable: '--font-dm-sans',
 })
 
-const sans = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const sans = localFont({
+  src: './fonts/Inter[opsz,wght].ttf',
+  weight: '400 700',
+  style: 'normal',
+  display: 'swap',
   variable: '--font-inter',
 })
 
-const accent = Playfair_Display({
-  subsets: ['latin'],
-  style: ['italic'],
-  weight: ['400', '500'],
+const accent = localFont({
+  src: './fonts/PlayfairDisplay-Italic[wght].ttf',
+  style: 'italic',
+  weight: '400 500',
+  display: 'swap',
+  adjustFontFallback: 'Times New Roman',
   variable: '--font-playfair',
 })
 
-const wordmark = Instrument_Serif({
-  subsets: ['latin'],
+const wordmark = localFont({
+  src: './fonts/InstrumentSerif-Italic.ttf',
   weight: '400',
   style: 'italic',
+  display: 'swap',
+  adjustFontFallback: 'Times New Roman',
   variable: '--font-instrument-serif',
 })
 
-const mono = DM_Mono({
-  subsets: ['latin'],
-  weight: ['500'],
+const mono = localFont({
+  src: './fonts/DMMono-Medium.ttf',
+  weight: '500',
+  style: 'normal',
+  display: 'swap',
   variable: '--font-dm-mono',
 })
 

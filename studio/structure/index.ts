@@ -79,11 +79,11 @@ export const structure: StructureResolver = async (S, context) => {
       ),
       S.divider(),
       S.listItem()
-        .title('Everlogue Shelf')
+        .title('Everlogue Catalog')
         .icon(BookIcon)
         .child(
           S.list()
-            .title('Everlogue Shelf')
+            .title('Everlogue Catalog')
             .items([
               S.listItem()
                 .id('books')
