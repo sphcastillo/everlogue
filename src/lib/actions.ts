@@ -13,13 +13,16 @@ import {resolveEditionMetadata} from './edition-metadata'
 import {normalizeIsbn} from './isbn'
 import {searchCatalogParams} from './search-catalog'
 import {findBookEdition, getBookEditions} from './book-editions'
+import {ReaderDataError} from './reader-data-error'
 import {
   canTransition,
   readingStatusSchema,
+  shelfBookSchema,
   spaceColorSchema,
   stableId,
   workflowStatusSchema,
   type ReviewFields,
+  type ShelfBook,
 } from './validation'
 
 export async function setRating(bookId: string, value: number | null) {
@@ -48,12 +51,20 @@ export async function setReadingStatus(bookId: string, status: string | null) {
   revalidatePath('/search/[id]', 'page')
 }
 
+/** Shared entry point for web actions and the native HTTP API. */
+export async function setShelfStatus(book: ShelfBook, status: string | null) {
+  const target = shelfBookSchema.parse(book)
+  if (target.source === 'googleBooks') return setSearchReadingStatus(target.id, status)
+  await setReadingStatus(target.id, status)
+  return target.id
+}
+
 export async function setSearchReadingStatus(volumeId: string, status: string | null) {
   const reader = await requireReader()
-  if (typeof volumeId !== 'string' || !GOOGLE_VOLUME_ID.test(volumeId)) throw new Error('Invalid book ID.')
+  if (typeof volumeId !== 'string' || !GOOGLE_VOLUME_ID.test(volumeId)) throw new ReaderDataError('Invalid book ID.', 400, 'invalid_request')
   const parsed = status === null ? null : readingStatusSchema.parse(status)
   const book = await fetchGoogleVolume(volumeId)
-  if (!book || book.id !== volumeId) throw new Error('Book not found.')
+  if (!book || book.id !== volumeId) throw new ReaderDataError('Book not found.', 404, 'book_not_found')
   const client = writeClient()
   const bookId = await resolveSearchBook(client, book, parsed !== null)
   if (bookId) {
@@ -70,6 +81,7 @@ export async function setSearchReadingStatus(volumeId: string, status: string | 
   revalidatePath('/my-shelves')
   revalidatePath('/search/[id]', 'page')
   revalidatePath('/books/[slug]', 'page')
+  return bookId ?? null
 }
 
 export async function setSelectedEdition(bookId: string, editionId: string | null) {
@@ -230,6 +242,7 @@ export async function getMyBooks() {
         "entries": *[_type == "shelfEntry" && shelf._ref == ^._id] | order(addedAt desc){
           _id,
           addedAt,
+          "editionId": edition._ref,
           "book": book->{
             _id,
             title,

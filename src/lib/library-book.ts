@@ -1,4 +1,5 @@
 import type {SanityClient} from '@sanity/client'
+import {ReaderDataError} from './reader-data-error'
 import {ratingValueSchema, readingStatusSchema, reviewBodySchema, reviewTitleSchema, reviewVisibilitySchema, stableId, type ReviewFields} from './validation'
 
 const reference = (_ref: string) => ({_type: 'reference', _ref})
@@ -27,12 +28,12 @@ export async function saveBookEdition(client: SanityClient, readerId: string, bo
 
 async function requireBook(client: SanityClient, bookId: string) {
   if (typeof bookId !== 'string' || !bookId.trim()) {
-    throw new Error('A catalog book ID is required. Reload the book and try again.')
+    throw new ReaderDataError('A catalog book ID is required. Reload the book and try again.', 400, 'invalid_request')
   }
   const exists = await client.fetch<boolean>(
     `count(*[_type == "book" && _id == $bookId]) == 1`, {bookId}, {cache: 'no-store'},
   )
-  if (!exists) throw new Error('This book is not in the catalog.')
+  if (!exists) throw new ReaderDataError('This book is not in the catalog.', 404, 'book_not_found')
 }
 
 export async function saveBookRating(client: SanityClient, readerId: string, bookId: string, value: number | null) {
@@ -45,7 +46,7 @@ export async function saveBookRating(client: SanityClient, readerId: string, boo
       {cache: 'no-store'},
     )
     if (status !== 'currentlyReading' && status !== 'finished') {
-      throw new Error('Mark this book as Currently Reading or Read before rating it.')
+      throw new ReaderDataError('Mark this book as Currently Reading or Read before rating it.', 409, 'reading_status_required')
     }
   }
   // Migrated library documents keep their original IDs. Resolve by relationship
@@ -93,7 +94,7 @@ export async function saveBookStatus(client: SanityClient, readerId: string, boo
     ),
   ])
   const target = shelves.find((shelf) => shelf.kind === parsed)
-  if (parsed && !target) throw new Error('Your reading shelf could not be found.')
+  if (parsed && !target) throw new ReaderDataError('Your reading shelf could not be found.', 409, 'shelf_not_found')
   const tx = client.transaction()
   for (const entry of entries) if (entry.shelfId !== target?._id) tx.delete(entry._id)
   if (target && !entries.some((entry) => entry.shelfId === target._id)) {

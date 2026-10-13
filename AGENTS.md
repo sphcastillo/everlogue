@@ -2,7 +2,7 @@
 
 - Confirm the full target repository path before editing. This checkout is `/Users/sphcastillo/devPlayground/everlogue` (web); mobile is `/Users/sphcastillo/devPlayground/everlogue-app`. These are local navigation hints, never runtime constants.
 - Work in this repository. Mobile may be read for context; do not modify it without explicit authorization.
-- This repository owns the Next.js web UI, Sanity Studio in `studio/`, and existing shared HTTP endpoints/server operations. The shared reader API is incomplete; do not describe the target as implemented.
+- This repository owns the Next.js web UI, Sanity Studio in `studio/`, and existing shared HTTP endpoints/server operations. Profile/library reads and shelf-status/rating HTTP mutations are implemented; mobile adoption and live cross-client verification remain incomplete. Do not describe that remaining target as implemented.
 - Read [docs/shared-architecture.md](docs/shared-architecture.md) before changes affecting data, authentication, APIs, Studio schemas, or both clients. It is the canonical cross-project architecture record. Read its relevant feature references too.
 - Inspect current code before relying on documentation. Report discrepancies and distinguish source inspection, executed checks, and live verification. Update documentation when authorized behavior changes.
 - Give each change one implementation owner. Reviewers inspect and report findings without independently editing the owner's files. Coordinate API contracts and Studio schema changes with the mobile implementation owner and check compatibility with both clients.
@@ -20,7 +20,7 @@ Verified against root and Studio package scripts and README; listing a command d
 | Web development, `http://localhost:3000` | `pnpm dev` |
 | Studio development, normally `http://localhost:3333` (check printed port) | `pnpm studio` |
 | Unit tests | `pnpm test` |
-| Focused tests | `pnpm exec tsx --test tests/reader-profile.test.ts tests/library-book.test.ts tests/home-shelf-routes.test.ts` |
+| Focused tests | `pnpm exec tsx --test tests/reader-api*.test.ts tests/reader-profile.test.ts tests/library-book.test.ts` |
 | Lint | `pnpm lint` |
 | Web type check | `pnpm exec tsc --noEmit` |
 | Production build / serve | `pnpm build` / `pnpm start` |
