@@ -3,6 +3,7 @@ import {ReaderPortrait} from '@/components/ReaderPortrait'
 import {auth} from '@clerk/nextjs/server'
 import {BookCover} from '@/components/BookCover'
 import {ProfileCompanionHistory} from '@/components/ProfileCompanionHistory'
+import {ProfileHeroStats} from '@/components/ProfileHeroStats'
 import {ReviewCopy, ReviewSpoiler} from '@/components/ReviewSpoiler'
 import {formatRating, StarDisplay} from '@/components/StarDisplay'
 import {getCompanionProfileHistory} from '@/lib/companion-history'
@@ -21,8 +22,8 @@ export default async function ProfilePage() {
   const showcase = await getReaderProfileShowcase().catch(() => ({ratings: [], reviews: []}))
   const companionHistory = reader
     ? await getCompanionProfileHistory(reader.readerId)
-      .catch(() => ({groups: [], hasHistory: false}))
-    : {groups: [], hasHistory: false}
+      .catch(() => ({groups: [], hasHistory: false, count: 0}))
+    : {groups: [], hasHistory: false, count: 0}
   const name = reader?.displayName || 'Reader'
   const initials = name.trim().charAt(0) || 'R'
   const ratings = showcase.ratings
@@ -50,18 +51,11 @@ export default async function ProfilePage() {
             Your ratings, reviews, and reading companion recommendations live here.
           </p>
         </div>
-        <dl className="flex gap-8 sm:gap-12">
-          <div className="text-right">
-            <dt className="sr-only">Ratings</dt>
-            <dd className="font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(ratings.length)}</dd>
-            <p className="mt-2 font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Ratings</p>
-          </div>
-          <div className="text-right">
-            <dt className="sr-only">Reviews</dt>
-            <dd className="font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(reviews.length)}</dd>
-            <p className="mt-2 font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Reviews</p>
-          </div>
-        </dl>
+        <ProfileHeroStats
+          ratings={ratings.length}
+          reviews={reviews.length}
+          recommendations={companionHistory.count}
+        />
       </header>
 
       <ProfileCompanionHistory
@@ -75,7 +69,6 @@ export default async function ProfilePage() {
             Ratings
             <span className="font-mono text-[11px] font-medium tracking-[0.14em] text-muted uppercase">{pad(ratings.length)}</span>
           </h2>
-          <p className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Half stars count</p>
         </div>
         {ratings.length ? (
           <ul className="grid grid-cols-2 gap-x-4 md:grid-cols-3 md:gap-x-6">

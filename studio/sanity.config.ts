@@ -1,5 +1,6 @@
 import {BookClubDiscoveryShowcase} from './components/BookClubDiscoveryShowcase'
 import {BookRatingsView} from './components/BookRatingsView'
+import {ReaderCompanionView} from './components/ReaderCompanionView'
 import {bookClubWatchActions} from './actions/bookClubWatchActions'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
@@ -30,6 +31,12 @@ export default defineConfig({
           return S.document().views([
             S.view.form(),
             S.view.component(BookRatingsView).title('Ratings'),
+          ])
+        }
+        if (schemaType === 'readerProfile') {
+          return S.document().views([
+            S.view.form(),
+            S.view.component(ReaderCompanionView).title('Companion'),
           ])
         }
         return S.document().views([S.view.form()])

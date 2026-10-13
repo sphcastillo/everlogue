@@ -36,7 +36,8 @@ type Counter = {_id: string; _rev: string; count: number; lastStartedAt?: number
 
 /** Atomic admission across all app instances. Counters are daily singleton guards.
  * Guests deliberately share a pool: resetting cookies cannot bypass this limit.
- * Never store reader IDs, IP addresses, prompts, reviews, answers, or tool payloads.
+ * Signed-in usage references the reader profile (email is resolved in Studio).
+ * Never store IP addresses, prompts, reviews, answers, or tool payloads.
  */
 export async function reserveCompanionUsage(client: SanityClient, readerId: string | null, secret: string, now = Date.now()) {
   const day = new Date(now).toISOString().slice(0, 10)
@@ -66,7 +67,14 @@ export async function reserveCompanionUsage(client: SanityClient, readerId: stri
         ? transaction.patch(counter._id, patch => patch.ifRevisionId(counter._rev).inc({count: 1}).set({lastStartedAt: now}))
         : transaction.create({_id: ids[index], _type: 'companionQuota', day, count: 1, lastStartedAt: now})
     }
-    transaction = transaction.create({_type: 'companionUsage', model: COMPANION_MODEL, startedAt, status: 'started', audience: readerId ? 'reader' : 'guest'})
+    transaction = transaction.create({
+      _type: 'companionUsage',
+      model: COMPANION_MODEL,
+      startedAt,
+      status: 'started',
+      audience: readerId ? 'reader' : 'guest',
+      ...(readerId ? {reader: {_type: 'reference' as const, _ref: readerId}} : {}),
+    })
     try {
       const result = await transaction.commit({visibility: 'sync', returnDocuments: false})
       const usageId = result.results[2].id

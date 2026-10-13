@@ -9,6 +9,7 @@ export const companionConversation = defineType({
   fields: [
     defineField({
       name: 'reader',
+      title: 'Account',
       type: 'reference',
       to: [{type: 'readerProfile'}],
       validation: (rule) => rule.required(),
@@ -51,10 +52,14 @@ export const companionConversation = defineType({
     defineField({name: 'updatedAt', type: 'datetime', readOnly: true}),
   ],
   preview: {
-    select: {reader: 'reader.displayName', updatedAt: 'updatedAt'},
-    prepare({reader, updatedAt}) {
+    select: {
+      email: 'reader.email',
+      name: 'reader.displayName',
+      updatedAt: 'updatedAt',
+    },
+    prepare({email, name, updatedAt}) {
       return {
-        title: reader || 'Reader conversation',
+        title: email || name || 'Signed-in reader',
         subtitle: updatedAt ? `Updated ${updatedAt}` : 'No messages',
       }
     },

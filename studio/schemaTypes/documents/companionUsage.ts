@@ -9,6 +9,14 @@ export const companionUsage = defineType({
   fields: [
     defineField({name: 'model', type: 'string'}),
     defineField({name: 'audience', type: 'string'}),
+    defineField({
+      name: 'reader',
+      title: 'Account',
+      type: 'reference',
+      to: [{type: 'readerProfile'}],
+      readOnly: true,
+      description: 'Signed-in reader who asked. Empty for guests.',
+    }),
     defineField({name: 'status', type: 'string'}),
     defineField({name: 'startedAt', type: 'datetime'}),
     defineField({name: 'finishedAt', type: 'datetime'}),
@@ -23,9 +31,21 @@ export const companionUsage = defineType({
   ],
   orderings: [{title: 'Newest first', name: 'newest', by: [{field: 'startedAt', direction: 'desc'}]}],
   preview: {
-    select: {status: 'status', startedAt: 'startedAt', estimatedUsd: 'estimatedUsd', modelCalls: 'modelCalls'},
-    prepare({status, startedAt, estimatedUsd, modelCalls}) {
-      return {title: `${status} · ${startedAt}`, subtitle: `${modelCalls ?? 0} model calls · $${(estimatedUsd ?? 0).toFixed(6)} estimated`}
+    select: {
+      status: 'status',
+      startedAt: 'startedAt',
+      estimatedUsd: 'estimatedUsd',
+      modelCalls: 'modelCalls',
+      audience: 'audience',
+      email: 'reader.email',
+      name: 'reader.displayName',
+    },
+    prepare({status, startedAt, estimatedUsd, modelCalls, audience, email, name}) {
+      const account = email || name || (audience === 'guest' ? 'Guest' : 'Signed-in reader')
+      return {
+        title: account,
+        subtitle: `${status} · ${startedAt} · ${modelCalls ?? 0} model calls · $${(estimatedUsd ?? 0).toFixed(6)} estimated`,
+      }
     },
   },
 })

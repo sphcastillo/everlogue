@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import {useState} from 'react'
 import {BookCover, type CoverSource} from './BookCover'
+import {recommendationCount} from '@/lib/companion-recommendations'
 
 type CompanionRecommendation = {
   _id: string
@@ -23,6 +24,12 @@ function recommendationDate(value: string) {
     dateStyle: 'long',
     timeZone: 'UTC',
   }).format(new Date(value))
+}
+
+function publishRecommendationCount(groups: CompanionRecommendationGroup[]) {
+  window.dispatchEvent(new CustomEvent('everlogue:companion-recommendations', {
+    detail: recommendationCount(groups),
+  }))
 }
 
 export function ProfileCompanionHistory({
@@ -48,12 +55,16 @@ export function ProfileCompanionHistory({
         body: JSON.stringify({recommendationKey}),
       })
       if (!response.ok) throw new Error('Unable to remove this recommendation.')
-      setGroups(current => current
-        .map(group => ({
-          ...group,
-          books: group.books.filter(book => book.recommendationKey !== recommendationKey),
-        }))
-        .filter(group => group.books.length > 0))
+      setGroups(current => {
+        const next = current
+          .map(group => ({
+            ...group,
+            books: group.books.filter(book => book.recommendationKey !== recommendationKey),
+          }))
+          .filter(group => group.books.length > 0)
+        publishRecommendationCount(next)
+        return next
+      })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to remove this recommendation.')
     } finally {
@@ -98,17 +109,20 @@ export function ProfileCompanionHistory({
 
       {groups.length ? (
         <div className="mt-6 space-y-9">
-          {groups.map(group => (
-            <section key={group._key} aria-labelledby={`recommendations-${group._key}`}>
+          {groups.map((group, groupIndex) => (
+            <section
+              key={`${group._key}-${group.recommendedAt}-${groupIndex}`}
+              aria-labelledby={`recommendations-${group._key}-${groupIndex}`}
+            >
               <h3
-                id={`recommendations-${group._key}`}
+                id={`recommendations-${group._key}-${groupIndex}`}
                 className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase"
               >
                 Recommended <time dateTime={group.recommendedAt}>{recommendationDate(group.recommendedAt)}</time>
               </h3>
               <ol className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(7rem,8rem))] gap-x-4 gap-y-6">
-                {group.books.map(book => (
-                  <li key={book.recommendationKey} className="min-w-0">
+                {group.books.map((book, bookIndex) => (
+                  <li key={`${book.recommendationKey}-${bookIndex}`} className="min-w-0">
                     <div className="relative">
                       <Link href={`/books/${encodeURIComponent(book.slug)}`} className="group block">
                         <BookCover

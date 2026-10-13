@@ -117,9 +117,17 @@ async function ReaderContent({children}: {children: React.ReactNode}) {
 }
 
 async function ReaderCompanion({signedIn}: {signedIn: boolean}) {
-  const reader = await getOptionalReader().catch(() => null)
+  const [{sessionId}, reader] = await Promise.all([
+    auth(),
+    getOptionalReader().catch(() => null),
+  ])
   if (signedIn && !reader) return null
-  return <ReadingCompanion key={reader?.readerId || 'guest'} readerId={reader?.readerId} />
+  return (
+    <ReadingCompanion
+      key={`${reader?.readerId || 'guest'}:${sessionId || 'anon'}`}
+      readerId={reader?.readerId}
+    />
+  )
 }
 
 export default async function RootLayout({children}: {children: React.ReactNode}) {

@@ -17,40 +17,12 @@ type ChatMessage = {
 }
 const MAX_SAVED_MESSAGES = 40
 
-function parseMessages(value: unknown): ChatMessage[] {
-  if (!Array.isArray(value)) return []
-  return value.flatMap((item) => {
-    if (
-      !item ||
-      typeof item !== 'object' ||
-      !('role' in item) ||
-      !('text' in item) ||
-      (item.role !== 'user' && item.role !== 'assistant') ||
-      typeof item.text !== 'string' ||
-      !item.text.trim()
-    ) return []
-    return [{
-      role: item.role,
-      text: item.text,
-      ...('_key' in item && typeof item._key === 'string' ? {_key: item._key} : {}),
-      ...(
-        'createdAt' in item &&
-        typeof item.createdAt === 'string' &&
-        Number.isFinite(Date.parse(item.createdAt))
-          ? {createdAt: item.createdAt}
-          : {}
-      ),
-    }]
-  }).slice(-MAX_SAVED_MESSAGES)
-}
-
 export function ReadingCompanion({readerId}: {readerId?: string}) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [historyLoaded, setHistoryLoaded] = useState(!readerId)
   const [error, setError] = useState('')
   const log = useRef<HTMLDivElement>(null)
   const newestResponse = useRef<HTMLLIElement>(null)
@@ -64,32 +36,6 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
 
   useEffect(() => {
     if (!readerId) return
-    let cancelled = false
-
-    void fetch('/api/companion/history', {cache: 'no-store'})
-      .then(async response => {
-        if (!response.ok) throw new Error('Unable to load companion history.')
-        const data = await response.json() as {messages?: unknown}
-        if (!cancelled) {
-          const parsed = parseMessages(data.messages)
-          savedHistory.current = JSON.stringify(parsed)
-          setMessages(parsed)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError('Your saved conversation could not be loaded.')
-      })
-      .finally(() => {
-        if (!cancelled) setHistoryLoaded(true)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [readerId])
-
-  useEffect(() => {
-    if (!readerId || !historyLoaded) return
     const savableMessages =
       pending && messages.at(-1)?.role === 'assistant' ? messages.slice(0, -1) : messages
     const completeMessages = savableMessages
@@ -108,7 +54,7 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
       }).catch(() => {})
     }, 400)
     return () => window.clearTimeout(timer)
-  }, [historyLoaded, messages, pending, readerId])
+  }, [messages, pending, readerId])
 
   useEffect(() => {
     function clearHistory() {
@@ -136,17 +82,17 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
       return
     }
 
-    const isMobile = window.matchMedia('(max-width: 639px)').matches
     const openedNow = !wasOpen.current
     const newestMessage = messages.at(-1)
-    const assistantJustStarted =
-      messages.length > previousMessageCount.current && newestMessage?.role === 'assistant'
+    const countGrew = messages.length > previousMessageCount.current
+    const assistantJustStarted = countGrew && newestMessage?.role === 'assistant'
+    const userJustSent = countGrew && newestMessage?.role === 'user'
 
-    if (isMobile && (openedNow || assistantJustStarted) && newestResponse.current) {
+    if (newestResponse.current && (openedNow || assistantJustStarted)) {
       const responseTop = newestResponse.current.getBoundingClientRect().top
       const containerTop = container.getBoundingClientRect().top
       container.scrollTo({top: container.scrollTop + responseTop - containerTop})
-    } else if (!isMobile || newestMessage?.role === 'user') {
+    } else if (userJustSent) {
       container.scrollTo({top: container.scrollHeight})
     }
 
@@ -156,7 +102,7 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
 
   async function send(text: string) {
     const message = text.trim()
-    if (!message || pending || !historyLoaded) return
+    if (!message || pending) return
     setDraft('')
     setError('')
     setPending(true)
@@ -283,7 +229,7 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
                     <button
                       key={item.label}
                       type="button"
-                      disabled={!historyLoaded}
+                      disabled={pending}
                       className="border bg-paper px-3 py-2.5 text-left text-sm border-[#d6d6d6]! hover:bg-white disabled:opacity-50 sm:py-2"
                       onClick={() => void send(item.message)}
                     >
@@ -307,7 +253,7 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
               <textarea
                 rows={1}
                 value={draft}
-                disabled={pending || !historyLoaded}
+                disabled={pending}
                 inputMode="text"
                 enterKeyHint="send"
                 autoComplete="off"
@@ -325,7 +271,7 @@ export function ReadingCompanion({readerId}: {readerId?: string}) {
               />
               <button
                 type="submit"
-                disabled={pending || !historyLoaded || !draft.trim()}
+                disabled={pending || !draft.trim()}
                 className="absolute top-1.5 right-1.5 grid size-9 place-items-center bg-[#c4b8a8] text-ink disabled:opacity-40"
                 aria-label="Send"
               >

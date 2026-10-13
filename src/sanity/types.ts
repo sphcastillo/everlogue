@@ -158,6 +158,7 @@ export type CompanionUsage = {
   _rev: string;
   model?: string;
   audience?: string;
+  reader?: ReaderProfileReference;
   status?: string;
   startedAt?: string;
   finishedAt?: string;

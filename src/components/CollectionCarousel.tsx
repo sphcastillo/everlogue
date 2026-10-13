@@ -1,13 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import {useRef} from 'react'
-import {catalogCover} from '@/lib/book-covers'
-import {latestClubEntries} from '@/lib/club-books'
-import {clubInitials} from '@/lib/club-title'
-import type {ClubImage} from '@/sanity/image'
-import {BookCover, type CoverSource} from './BookCover'
-import {ClubMark} from './ClubMark'
+import { useRef } from 'react'
+import { catalogCover } from '@/lib/book-covers'
+import { latestClubEntries } from '@/lib/club-books'
+import { clubInitials } from '@/lib/club-title'
+import type { ClubImage } from '@/sanity/image'
+import { BookCover, type CoverSource } from './BookCover'
+import { ClubMark } from './ClubMark'
 
 export type CarouselBook = {
   _id: string
@@ -20,7 +20,7 @@ export type CarouselBook = {
   isbn13?: string | null
   edition?: CoverSource | null
   coverOverride?: CoverSource['coverOverride']
-  cover?: {url?: string | null} | null
+  cover?: { url?: string | null } | null
   description?: string | null
 }
 
@@ -30,10 +30,10 @@ export type CarouselCollection = {
   slug?: string | null
   collectionType?: string | null
   description?: string | null
-  curator?: {name?: string | null} | null
+  curator?: { name?: string | null } | null
   image?: ClubImage
   instagramUrl?: string | null
-  source?: {name?: string | null; url?: string | null} | null
+  source?: { name?: string | null; url?: string | null } | null
   totalSelections?: number | null
   books: {
     selectionNumber?: number | null
@@ -53,7 +53,7 @@ function bookHref(book: CarouselBook, clubSlug?: string | null) {
 const control =
   'grid size-9 place-items-center rounded-sm border bg-paper text-lg leading-none border-[#d6d6d6]! hover:bg-white'
 
-export function CollectionCarousel({collection}: {collection: CarouselCollection}) {
+export function CollectionCarousel({ collection }: { collection: CarouselCollection }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const allEntries = latestClubEntries(collection.books)
   const entries = allEntries.slice(0, 24)
@@ -65,7 +65,7 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
   function scrollByPage(direction: -1 | 1) {
     const node = scrollerRef.current
     if (!node) return
-    node.scrollBy({left: direction * Math.min(node.clientWidth * 0.8, 720), behavior: 'smooth'})
+    node.scrollBy({ left: direction * Math.min(node.clientWidth * 0.8, 720), behavior: 'smooth' })
   }
 
   return (
@@ -103,13 +103,13 @@ export function CollectionCarousel({collection}: {collection: CarouselCollection
               </h2>
               {curator ? <p className="text-sm text-muted">with {curator}</p> : null}
             </div>
+            {collection.description ? (
+              <p className="mt-1 truncate text-sm text-muted">{collection.description}</p>
+            ) : null}
             {count ? (
               <p className="mt-1.5 text-sm font-bold text-black/70">
                 {count} {count === 1 ? 'selection' : 'selections'}
               </p>
-            ) : null}
-            {collection.description ? (
-              <p className="mt-1 truncate text-sm text-muted">{collection.description}</p>
             ) : null}
           </div>
         </div>

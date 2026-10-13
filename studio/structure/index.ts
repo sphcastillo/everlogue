@@ -5,6 +5,7 @@ import {openCatalogImport} from '../../src/lib/book-club-watch/catalog-review'
 import {editionTitleAuthorMismatch} from '../../src/lib/edition-title-mismatch'
 import {
   BookIcon,
+  CommentIcon,
   CogIcon,
   DocumentIcon,
   DocumentsIcon,
@@ -236,6 +237,15 @@ export const structure: StructureResolver = async (S, context) => {
               S.documentTypeListItem('poll').title('Polls'),
               S.documentTypeListItem('discussionThread').title('Threads'),
               S.documentTypeListItem('readerProfile').title('Reader profiles'),
+              S.listItem()
+                .id('companion-conversations')
+                .title('Reading companion conversations')
+                .icon(CommentIcon)
+                .child(
+                  S.documentTypeList('companionConversation')
+                    .title('Reading companion conversations')
+                    .defaultOrdering([{field: 'updatedAt', direction: 'desc'}]),
+                ),
               S.divider(),
               S.listItem()
                 .id('reader-ratings')

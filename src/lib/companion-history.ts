@@ -5,13 +5,25 @@ import type {CoverSource} from '@/lib/book-covers'
 import {linkRecommendationTitles, plainRecommendationTitles} from '@/lib/companion-links'
 import {stableId} from '@/lib/validation'
 import {bookCoverProjection} from '../sanity/queries'
+import {
+  finalizeRecommendationGroups,
+  hiddenRecommendationMarks,
+  isHiddenRecommendation,
+  recommendationCount,
+} from './companion-recommendations'
+import {
+  MAX_COMPANION_HISTORY_MESSAGES,
+  dedupeCompanionHistory,
+  mergeCompanionHistory,
+  type CompanionHistoryMessage,
+} from './companion-history-merge'
 
-export type CompanionHistoryMessage = {
-  _key?: string
-  role: 'user' | 'assistant'
-  text: string
-  createdAt?: string
-}
+export {
+  MAX_COMPANION_HISTORY_MESSAGES,
+  dedupeCompanionHistory,
+  mergeCompanionHistory,
+  type CompanionHistoryMessage,
+} from './companion-history-merge'
 
 export type CompanionRecommendation = {
   _id: string
@@ -26,7 +38,6 @@ export type CompanionRecommendationGroup = {
   books: Array<CompanionRecommendation & {recommendationKey: string}>
 }
 
-export const MAX_COMPANION_HISTORY_MESSAGES = 40
 export const MAX_COMPANION_MESSAGE_LENGTH = 8000
 
 const COMPANION_HISTORY_QUERY = defineQuery(`*[
@@ -139,14 +150,16 @@ export async function getCompanionProfileHistory(readerId: string) {
     books.flatMap(book => [[book.slug, book], [book._id, book]]),
   )
   const hidden = new Set(hiddenRecommendationIds)
-  const groups = messages.flatMap((message, messageIndex) => {
+  const groups = finalizeRecommendationGroups(messages.flatMap((message, messageIndex) => {
     if (message.role !== 'assistant') return []
     const groupKey = message._key || `message-${messageIndex}`
     const groupBooks = messageRoutes[messageIndex].flatMap(route => {
       const book = booksByRoute.get(route)
       if (!book) return []
       const recommendationKey = `${groupKey}:${book._id}`
-      return hidden.has(recommendationKey) ? [] : [{...book, recommendationKey}]
+      return isHiddenRecommendation(hidden, recommendationKey, book._id)
+        ? []
+        : [{...book, recommendationKey}]
     })
     if (!groupBooks.length) return []
     return [{
@@ -154,22 +167,30 @@ export async function getCompanionProfileHistory(readerId: string) {
       recommendedAt: message.createdAt || new Date(0).toISOString(),
       books: groupBooks,
     }]
-  }).reverse()
-  return {groups, hasHistory: messages.length > 0}
+  }).reverse())
+  return {groups, hasHistory: messages.length > 0, count: recommendationCount(groups)}
 }
 
 export async function saveCompanionHistory(
   readerId: string,
   messages: CompanionHistoryMessage[],
 ) {
-  const history = messages.slice(-MAX_COMPANION_HISTORY_MESSAGES)
-  if (history.length === 0) {
+  const incoming = messages.slice(-MAX_COMPANION_HISTORY_MESSAGES)
+  if (incoming.length === 0) {
     await deleteCompanionHistory(readerId)
     return
   }
+  const id = documentId(readerId)
+  const stored = await privateClient.fetch<CompanionHistoryRecord | null>(
+    COMPANION_HISTORY_QUERY,
+    {documentId: id, readerId},
+    {cache: 'no-store'},
+  )
+  const history = dedupeCompanionHistory(
+    mergeCompanionHistory(stored?.messages || [], incoming),
+  )
 
   const client = writeClient()
-  const id = documentId(readerId)
   await client.createIfNotExists({
     _id: id,
     _type: 'companionConversation',
@@ -183,7 +204,7 @@ export async function saveCompanionHistory(
       _key:
         message._key && /^[A-Za-z0-9._-]+$/.test(message._key)
           ? message._key
-          : stableId([message.createdAt || String(index), message.role]),
+          : stableId([message.createdAt || String(index), message.role, String(index)]),
       _type: 'companionMessage',
       role: message.role,
       text: message.text,
@@ -200,7 +221,7 @@ export async function hideCompanionRecommendation(
   await writeClient()
     .patch(documentId(readerId))
     .setIfMissing({hiddenRecommendationIds: []})
-    .append('hiddenRecommendationIds', [recommendationKey])
+    .append('hiddenRecommendationIds', hiddenRecommendationMarks(recommendationKey))
     .commit()
 }
 
