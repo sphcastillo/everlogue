@@ -244,6 +244,39 @@ function pad(count: number) {
   return String(count).padStart(2, '0')
 }
 
+function displayCsvDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, day)))
+}
+
+function importedDetails(item: ImportResult, preview: GoodreadsPreview) {
+  const book = preview.books.find((entry) => entry.row === item.row)
+  if (!book) return []
+
+  if (item.status === 'updated') {
+    return book.rating === undefined ? [] : [`Rating added: ${book.rating}/5`]
+  }
+  if (item.status !== 'imported') return []
+
+  const details = [`Shelf: ${SHELF_LABELS[book.status]}`]
+  if (book.addedAt) {
+    details.push(
+      book.status === 'wantToRead'
+        ? `Added to shelf: ${displayCsvDate(book.addedAt)}`
+        : `Started reading: ${displayCsvDate(book.addedAt)}`,
+    )
+  }
+  if (book.finishedAt) details.push(`Finished reading: ${displayCsvDate(book.finishedAt)}`)
+  if (book.rating !== undefined) details.push(`Rating: ${book.rating}/5`)
+  if (book.readCount !== undefined) details.push(`Times read: ${book.readCount}`)
+  return details
+}
+
 function ImportReport({
   reportRef,
   news,
@@ -294,12 +327,22 @@ function ImportReport({
         ))}
       </dl>
       {importedTitles.length ? (
-        <details className="mt-6 text-sm">
+        <details className="mt-6 text-sm" open>
           <summary className="cursor-pointer font-medium">What landed on your shelves ({importedTitles.length})</summary>
-          <ul className="mt-3 max-h-60 space-y-2 overflow-auto text-muted">
-            {importedTitles.map((item) => (
-              <li key={item.row}>{item.title}{item.message ? ` — ${item.message}` : ''}</li>
-            ))}
+          <ul className="mt-3 max-h-80 divide-y divide-(--line) overflow-auto">
+            {importedTitles.map((item) => {
+              const details = importedDetails(item, preview)
+              return (
+                <li key={item.row} className="py-3 first:pt-0">
+                  <p className="font-medium text-ink">{item.title}</p>
+                  {details.length ? (
+                    <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                      {details.map((detail) => <li key={detail}>{detail}</li>)}
+                    </ul>
+                  ) : item.message ? <p className="mt-1 text-xs text-muted">{item.message}</p> : null}
+                </li>
+              )
+            })}
           </ul>
         </details>
       ) : null}
