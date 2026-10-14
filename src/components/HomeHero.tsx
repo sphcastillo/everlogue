@@ -19,7 +19,7 @@ export function HomeHero({
           alt=""
           fill
           priority
-          sizes="100vw"
+          sizes="(max-width: 874px) 100vw, 0px"
           className="object-cover object-[28%_center]"
         />
         <div className="absolute inset-0 bg-linear-to-b from-black/45 via-black/35 to-black/55" />

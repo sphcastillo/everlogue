@@ -1,3 +1,5 @@
+import {normalizeIsbn} from './isbn'
+
 export type CoverSource = {
   isbn10?: string | null
   isbn13?: string | null
@@ -9,7 +11,8 @@ export type CoverSource = {
 }
 
 export function openLibraryCover(isbn: string) {
-  return `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-L.jpg?default=false`
+  const canonical = normalizeIsbn(isbn) ?? isbn.replace(/[\s-]/g, '')
+  return `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(canonical)}-L.jpg?default=false`
 }
 
 export function hasManualCover(cover?: CoverSource | null) {

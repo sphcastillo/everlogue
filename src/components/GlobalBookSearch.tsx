@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useId, useRef, useState} from 'react'
+import {useCallback, useEffect, useId, useRef, useState} from 'react'
 import {createPortal} from 'react-dom'
 import {BookCover} from './BookCover'
 import {bookTitle, coverSrc, type GoogleBook, type GoogleSearchResponse} from '@/lib/google-books'
@@ -14,6 +14,8 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const searchControllerRef = useRef<AbortController | null>(null)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [menuBox, setMenuBox] = useState<{top: number; left: number; width: number} | null>(null)
@@ -59,7 +61,6 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
 
   useEffect(() => {
     if (!open) {
-      setMenuBox(null)
       return
     }
     function update() {
@@ -76,7 +77,7 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
     }
   }, [open])
 
-  async function searchBooks(value: string) {
+  const searchBooks = useCallback(async (value: string) => {
     const q = value.trim()
     if (q.length < 2) {
       setError('Enter at least 2 characters to search.')
@@ -89,8 +90,14 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
     setError('')
     setOpen(true)
 
+    searchControllerRef.current?.abort()
+    const controller = new AbortController()
+    searchControllerRef.current = controller
+
     try {
-      const response = await fetch(`/api/books/search?q=${encodeURIComponent(q)}`)
+      const response = await fetch(`/api/books/search?q=${encodeURIComponent(q)}`, {
+        signal: controller.signal,
+      })
       const data = (await response.json().catch(() => null)) as GoogleSearchResponse | null
       if (!response.ok || !data) {
         throw new Error(data?.error || 'Search couldn’t be completed.')
@@ -99,12 +106,35 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
       setTotal(data.totalItems ?? data.items?.length ?? 0)
       setStatus('done')
     } catch (caught) {
+      if (caught instanceof Error && caught.name === 'AbortError') return
       setBooks([])
       setTotal(0)
       setError(caught instanceof Error ? caught.message : 'Search couldn’t be completed.')
       setStatus('error')
+    } finally {
+      if (searchControllerRef.current === controller) searchControllerRef.current = null
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    searchControllerRef.current?.abort()
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+
+    const q = query.trim()
+    if (q.length < 2) return
+
+    searchTimerRef.current = setTimeout(() => {
+      void searchBooks(q)
+    }, 300)
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    }
+  }, [query, searchBooks])
+
+  useEffect(() => () => {
+    searchControllerRef.current?.abort()
+  }, [])
 
   function openMenu() {
     const box = rootRef.current?.getBoundingClientRect()
@@ -133,6 +163,7 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
         }
         onSubmit={(event) => {
           event.preventDefault()
+          if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
           void searchBooks(query)
         }}
         onClick={() => {
@@ -155,7 +186,18 @@ export function GlobalBookSearch({variant = 'default'}: {variant?: 'default' | '
           name="q"
           type="search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            const nextQuery = event.target.value
+            setQuery(nextQuery)
+            if (nextQuery.trim().length < 2) {
+              searchControllerRef.current?.abort()
+              if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+              setBooks([])
+              setTotal(0)
+              setError('')
+              setStatus('idle')
+            }
+          }}
           onFocus={() => openMenu()}
           minLength={2}
           maxLength={200}

@@ -24,6 +24,18 @@ export async function GET(request: NextRequest) {
     if (status === 502 || Number.isNaN(status)) {
       return NextResponse.json({error: 'Google Books could not be reached.'}, {status: 502})
     }
+    if (status === 503 || status === 504) {
+      return NextResponse.json(
+        {error: 'Book search is temporarily unavailable. Please try again shortly.'},
+        {status},
+      )
+    }
+    if (status === 429) {
+      return NextResponse.json(
+        {error: 'Book search is temporarily rate limited. Please try again shortly.'},
+        {status},
+      )
+    }
     return NextResponse.json({error: 'Google Books request failed'}, {status})
   }
 }

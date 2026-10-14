@@ -45,6 +45,7 @@ test('drops blank provider covers and Open Library when a cover is known missing
 
 test('manual override precedes provider URLs and ISBN fallback; numeric cover IDs use the correct endpoint', () => {
   assert.deepEqual(coverCandidates({cover: {url: 'https://books.google.com/cover.jpg'}, coverOverride: {asset: {url: 'https://cdn.sanity.io/manual.jpg'}}, isbn13: input.isbn13}), ['https://cdn.sanity.io/manual.jpg', 'https://books.google.com/cover.jpg?zoom=3', openLibraryCover(input.isbn13)])
+  assert.equal(openLibraryCover('978-0-425-27676-1'), openLibraryCover('9780425276761'))
   assert.equal(coverCandidates({coverOpenLibraryId: '1234'})[0], 'https://covers.openlibrary.org/b/id/1234-L.jpg?default=false')
   assert.deepEqual(coverCandidates({cover: {url: 'same'}, coverUrl: 'same'}), ['same'])
 })

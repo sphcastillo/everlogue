@@ -9,11 +9,30 @@ function apiKey() {
   return key
 }
 
+const RETRYABLE_STATUSES = new Set([502, 503, 504])
+const RETRY_DELAYS_MS = [250, 750]
+
+function wait(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function googleFetch(path: string) {
-  return fetch(`https://www.googleapis.com/books/v1/${path}`, {
-    headers: {'x-goog-api-key': apiKey()},
-    cache: 'no-store',
-  })
+  const url = `https://www.googleapis.com/books/v1/${path}`
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: {'x-goog-api-key': apiKey()},
+        cache: 'no-store',
+      })
+      if (!RETRYABLE_STATUSES.has(response.status) || attempt >= RETRY_DELAYS_MS.length) {
+        return response
+      }
+      await response.body?.cancel()
+    } catch (error) {
+      if (attempt >= RETRY_DELAYS_MS.length) throw error
+    }
+    await wait(RETRY_DELAYS_MS[attempt])
+  }
 }
 
 export async function searchGoogleBooks(query: string) {

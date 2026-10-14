@@ -17,7 +17,7 @@ export default function Header({auth, signedIn}: {auth: React.ReactNode; signedI
 
   return (
     <header className="sticky top-0 z-30 border-b border-(--line) bg-paper">
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto] lg:gap-x-4">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-5 py-4 sm:gap-x-3 sm:px-6 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-4">
         <Link href="/" className="col-start-1 row-start-1 flex min-w-0 items-center gap-2" aria-label="Everlogue">
           <Image
             src="/images/everlogue-logo.png"
@@ -32,8 +32,8 @@ export default function Header({auth, signedIn}: {auth: React.ReactNode; signedI
           </span>
         </Link>
 
-        <nav className="col-span-2 row-start-2 min-w-0 overflow-x-auto lg:col-span-1 lg:col-start-2 lg:row-start-1">
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1 lg:justify-center">
+        <nav className="col-span-2 row-start-2 min-w-0 overflow-x-auto md:col-span-1 md:col-start-2 md:row-start-1">
+          <div className="flex items-center justify-center gap-0.5 sm:gap-1">
             {nav.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
               return (
@@ -52,10 +52,10 @@ export default function Header({auth, signedIn}: {auth: React.ReactNode; signedI
           </div>
         </nav>
 
-        <div className="col-span-2 row-start-3 min-w-0 lg:col-span-1 lg:col-start-3 lg:row-start-1">
+        <div className="col-span-2 row-start-3 min-w-0 md:col-span-3 md:col-start-1 md:row-start-2">
           <GlobalBookSearch variant="header" />
         </div>
-        <div className="col-start-2 row-start-1 shrink-0 justify-self-end lg:col-start-4">
+        <div className="col-start-2 row-start-1 shrink-0 justify-self-end md:col-start-3">
           {auth}
         </div>
       </div>

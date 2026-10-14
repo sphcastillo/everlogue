@@ -32,7 +32,7 @@ export default function HomeCatalogGrowth() {
     <section className="grid items-stretch gap-4 px-5 pb-8 min-[875px]:grid-cols-2 min-[875px]:gap-x-12 min-[875px]:px-9 min-[875px]:pt-6 min-[875px]:pb-10 xl:gap-x-16">
       <CatalogGrowthImage
         className="relative aspect-1024/387 overflow-hidden bg-[#1c1714] min-[875px]:hidden"
-        sizes="100vw"
+        sizes="(max-width: 874px) calc(100vw - 2.5rem), 0px"
       />
       <CatalogGrowthImage
         className="relative hidden min-h-full overflow-hidden bg-[#1c1714] min-[875px]:order-1 min-[875px]:block"

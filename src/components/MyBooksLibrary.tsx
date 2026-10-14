@@ -304,7 +304,7 @@ function ShelfSection({
         {note ? <p className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">{note}</p> : null}
       </div>
       {books.length ? (
-        <ul className={view === 'grid' ? 'mt-6 grid grid-cols-3 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-6' : 'mt-6 divide-y divide-(--line)'}>
+        <ul className={view === 'grid' ? 'mt-6 grid grid-cols-3 gap-x-3 gap-y-8 sm:grid-cols-4 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-6' : 'mt-6 divide-y divide-(--line)'}>
           {books.map((book) => (
             <li key={book._id}>
               <LibraryBookCard

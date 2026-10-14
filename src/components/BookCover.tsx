@@ -48,6 +48,19 @@ export function BookCover({
   )
 }
 
+function browserCoverSrc(src: string, title: string) {
+  try {
+    const url = new URL(src)
+    if (url.hostname !== 'covers.openlibrary.org') return src
+    const match = url.pathname.match(/^\/b\/(isbn|id|olid)\/(.+)-L\.jpg$/i)
+    if (!match) return src
+    const fallback = placeholderCoverSrc(title).split('/').at(-1) || '1.png'
+    return `/api/covers/open-library/${match[1].toLowerCase()}/${encodeURIComponent(decodeURIComponent(match[2]))}?fallback=${fallback}`
+  } catch {
+    return src
+  }
+}
+
 function RemoteCover({
   urls,
   title,
@@ -79,9 +92,10 @@ function RemoteCover({
     )
   }
   const remote = /^https?:/i.test(src)
+  const displaySrc = browserCoverSrc(src, title)
   return (
     <Image
-      src={src}
+      src={displaySrc}
       alt={alt || `Cover of ${title}`}
       fill
       sizes={sizes}
@@ -92,7 +106,7 @@ function RemoteCover({
       onError={() => setIndex((current) => current + 1)}
       onLoad={(event) => {
         const image = event.currentTarget
-        if (isProviderPlaceholderImage(src, image.naturalWidth, image.naturalHeight)) {
+        if (isProviderPlaceholderImage(displaySrc, image.naturalWidth, image.naturalHeight)) {
           setIndex((current) => current + 1)
         }
       }}
