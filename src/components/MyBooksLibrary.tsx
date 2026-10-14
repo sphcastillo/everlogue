@@ -15,6 +15,7 @@ export type LibraryBook = {
   myRating?: number | null
   percent?: number | null
   readingPeriod?: ReadingPeriod | null
+  readCount?: number | null
 }
 
 export type LibraryShelf = {
@@ -389,6 +390,9 @@ function LibraryBookCard({
           {showReadDate && book.readingPeriod?.end ? (
             <span className="mt-1 block text-xs text-muted">Read {formatReadPeriod(book.readingPeriod)}</span>
           ) : null}
+          {showReadDate && typeof book.readCount === 'number' && book.readCount > 1 ? (
+            <span className="mt-1 block text-xs text-muted">Read {book.readCount} times</span>
+          ) : null}
         </span>
         {showRating && typeof book.myRating === 'number' ? (
           <span className="shrink-0 text-sm text-muted">★ {formatRating(book.myRating)}</span>
@@ -412,6 +416,9 @@ function LibraryBookCard({
       <p className="mt-0.5 truncate text-sm text-muted">{authors}</p>
       {showReadDate && book.readingPeriod?.end ? (
         <p className="mt-1 text-xs text-muted">Read {formatReadPeriod(book.readingPeriod)}</p>
+      ) : null}
+      {showReadDate && typeof book.readCount === 'number' && book.readCount > 1 ? (
+        <p className="mt-1 text-xs text-muted">Read {book.readCount} times</p>
       ) : null}
       {showProgress && percent !== null ? (
         <p className="mt-2.5 flex items-center gap-2 text-[11px] text-muted">

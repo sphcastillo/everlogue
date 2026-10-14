@@ -220,6 +220,12 @@ export type ReadingProgress = {
     start?: string;
     end: string;
   };
+  readingHistory?: Array<{
+    start?: string;
+    end: string;
+    _type: "readingPeriodEntry";
+    _key: string;
+  }>;
   status: "wantToRead" | "currentlyReading" | "finished";
   percent?: number;
   startedAt?: string;

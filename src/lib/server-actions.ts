@@ -3,12 +3,22 @@
 import {lookupBookEdition, setSelectedEdition, castVote, clearProfileAvatar, createDiscussionPost, joinClub, setBookReview, setProfileAvatar, setRating, setReadingStatus, setSearchReadingStatus, setShelfStatus, setSpaceColor} from './actions'
 import {type ReadingPeriod, type ReviewFields, type ShelfBook} from './validation'
 
-export async function saveShelfStatusAction(book: ShelfBook, status: string | null, readingPeriod?: ReadingPeriod) {
-  await setShelfStatus(book, status, readingPeriod)
+export async function saveShelfStatusAction(
+  book: ShelfBook,
+  status: string | null,
+  readingPeriod?: ReadingPeriod,
+  appendRead = false,
+) {
+  return setShelfStatus(book, status, readingPeriod, appendRead)
 }
 
-export async function saveSearchStatusAction(volumeId: string, status: string | null, readingPeriod?: ReadingPeriod) {
-  await setSearchReadingStatus(volumeId, status, readingPeriod)
+export async function saveSearchStatusAction(
+  volumeId: string,
+  status: string | null,
+  readingPeriod?: ReadingPeriod,
+  appendRead = false,
+) {
+  await setSearchReadingStatus(volumeId, status, readingPeriod, appendRead)
 }
 
 export async function saveRatingAction(bookId: string, value: number | null) {
@@ -22,8 +32,13 @@ export async function saveReviewAction(
   await setBookReview(bookId, review)
 }
 
-export async function saveStatusAction(bookId: string, status: string | null, readingPeriod?: ReadingPeriod) {
-  await setReadingStatus(bookId, status, readingPeriod)
+export async function saveStatusAction(
+  bookId: string,
+  status: string | null,
+  readingPeriod?: ReadingPeriod,
+  appendRead = false,
+) {
+  await setReadingStatus(bookId, status, readingPeriod, appendRead)
 }
 
 export async function joinClubAction(clubId: string) {

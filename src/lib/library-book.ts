@@ -1,3 +1,4 @@
+import {randomUUID} from 'node:crypto'
 import type {SanityClient} from '@sanity/client'
 import {ReaderDataError} from './reader-data-error'
 import {ratingValueSchema, readingPeriodSchema, readingStatusSchema, reviewBodySchema, reviewTitleSchema, reviewVisibilitySchema, stableId, type ReadingPeriod, type ReviewFields} from './validation'
@@ -82,13 +83,24 @@ export async function saveBookStatus(
   bookId: string,
   status: string | null,
   readingPeriod?: ReadingPeriod,
+  appendRead = false,
 ) {
   const parsed = status === null ? null : readingStatusSchema.parse(status)
   const parsedPeriod = parsed === 'finished' && readingPeriod ? readingPeriodSchema.parse(readingPeriod) : null
   await requireBook(client, bookId)
-  const [progress, shelves, entries] = await Promise.all([
-    client.fetch<{_id: string; edition?: {_type: 'reference'; _ref: string}} | null>(
-      `*[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0]{_id, edition}`,
+  type ProgressRecord = {
+    _id: string
+    edition?: {_type: 'reference'; _ref: string}
+    readingPeriod?: ReadingPeriod
+    readingHistory?: (ReadingPeriod & {_key?: string; _type?: 'readingPeriodEntry'})[]
+    finishedAt?: string
+    readCount?: number
+  }
+  const [progressRecords, shelves, entries] = await Promise.all([
+    client.fetch<ProgressRecord[]>(
+      `*[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId] | order(_createdAt asc){
+        _id, edition, readingPeriod, readingHistory, finishedAt, readCount
+      }`,
       {readerId, bookId}, {cache: 'no-store'},
     ),
     client.fetch<{_id: string; kind: string}[]>(
@@ -96,19 +108,25 @@ export async function saveBookStatus(
       {readerId}, {cache: 'no-store'},
     ),
     client.fetch<{_id: string; shelfId: string}[]>(
-      `*[_type == "shelfEntry" && book._ref == $bookId && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]]{_id, "shelfId": shelf._ref}`,
+      `*[_type == "shelfEntry" && book._ref == $bookId && shelf->owner._ref == $readerId && shelf->kind in ["wantToRead", "currentlyReading", "finished"]] | order(_createdAt asc){_id, "shelfId": shelf._ref}`,
       {readerId, bookId}, {cache: 'no-store'},
     ),
   ])
+  const progress = progressRecords[0]
   const target = shelves.find((shelf) => shelf.kind === parsed)
   if (parsed && !target) throw new ReaderDataError('Your reading shelf could not be found.', 409, 'shelf_not_found')
   const tx = client.transaction()
-  for (const entry of entries) if (entry.shelfId !== target?._id) tx.delete(entry._id)
-  if (target && !entries.some((entry) => entry.shelfId === target._id)) {
+  const targetEntries = target ? entries.filter((entry) => entry.shelfId === target._id) : []
+  const keptEntry = targetEntries[0]
+  for (const entry of entries) {
+    if (entry.shelfId !== target?._id || entry._id !== keptEntry?._id) tx.delete(entry._id)
+  }
+  const edition = progressRecords.find((record) => record.edition)?.edition
+  if (target && !keptEntry) {
     tx.createIfNotExists({
       _id: stableId(['shelfEntry', target._id, bookId]), _type: 'shelfEntry',
       shelf: reference(target._id), book: reference(bookId),
-      addedAt: new Date().toISOString(), ...(progress?.edition ? {edition: progress.edition} : {}),
+      addedAt: new Date().toISOString(), ...(edition ? {edition} : {}),
     })
   }
   if (parsed) {
@@ -117,19 +135,56 @@ export async function saveBookStatus(
       _id: progressId, _type: 'readingProgress', reader: reference(readerId), book: reference(bookId), status: parsed,
     })
     const date = new Date().toISOString().slice(0, 10)
+    const history = progressRecords
+      .flatMap((record) => record.readingHistory || [])
+      .map((period) => ({
+        ...period,
+        _key: period._key || randomUUID(),
+        _type: 'readingPeriodEntry' as const,
+      }))
+    for (const record of progressRecords) {
+      const fallback = record.readingPeriod || (record.finishedAt ? {end: record.finishedAt} : null)
+      if (!fallback) continue
+      if (!history.some((period) => period.start === fallback.start && period.end === fallback.end)) {
+        history.push({...fallback, _key: randomUUID(), _type: 'readingPeriodEntry'})
+      }
+    }
+    if (parsed === 'finished') {
+      if (parsedPeriod) {
+        const entry = {
+          ...parsedPeriod,
+          _key: appendRead || !history.length ? randomUUID() : history.at(-1)!._key,
+          _type: 'readingPeriodEntry' as const,
+        }
+        if (appendRead || !history.length) history.push(entry)
+        else history[history.length - 1] = entry
+      } else if (!history.length) {
+        history.push({end: date, _key: randomUUID(), _type: 'readingPeriodEntry'})
+      }
+    }
+    const importedReadCount = Math.max(0, ...progressRecords.map((record) => record.readCount || 0))
+    const readCount = appendRead
+      ? Math.max(importedReadCount, Math.max(0, history.length - 1)) + 1
+      : Math.max(importedReadCount, history.length)
+    const latestPeriod = history.at(-1)
     tx.patch(progressId, (patch) => patch.set({
       status: parsed,
-      ...(parsedPeriod ? {
-        readingPeriod: {_type: 'readingPeriod', ...parsedPeriod},
-        ...(parsedPeriod.start?.length === 10 ? {startedAt: parsedPeriod.start} : {}),
-        ...(parsedPeriod.end.length === 10 ? {finishedAt: parsedPeriod.end} : {}),
+      ...(latestPeriod ? {
+        readingPeriod: {_type: 'readingPeriod', start: latestPeriod.start, end: latestPeriod.end},
+        readingHistory: history,
+        readCount,
+      } : {}),
+      ...(parsed === 'finished' && parsedPeriod ? {
+        ...(parsedPeriod?.start?.length === 10 ? {startedAt: parsedPeriod.start} : {}),
+        ...(parsedPeriod?.end.length === 10 ? {finishedAt: parsedPeriod.end} : {}),
       } : {}),
     }).setIfMissing({
       ...(parsed === 'currentlyReading' ? {startedAt: date} : {}),
-      ...(parsed === 'finished' ? {finishedAt: date} : {}),
+      ...(parsed === 'finished' && !parsedPeriod ? {finishedAt: date} : {}),
     }))
-  } else if (progress) {
-    tx.delete(progress._id)
+    for (const duplicate of progressRecords.slice(1)) tx.delete(duplicate._id)
+  } else {
+    for (const record of progressRecords) tx.delete(record._id)
   }
   if (tx.serialize().length) await tx.commit({visibility: 'sync'})
 }

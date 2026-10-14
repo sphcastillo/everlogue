@@ -70,6 +70,9 @@ test('add, repeat, move and remove share web rules and preserve edition/history/
   // Web actions use the same entry point and mutations.
   await f.web.saveShelfStatusAction({source: 'catalog', id: 'book'}, 'finished')
   assert.equal(progress.status, 'finished')
+  await f.web.saveShelfStatusAction({source: 'catalog', id: 'book'}, 'finished', {end: '2024'}, true)
+  assert.equal(progress.readCount, 3)
+  assert.equal((progress.readingHistory as unknown[]).length, 2)
   privateResponse(await f.shelf.PUT(jsonRequest('shelf-status', shelfBody(null))))
   assert.equal(f.docs.has('migrated-progress'), false)
   assert.ok(f.docs.has('custom-entry'))
@@ -163,6 +166,7 @@ test('invalid JSON, null/array bodies, invalid statuses, origins and large bodie
     {...shelfBody('currentlyReading'), readingPeriod: {end: '2020'}},
     {...shelfBody('finished'), readingPeriod: {end: '2999'}},
     {...shelfBody('finished'), readingPeriod: {start: '2021', end: '2020'}},
+    {...shelfBody('finished'), appendRead: true},
   ]) {
     privateResponse(await f.shelf.PUT(jsonRequest('shelf-status', body)), 400)
   }

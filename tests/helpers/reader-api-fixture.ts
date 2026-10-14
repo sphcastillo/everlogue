@@ -122,7 +122,15 @@ export async function apiFixture() {
     library: {GET: (request: Request) => Promise<Response>}
     shelf: {PUT: (request: Request) => Promise<Response>}
     rating: {PUT: (request: Request) => Promise<Response>}
-    web: {saveShelfStatusAction: (book: {source: string; id: string}, status: string | null) => Promise<void>; saveRatingAction: (id: string, value: number | null) => Promise<void>}
+    web: {
+      saveShelfStatusAction: (
+        book: {source: string; id: string},
+        status: string | null,
+        readingPeriod?: {start?: string; end: string},
+        appendRead?: boolean,
+      ) => Promise<string | null>
+      saveRatingAction: (id: string, value: number | null) => Promise<void>
+    }
   }}
   new Function('require', 'module', 'exports', result.outputFiles[0].text)(
     (id: string) => id === 'reader-api-fixture' ? fixtures : require(id), loaded, loaded.exports,

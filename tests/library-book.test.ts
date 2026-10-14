@@ -58,8 +58,9 @@ function database() {
       }
       if (query.startsWith('*[_type == "review"')) return relevant.find((doc) => doc._type === 'review') || null
       if (query.startsWith('*[_type == "readingProgress"')) {
-        const progress = relevant.find((doc) => doc._type === 'readingProgress') || null
-        return query.endsWith('.status') ? progress?.status ?? null : progress
+        const progress = relevant.filter((doc) => doc._type === 'readingProgress')
+        if (query.includes('| order(_createdAt asc)')) return progress
+        return query.endsWith('.status') ? progress[0]?.status ?? null : progress[0] || null
       }
       if (query.startsWith('*[_type == "shelf"')) return all.filter((doc) => doc._type === 'shelf' && ref(doc.owner) === params.readerId)
       if (query.startsWith('*[_type == "shelfEntry"')) return all.filter((doc) => doc._type === 'shelfEntry' && ref(doc.book) === params.bookId && ref(docs.get(String(ref(doc.shelf)))?.owner) === params.readerId).map((doc) => ({...doc, shelfId: ref(doc.shelf)}))
@@ -144,6 +145,34 @@ test('Read status accepts partial dates and ranges and rejects future dates', as
     /cannot be in the future/,
   )
   assert.equal((docs.get('progress-reader-old')?.readingPeriod as {end: string}).end, '2012')
+})
+
+test('rereads append history while duplicate shelf and progress records collapse', async () => {
+  const {docs, client} = database()
+  docs.set('duplicate-progress', {
+    _id: 'duplicate-progress',
+    _type: 'readingProgress',
+    reader: reference('reader'),
+    book: reference('book-new'),
+    status: 'finished',
+    readingPeriod: {_type: 'readingPeriod', end: '2020-01-02'},
+  })
+  docs.set('duplicate-entry', {
+    _id: 'duplicate-entry',
+    _type: 'shelfEntry',
+    book: reference('book-new'),
+    shelf: reference('finished'),
+    addedAt: '2021-01-01',
+  })
+
+  await saveBookStatus(client, 'reader', 'book-new', 'finished', {end: '2024'}, true)
+
+  const progress = [...docs.values()].filter((doc) => doc._type === 'readingProgress')
+  const entries = [...docs.values()].filter((doc) => doc._type === 'shelfEntry')
+  assert.equal(progress.length, 1)
+  assert.equal(entries.length, 1)
+  assert.equal((progress[0].readingHistory as unknown[]).length, 2)
+  assert.equal(progress[0].readCount, 3)
 })
 
 test('rejects invalid statuses before changing shelves', async () => {

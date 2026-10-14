@@ -8,7 +8,8 @@ import {
 import {firstSentence} from '@/lib/club-title'
 import {BookCover, type CoverSource} from './BookCover'
 import {LogSelectedBook} from './LogSelectedBook'
-import {ShelfButtons} from './ShelfButtons'
+import {SearchBookLibraryActions} from './SearchBookLibraryActions'
+import type {ReadingPeriod} from '@/lib/validation'
 
 type SearchClub = {
   title: string
@@ -32,11 +33,15 @@ export function SearchBookDetail({
   catalog,
   signedIn,
   status,
+  readingPeriod,
+  rating,
 }: {
   book: GoogleBook
   catalog?: SearchCatalogBook | null
   signedIn: boolean
   status: string | null
+  readingPeriod?: ReadingPeriod | null
+  rating: number | null
 }) {
   const info = book.volumeInfo
   const identifiers = info?.industryIdentifiers || []
@@ -149,9 +154,12 @@ export function SearchBookDetail({
               </p>
             </div>
             <div className="mt-5">
-              <ShelfButtons
-                {...(catalog?._id ? {bookId: catalog._id} : {googleBooksId: book.id})}
+              <SearchBookLibraryActions
+                catalogBookId={catalog?._id}
+                googleBooksId={book.id}
                 status={status}
+                readingPeriod={readingPeriod}
+                rating={rating}
                 signedIn={signedIn}
               />
             </div>

@@ -12,12 +12,20 @@ export const shelfStatusRequest = z.object({
   ]),
   status: readingStatusSchema.nullable(),
   readingPeriod: readingPeriodSchema.optional(),
+  appendRead: z.boolean().optional(),
 }).strict().superRefine((value, context) => {
   if (value.readingPeriod && value.status !== 'finished') {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['readingPeriod'],
       message: 'Reading period requires Read status',
+    })
+  }
+  if (value.appendRead && (value.status !== 'finished' || !value.readingPeriod)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['appendRead'],
+      message: 'A reread requires Read status and a reading period',
     })
   }
 })

@@ -82,7 +82,7 @@ type ShelfButtonsProps = {
   status: string | null
   readingPeriod?: ReadingPeriod | null
   signedIn: boolean
-  onStatusChange?: (status: string | null) => void
+  onStatusChange?: (status: string | null, bookId: string | null) => void
 } & ({bookId: string; googleBooksId?: never} | {bookId?: never; googleBooksId: string})
 
 export function ShelfButtons({
@@ -96,28 +96,36 @@ export function ShelfButtons({
   const [pending, start] = useTransition()
   const [optimistic, setOptimistic] = useOptimistic(status)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const today = new Date().toISOString().slice(0, 10)
   const [precision, setPrecision] = useState<DatePrecision>(datePrecision(readingPeriod?.end))
   const [finishedOn, setFinishedOn] = useState(readingPeriod?.end || today)
   const [includeStart, setIncludeStart] = useState(Boolean(readingPeriod?.start))
   const [startedOn, setStartedOn] = useState(readingPeriod?.start || today)
   const [showReadDate, setShowReadDate] = useState(status === 'finished')
+  const [appendRead, setAppendRead] = useState(false)
   const invalidRange = includeStart && Boolean(startedOn) && Boolean(finishedOn) && startedOn > finishedOn
 
-  function choose(next: string | null, nextReadingPeriod?: ReadingPeriod) {
+  function choose(next: string | null, nextReadingPeriod?: ReadingPeriod, append = false) {
     if (!signedIn) return
     start(async () => {
       setError(null)
+      setNotice(null)
       setOptimistic(next)
       try {
         const book: ShelfBook = googleBooksId !== undefined
           ? {source: 'googleBooks', id: googleBooksId}
           : {source: 'catalog', id: bookId!}
-        await saveShelfStatusAction(book, next, nextReadingPeriod)
+        const savedBookId = await saveShelfStatusAction(book, next, nextReadingPeriod, append)
         setShowReadDate(next === 'finished')
-        onStatusChange?.(next)
+        setAppendRead(false)
+        if (next === 'finished' && nextReadingPeriod) {
+          setNotice(append ? 'Reread saved.' : 'Reading dates saved.')
+        }
+        onStatusChange?.(next, savedBookId)
       } catch {
         setOptimistic(status)
+        setNotice(null)
         setError('This book couldn’t be saved. Please try again.')
       }
     })
@@ -177,6 +185,7 @@ export function ShelfButtons({
                   disabled={pending}
                   aria-pressed={precision === value}
                   onClick={() => {
+                    setNotice(null)
                     setPrecision(value)
                     setFinishedOn(current => dateForPrecision(current || today, value))
                     setStartedOn(current => dateForPrecision(current || today, value))
@@ -200,7 +209,10 @@ export function ShelfButtons({
                   precision={precision}
                   max={today}
                   disabled={pending}
-                  onChange={setStartedOn}
+                  onChange={(value) => {
+                    setNotice(null)
+                    setStartedOn(value)
+                  }}
                 />
               </label>
             ) : null}
@@ -213,7 +225,10 @@ export function ShelfButtons({
                 precision={precision}
                 max={today}
                 disabled={pending}
-                onChange={setFinishedOn}
+                onChange={(value) => {
+                  setNotice(null)
+                  setFinishedOn(value)
+                }}
               />
             </label>
           </div>
@@ -223,7 +238,10 @@ export function ShelfButtons({
               type="checkbox"
               checked={includeStart}
               disabled={pending}
-              onChange={(event) => setIncludeStart(event.target.checked)}
+              onChange={(event) => {
+                setNotice(null)
+                setIncludeStart(event.target.checked)
+              }}
             />
             Add when I started
           </label>
@@ -233,23 +251,54 @@ export function ShelfButtons({
             <button
               type="button"
               disabled={pending || !finishedOn || invalidRange || (includeStart && !startedOn)}
-              onClick={() => choose('finished', {
-                ...(includeStart ? {start: startedOn} : {}),
-                end: finishedOn,
-              })}
+              onClick={() => choose(
+                'finished',
+                {
+                  ...(includeStart ? {start: startedOn} : {}),
+                  end: finishedOn,
+                },
+                appendRead,
+              )}
               className="min-h-10 bg-ink px-4 font-mono text-[10px] font-medium tracking-[0.14em] text-white uppercase disabled:opacity-50"
             >
-              {optimistic === 'finished' ? 'Save dates' : 'Save as read'}
+              {notice ? 'Dates saved' : appendRead ? 'Save reread' : optimistic === 'finished' ? 'Save dates' : 'Save as read'}
             </button>
             {optimistic === 'finished' ? (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => choose(null)}
-                className="min-h-10 px-2 font-mono text-[10px] font-medium tracking-[0.14em] text-muted uppercase hover:text-ink disabled:opacity-50"
-              >
-                Remove from Read
-              </button>
+              <>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    setNotice(null)
+                    if (appendRead) {
+                      setAppendRead(false)
+                      setIncludeStart(Boolean(readingPeriod?.start))
+                      setPrecision(datePrecision(readingPeriod?.end))
+                      setStartedOn(readingPeriod?.start || today)
+                      setFinishedOn(readingPeriod?.end || today)
+                    } else {
+                      setAppendRead(true)
+                      setIncludeStart(false)
+                      setPrecision('day')
+                      setStartedOn(today)
+                      setFinishedOn(today)
+                    }
+                  }}
+                  className="min-h-10 px-2 font-mono text-[10px] font-medium tracking-[0.14em] text-muted uppercase hover:text-ink disabled:opacity-50"
+                >
+                  {appendRead ? 'Cancel reread' : 'Log another read'}
+                </button>
+                {!appendRead ? (
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => choose(null)}
+                    className="min-h-10 px-2 font-mono text-[10px] font-medium tracking-[0.14em] text-muted uppercase hover:text-ink disabled:opacity-50"
+                  >
+                    Remove from Read
+                  </button>
+                ) : null}
+              </>
             ) : (
               <button
                 type="button"
@@ -261,6 +310,12 @@ export function ShelfButtons({
               </button>
             )}
           </div>
+          {notice ? (
+            <p className="mt-3 flex items-center gap-2 text-sm text-ink" role="status" aria-live="polite">
+              <span aria-hidden="true">✓</span>
+              {notice}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {error ? <p role="alert" className="mt-3 text-sm text-muted">{error}</p> : null}

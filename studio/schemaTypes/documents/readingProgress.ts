@@ -1,4 +1,4 @@
-import {defineField, defineType} from 'sanity'
+import {defineArrayMember, defineField, defineType} from 'sanity'
 import {selectedEdition} from '../fields/selectedEdition'
 import {DocumentIcon} from '@sanity/icons'
 
@@ -75,6 +75,46 @@ export const readingProgress = defineType({
         if (!start || !end) return true
         return partialDateStart(start) <= partialDateEnd(end) || 'Started must be before Finished'
       }),
+    }),
+    defineField({
+      name: 'readingHistory',
+      title: 'Reading history',
+      type: 'array',
+      description: 'One entry for each time this reader finished the book.',
+      of: [
+        defineArrayMember({
+          name: 'readingPeriodEntry',
+          title: 'Reading period',
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'start',
+              title: 'Started',
+              type: 'string',
+              description: 'Optional. Use YYYY, YYYY-MM, or YYYY-MM-DD.',
+              validation: (rule) => rule
+                .regex(partialDatePattern, {name: 'partial date', invert: false})
+                .custom(validPartialDate),
+            }),
+            defineField({
+              name: 'end',
+              title: 'Finished',
+              type: 'string',
+              description: 'Use YYYY, YYYY-MM, or YYYY-MM-DD.',
+              validation: (rule) => rule
+                .required()
+                .regex(partialDatePattern, {name: 'partial date', invert: false})
+                .custom(validPartialDate),
+            }),
+          ],
+          validation: (rule) => rule.custom((period) => {
+            if (!period || typeof period !== 'object') return true
+            const {start, end} = period as {start?: string; end?: string}
+            if (!start || !end) return true
+            return partialDateStart(start) <= partialDateEnd(end) || 'Started must be before Finished'
+          }),
+        }),
+      ],
     }),
     defineField({
       name: 'status',

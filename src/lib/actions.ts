@@ -44,23 +44,38 @@ export async function setBookReview(
   revalidatePath('/')
 }
 
-export async function setReadingStatus(bookId: string, status: string | null, readingPeriod?: ReadingPeriod) {
+export async function setReadingStatus(
+  bookId: string,
+  status: string | null,
+  readingPeriod?: ReadingPeriod,
+  appendRead = false,
+) {
   const reader = await requireReader()
-  await saveBookStatus(writeClient(), reader.readerId, bookId, status, readingPeriod)
+  await saveBookStatus(writeClient(), reader.readerId, bookId, status, readingPeriod, appendRead)
   revalidatePath('/my-shelves')
   revalidatePath('/books/[slug]', 'page')
   revalidatePath('/search/[id]', 'page')
 }
 
 /** Shared entry point for web actions and the native HTTP API. */
-export async function setShelfStatus(book: ShelfBook, status: string | null, readingPeriod?: ReadingPeriod) {
+export async function setShelfStatus(
+  book: ShelfBook,
+  status: string | null,
+  readingPeriod?: ReadingPeriod,
+  appendRead = false,
+) {
   const target = shelfBookSchema.parse(book)
-  if (target.source === 'googleBooks') return setSearchReadingStatus(target.id, status, readingPeriod)
-  await setReadingStatus(target.id, status, readingPeriod)
+  if (target.source === 'googleBooks') return setSearchReadingStatus(target.id, status, readingPeriod, appendRead)
+  await setReadingStatus(target.id, status, readingPeriod, appendRead)
   return target.id
 }
 
-export async function setSearchReadingStatus(volumeId: string, status: string | null, readingPeriod?: ReadingPeriod) {
+export async function setSearchReadingStatus(
+  volumeId: string,
+  status: string | null,
+  readingPeriod?: ReadingPeriod,
+  appendRead = false,
+) {
   const reader = await requireReader()
   if (typeof volumeId !== 'string' || !GOOGLE_VOLUME_ID.test(volumeId)) throw new ReaderDataError('Invalid book ID.', 400, 'invalid_request')
   const parsed = status === null ? null : readingStatusSchema.parse(status)
@@ -69,7 +84,7 @@ export async function setSearchReadingStatus(volumeId: string, status: string | 
   const client = writeClient()
   const bookId = await resolveSearchBook(client, book, parsed !== null)
   if (bookId) {
-    await saveBookStatus(client, reader.readerId, bookId, parsed, readingPeriod)
+    await saveBookStatus(client, reader.readerId, bookId, parsed, readingPeriod, appendRead)
     if (parsed) {
       const ids = searchCatalogParams(book)
       const editionId = normalizeIsbn(ids.isbn13 || ids.isbn10) ? await ensureImportEdition(client, bookId, {
@@ -264,6 +279,7 @@ export async function getMyBooks() {
               "start": coalesce(readingPeriod.start, startedAt),
               "end": coalesce(readingPeriod.end, finishedAt)
             },
+            "readCount": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^._id][0].readCount,
             "authors": authors,
             "cover": ${shelfBookCoverProjection}
           }

@@ -61,6 +61,8 @@ export default async function SearchBookPage({params}: {params: Promise<{id: str
       catalog={catalog}
       signedIn={Boolean(reader)}
       status={state?.status ?? null}
+      readingPeriod={state?.readingPeriod ?? null}
+      rating={state?.rating ?? null}
     />
   )
 }
