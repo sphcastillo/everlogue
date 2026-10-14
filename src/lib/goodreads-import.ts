@@ -6,6 +6,7 @@ import {uniqueAuthorSlug} from './author-slug'
 import {slugify, stableId} from './validation'
 import {ensureImportEdition} from './import-edition'
 import {isbn13For, type EditionInput, type EditionMetadata} from './edition-metadata'
+import {goodreadsReadingFields} from './goodreads-reading-dates'
 
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 const isConflict = (error: unknown) => Boolean(error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 409)
@@ -121,8 +122,7 @@ export async function importGoodreadsBook(client: SanityClient, readerId: string
         _id: progressId, _type: 'readingProgress', reader: reference(readerId), book: reference(bookId),
         status: book.status, importSource: 'goodreads',
         ...(editionId ? {edition: reference(editionId)} : {}),
-        ...(book.finishedAt ? {finishedAt: book.finishedAt} : {}),
-        ...(book.readCount !== undefined ? {readCount: book.readCount} : {}),
+        ...goodreadsReadingFields(book),
       })
       .create({
         _id: stableId(['shelfEntry', shelfId, bookId]), _type: 'shelfEntry',

@@ -38,6 +38,14 @@ test('parses my rating and date read from Goodreads columns', () => {
   assert.equal(preview.books[0].finishedAt, '2021-03-04')
 })
 
+test('rejects a Date Added that would place reading start after Date Read', () => {
+  const preview = parseGoodreadsCsv(
+    'Title,Author,Exclusive Shelf,Date Added,Date Read\nOne,Author,read,2022/01/01,2021/12/31',
+  )
+  assert.equal(preview.books.length, 0)
+  assert.match(preview.issues[0].message, /Date Added must not be after Date Read/)
+})
+
 test('maps all three shelves without inventing reading dates', () => {
   const preview = parseGoodreadsCsv(header + '\n1,One,Author,,read,,,1\n2,Two,Author,,to-read,,,0\n3,Three,Author,,currently-reading,,,1')
   assert.deepEqual(preview.books.map((book) => book.status), ['finished', 'wantToRead', 'currentlyReading'])

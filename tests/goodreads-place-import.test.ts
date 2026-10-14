@@ -94,7 +94,13 @@ test('publishing a failed import places the book on the waiting reader’s shelf
   const entry = [...docs.values()].find((doc) => doc._type === 'shelfEntry')!
   assert.equal(ref(entry.book), 'book-1')
   assert.equal(ref(entry.shelf), 'shelf-reader-1-finished')
+  assert.equal(docs.get('progress-reader-1-book-1')?.startedAt, '2019-06-01')
   assert.equal(docs.get('progress-reader-1-book-1')?.finishedAt, '2020-01-02')
+  assert.deepEqual(docs.get('progress-reader-1-book-1')?.readingPeriod, {
+    _type: 'readingPeriod',
+    start: '2019-06-01',
+    end: '2020-01-02',
+  })
   assert.equal(docs.get('rating-reader-1-book-1')?.value, 4)
   assert.equal(docs.get('book-1')?.pendingImportPlacements, undefined)
   assert.ok(docs.get('failure-1')?.resolvedAt)

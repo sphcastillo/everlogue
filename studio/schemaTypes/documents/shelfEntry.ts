@@ -23,7 +23,9 @@ export const shelfEntry = defineType({
     }),
     defineField({
       name: 'addedAt',
+      title: 'Added to shelf at',
       type: 'datetime',
+      description: 'Shelf membership timestamp. Goodreads Date Added is also copied to reading progress as the start date.',
       validation: (rule) => rule.required(),
     }),
   ],

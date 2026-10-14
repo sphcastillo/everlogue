@@ -68,7 +68,19 @@ test('saves imported dates and correct shelf, preserving existing entries on rei
   const {client, docs} = database([{_id: 'existing-book', _type: 'book', title: book.title}])
   assert.equal((await importGoodreadsBook(client, 'reader-1', book)).status, 'imported')
   const progress = docs.get('progress-reader-1-existing-book')!
+  assert.equal(progress.startedAt, '2019-06-01')
   assert.equal(progress.finishedAt, '2020-01-02')
+  assert.deepEqual(progress.readingPeriod, {
+    _type: 'readingPeriod',
+    start: '2019-06-01',
+    end: '2020-01-02',
+  })
+  assert.deepEqual(progress.readingHistory, [{
+    _key: 'goodreads-2020-01-02',
+    _type: 'readingPeriodEntry',
+    start: '2019-06-01',
+    end: '2020-01-02',
+  }])
   assert.equal(progress.readCount, 2)
   const entry = [...docs.values()].find((doc) => doc._type === 'shelfEntry')!
   assert.equal(ref(entry.shelf), 'shelf-reader-1-finished')

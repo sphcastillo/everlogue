@@ -1,5 +1,6 @@
 import type {SanityClient} from '@sanity/client'
 import {stableId} from './validation'
+import {goodreadsReadingFields} from './goodreads-reading-dates'
 
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 
@@ -71,8 +72,12 @@ export async function placePendingGoodreadsImports(client: SanityClient, bookId:
           book: reference(id),
           status: placement.shelfStatus,
           importSource: 'goodreads',
-          ...(placement.finishedAt ? {finishedAt: placement.finishedAt} : {}),
-          ...(placement.readCount !== undefined ? {readCount: placement.readCount} : {}),
+          ...goodreadsReadingFields({
+            status: placement.shelfStatus,
+            addedAt: placement.addedAt,
+            finishedAt: placement.finishedAt,
+            readCount: placement.readCount,
+          }),
         })
         .createIfNotExists({
           _id: stableId(['shelfEntry', shelfId, id]),
@@ -138,8 +143,12 @@ export async function placeCatalogImportFailure(client: SanityClient, failureId:
         book: reference(bookId),
         status: failure.shelfStatus,
         importSource: 'goodreads',
-        ...(failure.finishedAt ? {finishedAt: failure.finishedAt} : {}),
-        ...(failure.readCount !== undefined ? {readCount: failure.readCount} : {}),
+        ...goodreadsReadingFields({
+          status: failure.shelfStatus,
+          addedAt: failure.addedAt,
+          finishedAt: failure.finishedAt,
+          readCount: failure.readCount,
+        }),
       })
       .createIfNotExists({
         _id: stableId(['shelfEntry', shelfId, bookId]),

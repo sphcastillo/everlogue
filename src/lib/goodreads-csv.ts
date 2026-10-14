@@ -27,6 +27,14 @@ export const goodreadsBookSchema = z.object({
   finishedAt: dateSchema.optional(),
   readCount: z.number().int().min(0).max(100000).optional(),
   publicationYear: z.number().int().min(1000).max(2100).optional(),
+}).superRefine((book, context) => {
+  if (book.addedAt && book.finishedAt && book.addedAt > book.finishedAt) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['addedAt'],
+      message: 'Date Added must not be after Date Read',
+    })
+  }
 })
 export type GoodreadsBook = z.infer<typeof goodreadsBookSchema>
 export type ImportIssue = {row: number; title: string; message: string}
@@ -121,7 +129,13 @@ export function parseGoodreadsCsv(text: string): GoodreadsPreview {
       seen.add(key)
       books.push(book)
     } catch (error) {
-      issues.push({row, title, message: error instanceof z.ZodError ? 'Invalid or missing book details.' : (error as Error).message})
+      issues.push({
+        row,
+        title,
+        message: error instanceof z.ZodError
+          ? error.issues[0]?.message || 'Invalid or missing book details.'
+          : (error as Error).message,
+      })
     }
   })
   return {books, issues, total: rows.length}
