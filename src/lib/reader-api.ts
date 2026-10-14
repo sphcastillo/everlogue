@@ -35,7 +35,7 @@ export const ratingRequest = z.object({
   value: ratingValueSchema.nullable(),
 }).strict()
 
-class RequestError extends Error {
+export class RequestError extends Error {
   constructor(message: string, readonly status: number, readonly code: string) {
     super(message)
   }
@@ -43,12 +43,9 @@ class RequestError extends Error {
 
 const MAX_BODY_BYTES = 8192
 
-export async function readReaderJson(request: Request): Promise<unknown> {
-  if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
-    throw new RequestError('Send application/json.', 415, 'unsupported_media_type')
-  }
+export async function readLimitedBody(request: Request, maxBytes: number) {
   const stream = request.body?.getReader()
-  if (!stream) throw new RequestError('Send a JSON object.', 400, 'invalid_request')
+  if (!stream) throw new RequestError('Send a request body.', 400, 'invalid_request')
   const chunks: Uint8Array[] = []
   let size = 0
   try {
@@ -56,18 +53,26 @@ export async function readReaderJson(request: Request): Promise<unknown> {
       const {done, value} = await stream.read()
       if (done) break
       size += value.byteLength
-      if (size > MAX_BODY_BYTES) {
+      if (size > maxBytes) {
         await stream.cancel()
-        throw new RequestError('Request body exceeds 8 KiB.', 413, 'request_too_large')
+        throw new RequestError(`Request body exceeds ${Math.round(maxBytes / 1024)} KiB.`, 413, 'request_too_large')
       }
       chunks.push(value)
     }
   } finally {
     stream.releaseLock()
   }
+  return Buffer.concat(chunks)
+}
+
+export async function readReaderJson(request: Request, maxBytes = MAX_BODY_BYTES): Promise<unknown> {
+  if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+    throw new RequestError('Send application/json.', 415, 'unsupported_media_type')
+  }
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
-  } catch {
+    return JSON.parse((await readLimitedBody(request, maxBytes)).toString('utf8'))
+  } catch (error) {
+    if (error instanceof RequestError) throw error
     throw new RequestError('Send valid JSON.', 400, 'invalid_request')
   }
 }

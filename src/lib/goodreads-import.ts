@@ -1,6 +1,13 @@
 import type {SanityClient} from '@sanity/client'
 import type {GoodreadsBook} from './goodreads-csv'
-import {lookupCatalogBook} from './catalog-book-match'
+import {classifyCatalogLookup} from './catalog-book-match'
+
+export class AmbiguousCatalogMatchError extends Error {
+  constructor(title: string) {
+    super(`“${title}” matches more than one catalog book, so it was not imported.`)
+    this.name = 'AmbiguousCatalogMatchError'
+  }
+}
 import {catalogImportKey} from './catalog-import-failure'
 import {uniqueAuthorSlug} from './author-slug'
 import {slugify, stableId} from './validation'
@@ -25,8 +32,9 @@ export async function ensureGoodreadsCatalogBook(client: SanityClient, book: Goo
   const find = () => client.fetch<string | null>(query, params, {cache: 'no-store'})
   const existing = await find()
   if (existing) return existing
-  const matched = await lookupCatalogBook(client, book)
-  if (matched) return matched._id
+  const classified = await classifyCatalogLookup(client, book)
+  if (classified.kind === 'ambiguous') throw new AmbiguousCatalogMatchError(book.title)
+  if (classified.kind === 'match') return classified.book._id
 
   let authorId = await client.fetch<string | null>(
     `*[_type == "author" && !(_id in path("drafts.**")) && lower(name) == $name][0]._id`,

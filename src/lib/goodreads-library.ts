@@ -72,3 +72,24 @@ export function partitionGoodreadsBooks(books: GoodreadsBook[], index: Map<strin
   return {owned, missing}
 }
 
+export function summarizeGoodreadsPreview(
+  preview: {books: GoodreadsBook[]; issues: {message: string}[]; total: number},
+  owned: GoodreadsBook[],
+  missing: GoodreadsBook[],
+) {
+  const duplicates = preview.issues.filter((issue) => /duplicate/i.test(issue.message)).length
+  return {
+    total: preview.total,
+    valid: preview.books.length,
+    matched: owned.length,
+    unmatched: missing.length,
+    duplicates,
+    invalid: preview.issues.length - duplicates,
+    shelves: {
+      finished: preview.books.filter((book) => book.status === 'finished').length,
+      wantToRead: preview.books.filter((book) => book.status === 'wantToRead').length,
+      currentlyReading: preview.books.filter((book) => book.status === 'currentlyReading').length,
+    },
+  }
+}
+

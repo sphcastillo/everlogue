@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
-import {catalogWorkKey, findMatchingCatalogBook} from '../src/lib/catalog-book-match'
+import {catalogWorkKey, classifyCatalogMatch, findMatchingCatalogBook} from '../src/lib/catalog-book-match'
 
 test('a Goodreads series suffix still matches the catalog title', () => {
   const match = findMatchingCatalogBook(
@@ -26,6 +26,19 @@ test('the same title by a different author is not a match', () => {
     ),
     null,
   )
+})
+
+test('ISBN wins; two title matches are ambiguous instead of a silent pick', () => {
+  const books = [
+    {_id: 'a', title: 'Shared Title', authors: ['Same Author']},
+    {_id: 'b', title: 'Shared Title', authors: ['Same Author'], isbn13: '9780306406157'},
+  ]
+  const isbn = classifyCatalogMatch({title: 'Shared Title', author: 'Same Author', isbn13: '9780306406157'}, books)
+  assert.equal(isbn.kind, 'match')
+  if (isbn.kind === 'match') assert.equal(isbn.book._id, 'b')
+  const ambiguous = classifyCatalogMatch({title: 'Shared Title', author: 'Same Author'}, books)
+  assert.equal(ambiguous.kind, 'ambiguous')
+  assert.equal(findMatchingCatalogBook({title: 'Shared Title', author: 'Same Author'}, books), null)
 })
 
 test('work keys collapse series text and punctuation', () => {

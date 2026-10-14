@@ -38,28 +38,46 @@ export function catalogWorkKey(title: string, author?: string | null) {
   return who ? `${work}|${who}` : `title:${work}`
 }
 
-export function findMatchingCatalogBook(request: CatalogMatchRequest, books: CatalogMatchCandidate[]) {
-  const exact = books.find((book) =>
-    (request.isbn13 && book.isbn13 === request.isbn13) ||
-    (request.isbn10 && book.isbn10 === request.isbn10) ||
-    (request.goodreadsId && book.goodreadsBookId === request.goodreadsId))
-  if (exact) return exact
-  const requestKey = catalogWorkKey(request.title, request.author)
-  for (const book of books) {
-    if (request.goodreadsId && book.goodreadsBookId === request.goodreadsId) return book
-    if (request.isbn13 && book.isbn13 === request.isbn13) return book
-    if (request.isbn10 && book.isbn10 === request.isbn10) return book
-    const authors = (book.authors ?? []).filter((author): author is string => Boolean(author?.trim()))
-    if (!book.title?.trim()) continue
-    if (!authors.length && catalogWorkTitle(book.title) === catalogWorkTitle(request.title)) return book
-    for (const author of authors) {
-      if (catalogWorkKey(book.title, author) === requestKey) return book
-    }
-  }
-  return null
+export type CatalogMatchResult =
+  | {kind: 'match'; book: CatalogMatchCandidate}
+  | {kind: 'ambiguous'; books: CatalogMatchCandidate[]}
+  | {kind: 'none'}
+
+function uniqueBooks(books: CatalogMatchCandidate[]) {
+  const seen = new Set<string>()
+  return books.filter((book) => {
+    if (seen.has(book._id)) return false
+    seen.add(book._id)
+    return true
+  })
 }
 
-export async function lookupCatalogBook(client: SanityClient, request: CatalogMatchRequest) {
+export function classifyCatalogMatch(request: CatalogMatchRequest, books: CatalogMatchCandidate[]): CatalogMatchResult {
+  const identifier = uniqueBooks(books.filter((book) =>
+    (request.isbn13 && book.isbn13 === request.isbn13) ||
+    (request.isbn10 && book.isbn10 === request.isbn10) ||
+    (request.goodreadsId && book.goodreadsBookId === request.goodreadsId)))
+  if (identifier.length === 1) return {kind: 'match', book: identifier[0]}
+  if (identifier.length > 1) return {kind: 'ambiguous', books: identifier}
+
+  const requestKey = catalogWorkKey(request.title, request.author)
+  const titled = uniqueBooks(books.filter((book) => {
+    if (!book.title?.trim()) return false
+    const authors = (book.authors ?? []).filter((author): author is string => Boolean(author?.trim()))
+    if (!authors.length) return catalogWorkTitle(book.title) === catalogWorkTitle(request.title)
+    return authors.some((author) => catalogWorkKey(book.title!, author) === requestKey)
+  }))
+  if (titled.length === 1) return {kind: 'match', book: titled[0]}
+  if (titled.length > 1) return {kind: 'ambiguous', books: titled}
+  return {kind: 'none'}
+}
+
+export function findMatchingCatalogBook(request: CatalogMatchRequest, books: CatalogMatchCandidate[]) {
+  const result = classifyCatalogMatch(request, books)
+  return result.kind === 'match' ? result.book : null
+}
+
+export async function classifyCatalogLookup(client: SanityClient, request: CatalogMatchRequest) {
   const title = request.title.toLowerCase()
   const bareTitle = catalogWorkTitle(request.title)
   const candidates = await client.fetch<CatalogMatchCandidate[]>(
@@ -79,5 +97,10 @@ export async function lookupCatalogBook(client: SanityClient, request: CatalogMa
     },
     {cache: 'no-store'},
   )
-  return findMatchingCatalogBook(request, candidates || [])
+  return classifyCatalogMatch(request, candidates || [])
+}
+
+export async function lookupCatalogBook(client: SanityClient, request: CatalogMatchRequest) {
+  const result = await classifyCatalogLookup(client, request)
+  return result.kind === 'match' ? result.book : null
 }
