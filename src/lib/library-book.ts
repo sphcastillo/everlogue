@@ -1,6 +1,6 @@
 import type {SanityClient} from '@sanity/client'
 import {ReaderDataError} from './reader-data-error'
-import {ratingValueSchema, readingStatusSchema, reviewBodySchema, reviewTitleSchema, reviewVisibilitySchema, stableId, type ReviewFields} from './validation'
+import {ratingValueSchema, readingPeriodSchema, readingStatusSchema, reviewBodySchema, reviewTitleSchema, reviewVisibilitySchema, stableId, type ReadingPeriod, type ReviewFields} from './validation'
 
 const reference = (_ref: string) => ({_type: 'reference', _ref})
 
@@ -76,8 +76,15 @@ export async function saveBookRating(client: SanityClient, readerId: string, boo
   }}).commit({visibility: 'sync'})
 }
 
-export async function saveBookStatus(client: SanityClient, readerId: string, bookId: string, status: string | null) {
+export async function saveBookStatus(
+  client: SanityClient,
+  readerId: string,
+  bookId: string,
+  status: string | null,
+  readingPeriod?: ReadingPeriod,
+) {
   const parsed = status === null ? null : readingStatusSchema.parse(status)
+  const parsedPeriod = parsed === 'finished' && readingPeriod ? readingPeriodSchema.parse(readingPeriod) : null
   await requireBook(client, bookId)
   const [progress, shelves, entries] = await Promise.all([
     client.fetch<{_id: string; edition?: {_type: 'reference'; _ref: string}} | null>(
@@ -110,7 +117,14 @@ export async function saveBookStatus(client: SanityClient, readerId: string, boo
       _id: progressId, _type: 'readingProgress', reader: reference(readerId), book: reference(bookId), status: parsed,
     })
     const date = new Date().toISOString().slice(0, 10)
-    tx.patch(progressId, (patch) => patch.set({status: parsed}).setIfMissing({
+    tx.patch(progressId, (patch) => patch.set({
+      status: parsed,
+      ...(parsedPeriod ? {
+        readingPeriod: {_type: 'readingPeriod', ...parsedPeriod},
+        ...(parsedPeriod.start?.length === 10 ? {startedAt: parsedPeriod.start} : {}),
+        ...(parsedPeriod.end.length === 10 ? {finishedAt: parsedPeriod.end} : {}),
+      } : {}),
+    }).setIfMissing({
       ...(parsed === 'currentlyReading' ? {startedAt: date} : {}),
       ...(parsed === 'finished' ? {finishedAt: date} : {}),
     }))

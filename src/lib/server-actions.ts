@@ -1,14 +1,14 @@
 'use server'
 
 import {lookupBookEdition, setSelectedEdition, castVote, clearProfileAvatar, createDiscussionPost, joinClub, setBookReview, setProfileAvatar, setRating, setReadingStatus, setSearchReadingStatus, setShelfStatus, setSpaceColor} from './actions'
-import {type ReviewFields, type ShelfBook} from './validation'
+import {type ReadingPeriod, type ReviewFields, type ShelfBook} from './validation'
 
-export async function saveShelfStatusAction(book: ShelfBook, status: string | null) {
-  await setShelfStatus(book, status)
+export async function saveShelfStatusAction(book: ShelfBook, status: string | null, readingPeriod?: ReadingPeriod) {
+  await setShelfStatus(book, status, readingPeriod)
 }
 
-export async function saveSearchStatusAction(volumeId: string, status: string | null) {
-  await setSearchReadingStatus(volumeId, status)
+export async function saveSearchStatusAction(volumeId: string, status: string | null, readingPeriod?: ReadingPeriod) {
+  await setSearchReadingStatus(volumeId, status, readingPeriod)
 }
 
 export async function saveRatingAction(bookId: string, value: number | null) {
@@ -22,8 +22,8 @@ export async function saveReviewAction(
   await setBookReview(bookId, review)
 }
 
-export async function saveStatusAction(bookId: string, status: string | null) {
-  await setReadingStatus(bookId, status)
+export async function saveStatusAction(bookId: string, status: string | null, readingPeriod?: ReadingPeriod) {
+  await setReadingStatus(bookId, status, readingPeriod)
 }
 
 export async function joinClubAction(clubId: string) {

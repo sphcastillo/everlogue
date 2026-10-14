@@ -216,6 +216,10 @@ export type ReadingProgress = {
   reader: ReaderProfileReference;
   book: BookReference;
   edition?: EditionReference;
+  readingPeriod?: {
+    start?: string;
+    end: string;
+  };
   status: "wantToRead" | "currentlyReading" | "finished";
   percent?: number;
   startedAt?: string;

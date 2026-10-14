@@ -13,7 +13,9 @@ export async function GET() {
         "title": book->title, "author": book->authors[0], "kind": shelf->kind, addedAt,
         "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^.book._ref][0].value,
         "isbn10": select(defined(edition) => edition->isbn10, book->isbn10), "isbn13": select(defined(edition) => edition->isbn13, book->isbn13),
-        "finishedAt": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^.book._ref][0].finishedAt,
+        "finishedAt": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^.book._ref][0]{
+          "value": coalesce(readingPeriod.end, finishedAt)
+        }.value,
         "readCount": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^.book._ref][0].readCount
       }`, {readerId: reader.readerId}, {cache: 'no-store'},
     )

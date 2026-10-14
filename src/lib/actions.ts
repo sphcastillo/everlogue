@@ -21,6 +21,7 @@ import {
   spaceColorSchema,
   stableId,
   workflowStatusSchema,
+  type ReadingPeriod,
   type ReviewFields,
   type ShelfBook,
 } from './validation'
@@ -43,23 +44,23 @@ export async function setBookReview(
   revalidatePath('/')
 }
 
-export async function setReadingStatus(bookId: string, status: string | null) {
+export async function setReadingStatus(bookId: string, status: string | null, readingPeriod?: ReadingPeriod) {
   const reader = await requireReader()
-  await saveBookStatus(writeClient(), reader.readerId, bookId, status)
+  await saveBookStatus(writeClient(), reader.readerId, bookId, status, readingPeriod)
   revalidatePath('/my-shelves')
   revalidatePath('/books/[slug]', 'page')
   revalidatePath('/search/[id]', 'page')
 }
 
 /** Shared entry point for web actions and the native HTTP API. */
-export async function setShelfStatus(book: ShelfBook, status: string | null) {
+export async function setShelfStatus(book: ShelfBook, status: string | null, readingPeriod?: ReadingPeriod) {
   const target = shelfBookSchema.parse(book)
-  if (target.source === 'googleBooks') return setSearchReadingStatus(target.id, status)
-  await setReadingStatus(target.id, status)
+  if (target.source === 'googleBooks') return setSearchReadingStatus(target.id, status, readingPeriod)
+  await setReadingStatus(target.id, status, readingPeriod)
   return target.id
 }
 
-export async function setSearchReadingStatus(volumeId: string, status: string | null) {
+export async function setSearchReadingStatus(volumeId: string, status: string | null, readingPeriod?: ReadingPeriod) {
   const reader = await requireReader()
   if (typeof volumeId !== 'string' || !GOOGLE_VOLUME_ID.test(volumeId)) throw new ReaderDataError('Invalid book ID.', 400, 'invalid_request')
   const parsed = status === null ? null : readingStatusSchema.parse(status)
@@ -68,7 +69,7 @@ export async function setSearchReadingStatus(volumeId: string, status: string | 
   const client = writeClient()
   const bookId = await resolveSearchBook(client, book, parsed !== null)
   if (bookId) {
-    await saveBookStatus(client, reader.readerId, bookId, parsed)
+    await saveBookStatus(client, reader.readerId, bookId, parsed, readingPeriod)
     if (parsed) {
       const ids = searchCatalogParams(book)
       const editionId = normalizeIsbn(ids.isbn13 || ids.isbn10) ? await ensureImportEdition(client, bookId, {
@@ -102,6 +103,7 @@ export type ReaderBookState = {
   editionId: string | null
   rating: number | null
   status: string | null
+  readingPeriod: ReadingPeriod | null
   dateRead: string | null
   dateAdded: string | null
   readCount: number | null
@@ -127,6 +129,7 @@ const emptyReaderBookState: ReaderBookState = {
   editionId: null,
   rating: null,
   status: null,
+  readingPeriod: null,
   dateRead: null,
   dateAdded: null,
   readCount: null,
@@ -151,6 +154,7 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
       editionId?: string | null
       edition?: {isbn10?: string; isbn13?: string; publicationDate?: string} | null
       status?: string | null
+      readingPeriod?: ReadingPeriod | null
       finishedAt?: string | null
       readCount?: number | null
       importSource?: string | null
@@ -169,7 +173,7 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
       "rating": *[_type == "rating" && reader._ref == $readerId && book._ref == $bookId][0].value,
       "review": *[_type == "review" && reader._ref == $readerId && book._ref == $bookId][0]{title, body, hasSpoilers, visibility},
       "progress": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == $bookId][0]{
-        status, finishedAt, readCount, importSource, "editionId": edition._ref, edition->{isbn10, isbn13, publicationDate}
+        status, readingPeriod, finishedAt, readCount, importSource, "editionId": edition._ref, edition->{isbn10, isbn13, publicationDate}
       },
       "addedAt": *[_type == "shelfEntry" && book._ref == $bookId && shelf->owner._ref == $readerId] | order(addedAt desc)[0].addedAt,
       "book": *[_id == $bookId][0]{
@@ -187,7 +191,12 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
 
   const rating = data?.rating ?? null
   const status = data?.progress?.status ?? null
-  const dateRead = data?.progress?.finishedAt ?? null
+  const readingPeriod = data?.progress?.readingPeriod?.end
+    ? data.progress.readingPeriod
+    : data?.progress?.finishedAt
+      ? {end: data.progress.finishedAt}
+      : null
+  const dateRead = readingPeriod?.end ?? null
   const dateAdded = data?.addedAt ?? null
   const readCount = data?.progress?.readCount ?? null
   const importSource = data?.progress?.importSource ?? null
@@ -207,6 +216,7 @@ export const getReaderBookState = cache(async function getReaderBookState(bookId
     editionId: data?.progress?.editionId ?? null,
     rating,
     status,
+    readingPeriod,
     dateRead,
     dateAdded,
     readCount,
@@ -239,7 +249,7 @@ export async function getMyBooks() {
         _id,
         name,
         kind,
-        "entries": *[_type == "shelfEntry" && shelf._ref == ^._id] | order(addedAt desc){
+        "entries": *[_type == "shelfEntry" && shelf._ref == ^._id]{
           _id,
           addedAt,
           "editionId": edition._ref,
@@ -250,10 +260,14 @@ export async function getMyBooks() {
             publishedDate,
             "myRating": *[_type == "rating" && reader._ref == $readerId && book._ref == ^._id][0].value,
             "percent": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^._id][0].percent,
+            "readingPeriod": *[_type == "readingProgress" && reader._ref == $readerId && book._ref == ^._id][0]{
+              "start": coalesce(readingPeriod.start, startedAt),
+              "end": coalesce(readingPeriod.end, finishedAt)
+            },
             "authors": authors,
             "cover": ${shelfBookCoverProjection}
           }
-        }
+        } | order(addedAt desc)
       },
       "ratings": *[_type == "rating" && reader._ref == $readerId]{
         value,

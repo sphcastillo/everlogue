@@ -62,6 +62,11 @@ test('add, repeat, move and remove share web rules and preserve edition/history/
   assert.deepEqual(f.docs.get('shelfEntry-shelf-reader-a-currentlyReading-book')?.edition, reference('edition'))
   const library = (await (await f.library.GET(get('library'))).json()).library
   assert.equal(library.shelves.find((s: {kind: string}) => s.kind === 'currentlyReading').entries[0].editionId, 'edition')
+  privateResponse(await f.shelf.PUT(jsonRequest('shelf-status', {
+    ...shelfBody('finished'),
+    readingPeriod: {start: '2015-05', end: '2015-06'},
+  })))
+  assert.deepEqual(progress.readingPeriod, {_type: 'readingPeriod', start: '2015-05', end: '2015-06'})
   // Web actions use the same entry point and mutations.
   await f.web.saveShelfStatusAction({source: 'catalog', id: 'book'}, 'finished')
   assert.equal(progress.status, 'finished')
@@ -148,7 +153,17 @@ test('Google Books removal does not import a missing work; adding it twice reuse
 
 test('invalid JSON, null/array bodies, invalid statuses, origins and large bodies fail safely', async () => {
   const f = await apiFixture()
-  for (const body of [null, [], {}, shelfBody('custom'), shelfBody('read'), {book: {source: 'catalog', id: ''}, status: 'finished'}]) {
+  for (const body of [
+    null,
+    [],
+    {},
+    shelfBody('custom'),
+    shelfBody('read'),
+    {book: {source: 'catalog', id: ''}, status: 'finished'},
+    {...shelfBody('currentlyReading'), readingPeriod: {end: '2020'}},
+    {...shelfBody('finished'), readingPeriod: {end: '2999'}},
+    {...shelfBody('finished'), readingPeriod: {start: '2021', end: '2020'}},
+  ]) {
     privateResponse(await f.shelf.PUT(jsonRequest('shelf-status', body)), 400)
   }
   privateResponse(await f.shelf.PUT(new Request(get('shelf-status'), {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: '{'})), 400)

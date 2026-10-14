@@ -181,6 +181,7 @@ async function BookPageLibrary({bookId, signedIn}: {bookId: string; signedIn: bo
       bookId={bookId}
       signedIn={signedIn}
       status={state.status}
+      readingPeriod={state.readingPeriod}
       rating={state.rating}
       review={state.review}
       editions={editions}

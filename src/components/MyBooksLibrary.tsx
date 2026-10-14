@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {useMemo, useState} from 'react'
 import {LibraryBookCover} from './LibraryBookCover'
 import type {CoverSource} from './BookCover'
+import type {ReadingPeriod} from '@/lib/validation'
 
 export type LibraryBook = {
   _id: string
@@ -13,13 +14,14 @@ export type LibraryBook = {
   cover?: CoverSource | null
   myRating?: number | null
   percent?: number | null
+  readingPeriod?: ReadingPeriod | null
 }
 
 export type LibraryShelf = {
   _id: string
   name: string
   kind: string
-  entries?: {book?: LibraryBook | null}[]
+  entries?: {addedAt?: string | null; book?: LibraryBook | null}[]
 }
 
 type Filter = 'all' | 'currentlyReading' | 'finished' | 'wantToRead'
@@ -47,7 +49,15 @@ function pad(count: number) {
 }
 
 function booksOn(shelf?: LibraryShelf | null) {
-  return (shelf?.entries || []).flatMap((entry) => (entry.book ? [entry.book] : []))
+  const entries = [...(shelf?.entries || [])]
+  if (shelf?.kind === 'finished') {
+    entries.sort((a, b) => {
+      const aDate = a.book?.readingPeriod?.end || a.addedAt || ''
+      const bDate = b.book?.readingPeriod?.end || b.addedAt || ''
+      return bDate.localeCompare(aDate)
+    })
+  }
+  return entries.flatMap((entry) => (entry.book ? [entry.book] : []))
 }
 
 function normalize(value: string) {
@@ -69,6 +79,24 @@ function matchesQuery(book: LibraryBook, query: string) {
 
 function formatRating(value: number) {
   return `${value.toFixed(1)} / 5`
+}
+
+function formatPartialDate(value: string) {
+  if (value.length === 4) return value
+  const complete = value.length === 7 ? `${value}-01` : value
+  const date = new Date(`${complete}T00:00:00.000Z`)
+  if (Number.isNaN(date.valueOf())) return value
+  return new Intl.DateTimeFormat('en-US', {
+    ...(value.length === 7
+      ? {month: 'long' as const, year: 'numeric' as const}
+      : {dateStyle: 'medium' as const}),
+    timeZone: 'UTC',
+  }).format(date)
+}
+
+function formatReadPeriod(period: ReadingPeriod) {
+  const end = formatPartialDate(period.end)
+  return period.start ? `${formatPartialDate(period.start)} – ${end}` : end
 }
 
 export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
@@ -256,6 +284,7 @@ export function MyBooksLibrary({shelves}: {shelves: LibraryShelf[]}) {
               view={view}
               showProgress={section.kind === 'currentlyReading'}
               showRating={section.kind === 'finished'}
+              showReadDate={section.kind === 'finished'}
             />
           )
         })}
@@ -285,6 +314,7 @@ function ShelfSection({
   view,
   showProgress = false,
   showRating = false,
+  showReadDate = false,
 }: {
   title: string
   count: number
@@ -293,6 +323,7 @@ function ShelfSection({
   view: View
   showProgress?: boolean
   showRating?: boolean
+  showReadDate?: boolean
 }) {
   return (
     <section>
@@ -312,6 +343,7 @@ function ShelfSection({
                 view={view}
                 showProgress={showProgress}
                 showRating={showRating}
+                showReadDate={showReadDate}
               />
             </li>
           ))}
@@ -328,11 +360,13 @@ function LibraryBookCard({
   view,
   showProgress,
   showRating,
+  showReadDate,
 }: {
   book: LibraryBook
   view: View
   showProgress: boolean
   showRating: boolean
+  showReadDate: boolean
 }) {
   const href = book.slug ? `/books/${book.slug}` : '#'
   const authors = book.authors?.filter(Boolean).join(', ') || 'Author unknown'
@@ -352,6 +386,9 @@ function LibraryBookCard({
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{book.title}</span>
           <span className="mt-0.5 block truncate text-sm text-muted">{authors}</span>
+          {showReadDate && book.readingPeriod?.end ? (
+            <span className="mt-1 block text-xs text-muted">Read {formatReadPeriod(book.readingPeriod)}</span>
+          ) : null}
         </span>
         {showRating && typeof book.myRating === 'number' ? (
           <span className="shrink-0 text-sm text-muted">★ {formatRating(book.myRating)}</span>
@@ -373,6 +410,9 @@ function LibraryBookCard({
       />
       <p className="mt-3 line-clamp-2 text-[0.95rem] leading-snug font-medium tracking-[-0.01em]">{book.title}</p>
       <p className="mt-0.5 truncate text-sm text-muted">{authors}</p>
+      {showReadDate && book.readingPeriod?.end ? (
+        <p className="mt-1 text-xs text-muted">Read {formatReadPeriod(book.readingPeriod)}</p>
+      ) : null}
       {showProgress && percent !== null ? (
         <p className="mt-2.5 flex items-center gap-2 text-[11px] text-muted">
           <span className="tabular-nums">{Math.round(percent)}%</span>

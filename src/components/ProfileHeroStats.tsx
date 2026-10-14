@@ -37,18 +37,30 @@ export function ProfileHeroStats({
     <dl className="flex gap-8 sm:gap-12">
       <div className="text-right">
         <dt className="sr-only">Ratings</dt>
-        <dd className="font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(ratings)}</dd>
-        <p className="mt-2 font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Ratings</p>
+        <dd>
+          <a href="#profile-ratings" className="group block">
+            <span className="block font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(ratings)}</span>
+            <span className="mt-2 block font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase group-hover:text-ink">Ratings</span>
+          </a>
+        </dd>
       </div>
       <div className="text-right">
         <dt className="sr-only">Reviews</dt>
-        <dd className="font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(reviews)}</dd>
-        <p className="mt-2 font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Reviews</p>
+        <dd>
+          <a href="#profile-reviews" className="group block">
+            <span className="block font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(reviews)}</span>
+            <span className="mt-2 block font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase group-hover:text-ink">Reviews</span>
+          </a>
+        </dd>
       </div>
       <div className="text-right">
         <dt className="sr-only">Recommendations</dt>
-        <dd className="font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(recommendationCount)}</dd>
-        <p className="mt-2 font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Recommendations</p>
+        <dd>
+          <a href="#profile-recommendations" className="group block">
+            <span className="block font-display text-[1.85rem] leading-none font-black tracking-[-0.06em]">{pad(recommendationCount)}</span>
+            <span className="mt-2 block font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase group-hover:text-ink">Recommendations</span>
+          </a>
+        </dd>
       </div>
     </dl>
   )

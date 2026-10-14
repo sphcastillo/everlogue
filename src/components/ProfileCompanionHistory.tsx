@@ -90,7 +90,7 @@ export function ProfileCompanionHistory({
   }
 
   return (
-    <section className="mt-16">
+    <section id="profile-recommendations" className="mt-16 scroll-mt-40">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-(--line) pb-3">
         <h2 className="font-display text-[1.45rem] leading-none font-black tracking-[-0.04em]">
           Reading companion recommendations

@@ -7,6 +7,14 @@ import {fillFor, formatRating, StarGlyph} from './StarDisplay'
 
 type HalfStar = (typeof HALF_STARS)[number]
 
+const RATING_GUIDE = [
+  {stars: 5, description: 'It was amazing'},
+  {stars: 4, description: 'Really liked it'},
+  {stars: 3, description: 'Liked it'},
+  {stars: 2, description: 'It was OK'},
+  {stars: 1, description: "Didn't like it"},
+] as const
+
 export function StarRating({
   bookId,
   value,
@@ -114,6 +122,17 @@ export function StarRating({
           Clear rating
         </button>
       </div>
+      <aside className="mt-5 max-w-md border border-(--line) bg-paper p-4" aria-label="Rating guide">
+        <p className="font-mono text-[10px] font-medium tracking-[0.16em] text-muted uppercase">Rating guide</p>
+        <dl className="mt-3 grid gap-2">
+          {RATING_GUIDE.map(({stars, description}) => (
+            <div key={stars} className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-3 text-sm">
+              <dt className="font-semibold text-ink">{stars} {stars === 1 ? 'star' : 'stars'}</dt>
+              <dd className="text-muted">{description}</dd>
+            </div>
+          ))}
+        </dl>
+      </aside>
     </div>
   )
 }

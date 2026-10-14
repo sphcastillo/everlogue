@@ -127,6 +127,25 @@ test('re-saving and moving a migrated book preserves imported reading history', 
   assert.equal([...docs.values()].filter((doc) => doc._type === 'shelfEntry').length, 0)
 })
 
+test('Read status accepts partial dates and ranges and rejects future dates', async () => {
+  const {docs, client} = database()
+  for (const end of ['2012', '2012-04', '2012-04-15']) {
+    await saveBookStatus(client, 'reader', 'book-new', 'finished', {end})
+    assert.equal((docs.get('progress-reader-old')?.readingPeriod as {end: string}).end, end)
+  }
+  await saveBookStatus(client, 'reader', 'book-new', 'finished', {start: '2011-10', end: '2012'})
+  assert.deepEqual(docs.get('progress-reader-old')?.readingPeriod, {
+    _type: 'readingPeriod',
+    start: '2011-10',
+    end: '2012',
+  })
+  await assert.rejects(
+    saveBookStatus(client, 'reader', 'book-new', 'finished', {end: '2999'}),
+    /cannot be in the future/,
+  )
+  assert.equal((docs.get('progress-reader-old')?.readingPeriod as {end: string}).end, '2012')
+})
+
 test('rejects invalid statuses before changing shelves', async () => {
   const {docs, client} = database()
   await assert.rejects(saveBookStatus(client, 'reader', 'book-new', 'invalid'))

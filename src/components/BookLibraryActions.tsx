@@ -6,12 +6,14 @@ import {BookReviewForm, type BookReviewValue} from './BookReviewForm'
 import {ShelfButtons} from './ShelfButtons'
 import {BookEditions} from './BookEditions'
 import type {BookEdition} from '@/lib/book-editions'
+import type {ReadingPeriod} from '@/lib/validation'
 import {StarRating} from './StarRating'
 
 export function BookLibraryActions({
   bookId,
   signedIn,
   status,
+  readingPeriod,
   rating,
   review,
   editions = [],
@@ -22,6 +24,7 @@ export function BookLibraryActions({
   editionId?: string | null
   signedIn: boolean
   status: string | null
+  readingPeriod?: ReadingPeriod | null
   rating: number | null
   review: BookReviewValue | null
 }) {
@@ -31,7 +34,13 @@ export function BookLibraryActions({
 
   return (
     <>
-      <ShelfButtons bookId={bookId} status={shelf} signedIn={signedIn} onStatusChange={setShelf} />
+      <ShelfButtons
+        bookId={bookId}
+        status={shelf}
+        readingPeriod={readingPeriod}
+        signedIn={signedIn}
+        onStatusChange={setShelf}
+      />
       {!signedIn ? (
         <div className="mt-5 flex flex-col gap-4 border border-(--line) bg-paper p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex items-start gap-3">

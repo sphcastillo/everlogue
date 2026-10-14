@@ -2,7 +2,7 @@ import 'server-only'
 import {z, ZodError} from 'zod'
 import {getOptionalReader, privateHeaders, type ReaderSession} from './reader'
 import {ReaderDataError} from './reader-data-error'
-import {ratingValueSchema, readingStatusSchema, shelfBookSchema} from './validation'
+import {ratingValueSchema, readingPeriodSchema, readingStatusSchema, shelfBookSchema} from './validation'
 
 // Strict objects reject identity/document overrides rather than silently ignoring them.
 export const shelfStatusRequest = z.object({
@@ -11,7 +11,16 @@ export const shelfStatusRequest = z.object({
     shelfBookSchema.options[1].strict(),
   ]),
   status: readingStatusSchema.nullable(),
-}).strict()
+  readingPeriod: readingPeriodSchema.optional(),
+}).strict().superRefine((value, context) => {
+  if (value.readingPeriod && value.status !== 'finished') {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['readingPeriod'],
+      message: 'Reading period requires Read status',
+    })
+  }
+})
 
 export const ratingRequest = z.object({
   bookId: z.string().trim().min(1),

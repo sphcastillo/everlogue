@@ -63,7 +63,7 @@ export default async function ProfilePage() {
         initialHasHistory={companionHistory.hasHistory}
       />
 
-      <section className="mt-16">
+      <section id="profile-ratings" className="mt-16 scroll-mt-40">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-(--line) pb-3">
           <h2 className="flex items-baseline gap-3 font-display text-[1.45rem] leading-none font-black tracking-[-0.04em]">
             Ratings
@@ -109,7 +109,7 @@ export default async function ProfilePage() {
         )}
       </section>
 
-      <section className="mt-16">
+      <section id="profile-reviews" className="mt-16 scroll-mt-40">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-(--line) pb-3">
           <h2 className="flex items-baseline gap-3 font-display text-[1.45rem] leading-none font-black tracking-[-0.04em]">
             Reviews
