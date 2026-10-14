@@ -139,7 +139,7 @@ export async function getCompanionProfileHistory(readerId: string) {
     message.role === 'assistant' ? recommendationRoutes(message.text) : [],
   )
   const routes = [...new Set(messageRoutes.flat())]
-  if (!routes.length) return {groups: [], hasHistory: messages.length > 0}
+  if (!routes.length) return {groups: [], hasHistory: messages.length > 0, count: 0}
 
   const books = await privateClient.fetch<CompanionRecommendation[]>(
     COMPANION_RECOMMENDATIONS_QUERY,
